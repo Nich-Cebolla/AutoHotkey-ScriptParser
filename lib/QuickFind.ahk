@@ -1,15 +1,15 @@
-﻿/*
+/*
     Github: https://github.com/Nich-Cebolla/AutoHotkey-QuickFind
     Author: Nich-Cebolla
-    Version: 1.2.0
+    Version: 1.2.1
     License: MIT
 */
 
 class QuickFind {
     static __New() {
         if this.Prototype.__Class == 'QuickFind' {
-            this.WordValueCache := Map()
-            this.WordValueCache.CaseSense := false
+            this.__WordValueCache := Map()
+            this.__WordValueCache.CaseSense := false
         }
     }
 
@@ -808,51 +808,63 @@ class QuickFind {
     /**
      * @description - A function that's compatible with `QuickFind` that can be used to search
      * an array that is sorted alphabetically for an input word. This has (a degree of) accuracy up
-     * to 10 characters. Any characters past 10 are ignored. To use this with `QuickFind`, you want
-     * to create a `BoundFunc` using `ObjBindMethod. Here's how:
+     * to 10 characters. Any characters past 10 are ignored. This function ignores case.
+     * To use this with `QuickFind`, you want to create a `BoundFunc` using `ObjBindMethod.
+     * Here's how:
      * @example
-        GetWordValue := ObjBindMethod(QuickFind, 'GetWordValue', true) ; true to use cache
-        ; or
-        GetWordValue := ObjBindMethod(QuickFind, 'GetWordValue', false) ; false to not use cache
+        GetWordValue := ObjBindMethod(QuickFind, 'GetWordValue')
+        Index := QuickFind(MyArr, 'platypus', , , , GetWordValue)
      * @
-     * @param {Boolean} [UseCache=true] - When true, word values are cached and recalled from the
-     * cache. When false, word values are always calculated.
      * @param {String} Word - The input word.
      * @returns {Float} - A number that can be used for various sorting operations.
      */
-    static GetWordValue(UseCache, Word, *) {
-        static Cache := QuickFind.WordValueCache
+    static GetWordValue(Word, *) {
         local n := 0
-        if UseCache {
-            if Cache.Has(Word) {
-                return Cache.Get(Word)
-            }
-            _Process()
-            Cache.Set(Word, n)
-        } else {
-            _Process()
+        for c in StrSplit(StrUpper(SubStr(Word, 1, 10))) {
+            if Ord(c) >= 123
+                n += (Ord(c) - 58) / 68 ** A_Index
+            else
+                n += (Ord(c) - 32) / 68 ** A_Index
         }
         return n
+    }
 
-        _Process() {
-            for c in StrSplit(StrUpper(Word)) {
-                if Ord(c) >= 123
-                    n += (Ord(c) - 58) / 68 ** A_Index
-                else
-                    n += (Ord(c) - 32) / 68 ** A_Index
-                if A_Index >= 10 ; Accuracy is completely lost around 10 characters.
-                    break
-            }
+    /**
+     * @description - A function that's compatible with `QuickFind` that can be used to search
+     * an array that is sorted alphabetically for an input word. This is the same as
+     * `QuickFind.GetWordValue`, but it also uses a cache to store word values to accelerate
+     * processing. If you need to clear some or all of the cache to reclaim some memory, the cache
+     * is accessible from `QuickFind.WordValueCache`.
+     * {@link https://www.autohotkey.com/docs/v2/lib/Map.htm}
+     * @example
+        QuickFind.WordValueCache.Clear() ; Clear the cache.
+        QuickFind.WordValueCache.Capacity := 5000 ; Set the cache size to 5000 (items).
+     * @
+     * @param {String} Word - The input word.
+     * @returns {Float} - A number that can be used for various sorting operations.
+     */
+    static GetWordValueUseCache(Word, *) {
+        static Cache := QuickFind.WordValueCache
+        if Cache.Has(Word) {
+            return Cache.Get(Word)
         }
+        local n := 0
+        for c in StrSplit(StrUpper(SubStr(Word, 1, 10))) {
+            if Ord(c) >= 123
+                n += (Ord(c) - 58) / 68 ** A_Index
+            else
+                n += (Ord(c) - 32) / 68 ** A_Index
+        }
+        Cache.Set(Word, n)
+        return n
     }
     ;@endregion
 
 
     /**
-     * @property {Map} QuickFind.WordValueCache - A cache used by `GetWordValue`. This gets
-     * overridden at runtime.
+     * @property {Map} QuickFind.WordValueCache - A cache used by `GetWordValueUseCache`.
      */
-    static WordValueCache := ''
+    static WordValueCache => this.__WordValueCache
 
 
     ;@region Func
@@ -862,7 +874,7 @@ class QuickFind {
         ;@region Call
         /**
          * @description - Initializes the needed values that are initialized at the start of
-         * `QuickFind`, then returns a closure that can be called repeadly to search the input
+         * `QuickFind`, then returns a closure that can be called repeatedly to search the input
          * array. This will perform slightly better compared to calling `QuickFind` multiple times
          * for the same input array.
          * - The array does not need to have the same values in it each time the function is called,
@@ -1221,7 +1233,7 @@ class QuickFind {
                     ; If `Value` < <current value> and if GT, then we are already at an index that
                     ; satisfies the condition, but we do not know for sure that it is the first index.
                     ; So we must search toward `Value` until finding an index that does not
-                    ; satisfy the condition. In this case we search agains the direction of ascent.
+                    ; satisfy the condition. In this case we search against the direction of ascent.
                     Previous := i
                     loop i - IndexStart {
                         if Arr.Has(--i) {
