@@ -65,7 +65,7 @@ class ComponentBase {
     Text => this.Script.Text[this.Pos, this.Length]
     TextFull => this.Script.TextFull[this.Pos, this.Length]
     TextBody => this.PosBody ? this.Script.Text[this.PosBody, this.LenBody] : ''
-    TextBodyFull => this.PosBOdy ? this.Script.TextFull[this.PosBody, this.Lenbody] : ''
+    TextBodyFull => this.PosBody ? this.Script.TextFull[this.PosBody, this.Lenbody] : ''
     TextRemoved => this.Removed ? this.Removed.Match['text'] : ''
     TextReplacement => this.Removed ? this.Removed.Replacement : ''
 
@@ -73,7 +73,7 @@ class ComponentBase {
     static __New() {
         if this.Prototype.__Class == 'ComponentBase' {
             Proto := this.Prototype
-            for Prop in ['Removed', 'PosEnd', 'Name', 'Stack', 'LenBody', 'AltName'] {
+            for Prop in ['Removed', 'Name', 'Stack', 'LenBody', 'AltName'] {
                 Proto.DefineProp(Prop, { Value: '' })
             }
         }

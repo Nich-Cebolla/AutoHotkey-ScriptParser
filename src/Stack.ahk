@@ -77,7 +77,7 @@ class ParseStack extends Array {
         static Call(Name, Pos, ParentContext, RecursiveOffset) {
             ObjSetBase(context := {
                 Name: Name
-              , Pos: Pos + ParentContext.RecursiveOffset - 1
+              , Pos: Pos + ParentContext.RecursiveOffset
               , RecursiveOffset: RecursiveOffset
             }, ParentContext)
             return context

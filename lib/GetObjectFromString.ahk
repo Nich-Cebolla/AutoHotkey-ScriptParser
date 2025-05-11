@@ -8,46 +8,46 @@
  * @returns {Object} - The object reference.
  * @example
  *
-    Obj := {
-        Prop1: [1, 2, Map(
-                'key1', 'value1',
-                'key2', {prop2: 2, prop3: [3, 4]}
-            )
-        ]
-    }
-    Path := 'obj.prop1[3]["key2"].prop3'
-    ObjReference := GetObjectFromString(Path)
-    OutputDebug(ObjReference[2]) ; 4
+ *  Obj := {
+ *      Prop1: [1, 2, Map(
+ *              'key1', 'value1',
+ *              'key2', {prop2: 2, prop3: [3, 4]}
+ *          )
+ *      ]
+ *  }
+ *  Path := 'obj.prop1[3]["key2"].prop3'
+ *  ObjReference := GetObjectFromString(Path)
+ *  OutputDebug(ObjReference[2]) ; 4
  * @
  * This is compatible with class references.
  * @example
  *
-    class Test {
-        class NestedClass {
-            InstanceProp {
-                Get{
-                    return ['Val1', { Prop: 'Hello, world!' }]
-                }
-            }
-        }
-    }
-    Path := 'Test.NestedClass.Prototype.InstanceProp[2]'
-    Obj := GetObjectFromString(Path)
-    OutputDebug(Obj.Prop) ; Hello, world!
+ *  class Test {
+ *      class NestedClass {
+ *          InstanceProp {
+ *              Get{
+ *                  return ['Val1', { Prop: 'Hello, world!' }]
+ *              }
+ *          }
+ *      }
+ *  }
+ *  Path := 'Test.NestedClass.Prototype.InstanceProp[2]'
+ *  Obj := GetObjectFromString(Path)
+ *  OutputDebug(Obj.Prop) ; Hello, world!
  * @
  * Using an initial object.
  * @example
-    Obj := {
-        Prop1: [1, 2, Map(
-                'key1', 'value1',
-                'key2', {prop2: 2, prop3: [3, 4]}
-            )
-        ]
-    }
-    Path := '[3]["key2"].prop3'
-    Arr := Obj.Prop1
-    InnerArr := GetObjectFromString(Path, Arr)
-    OutputDebug(InnerArr[2]) ; 4
+ *  Obj := {
+ *      Prop1: [1, 2, Map(
+ *              'key1', 'value1',
+ *              'key2', {prop2: 2, prop3: [3, 4]}
+ *          )
+ *      ]
+ *  }
+ *  Path := '[3]["key2"].prop3'
+ *  Arr := Obj.Prop1
+ *  InnerArr := GetObjectFromString(Path, Arr)
+ *  OutputDebug(InnerArr[2]) ; 4
  * @
  *
  */

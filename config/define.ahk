@@ -1,6 +1,6 @@
 ﻿
 /** @var - The replacement character used when substituting a string. */
-SP_REPLACEMENT := Chr(0xFFFD) ; Replacement char
+SP_REPLACEMENT := Chr(0xFFFC) ; Replacement char
 
 /** Patterns */
 
@@ -209,7 +209,7 @@ SPP_ACCESSOR := (
     '(?<text>'
         '{}\s*'
         '(?:'
-            '(?<bracket>\{([^}{]++|(?&bracket))*\})'
+            '(?<body>\{([^}{]++|(?&body))*\})'
         '|'
             '(?<arrow>=>)'
             '(?<body>.+)'

@@ -137,7 +137,7 @@ class Ahk {
                     if Match['arrow'] {
                         txt := this.TextBody
                         ParseContinuationSection(&txt, Match.Pos['text'], '=>'
-                        , &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement)
+                        , , &Body, &LenBody, &FullStatement, &LenFullStatement)
                     } else {
                         FullStatement := Match['text']
                         LenFullStatement := Match.Len['text']
@@ -150,16 +150,26 @@ class Ahk {
                     } else {
                         ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
                     }
-                    x1 := this.Stack.RecursiveOffset
-                    bpos := Match.Pos['body']
                     Stack := this.Script.Stack.Add(this.Stack, Name, Match.Pos['text'], Match.Pos['body'] + this.Stack.RecursiveOffset - 1)
                     if Name == 'Get' {
                         Constructor := this.Script.CollectionList[SPC_GETTER].Constructor
                     } else {
                         Constructor := this.Script.CollectionList[SPC_SETTER].Constructor
                     }
-                    this.Script.Stack.SetComponentInactive(this, Stack, Component := Constructor(LineStart
-                    , ColStart, LineEnd, ColEnd, Stack.Pos, LenFullStatement, Stack, , , Match.Pos['body'] + Stack.Base.RecursiveOffset - 1, Lenbody, Match))
+                    this.Script.Stack.SetComponentInactive(this, Stack, Component := Constructor(
+                        LineStart
+                        , ColStart
+                        , LineEnd
+                        , ColEnd
+                        , Stack.Pos - 1
+                        , LenFullStatement
+                        , Stack
+                        ,
+                        ,
+                        , Match.Pos['body'] + Stack.Base.RecursiveOffset - 1
+                        , Lenbody
+                        , Match
+                    ))
                     return Component
                 }
             }

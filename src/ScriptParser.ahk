@@ -134,13 +134,22 @@ class ScriptParser {
         this.DeleteProp('__StackContextBase')
     }
 
+    GetCollection(Name) {
+        global
+        try {
+            index := %'SPC_' name%
+        } catch {
+            index := this.CollectionIndex.Get(Name)
+        }
+        return this.CollectionList[index]
+    }
+
     GetText(PosStart := 1, Len?) {
         return SubStr(this.Content, PosStart, Len ?? unset)
     }
 
     GetTextFull(PosStart := 1, Len?) {
-        Text := StrReplace(StrReplace(SubStr(this.Content, PosStart, Len ?? unset)
-        , SPR_QUOTE_CONSECUTIVEDOUBLE, '""'), SPR_QUOTE_CONSECUTIVESINGLE, '`'`'')
+        Text := SubStr(this.Content, PosStart, Len ?? unset)
         Pos := 1
         _removedCollection := this.RemovedCollection
         loop {
@@ -167,7 +176,7 @@ class ScriptParser {
                 Pos := 1
             }
         }
-        return Text
+        return StrReplace(StrReplace(Text, SPR_QUOTE_CONSECUTIVEDOUBLE, '""'), SPR_QUOTE_CONSECUTIVESINGLE, "''")
     }
 
     ParseClass() {
@@ -188,8 +197,14 @@ class ScriptParser {
             Pos := 1
             loop {
                 if !RegExMatch(Text, SPP_CLASS, &Match, Pos) {
+                    if IsSet(PosCopy) {
+                        _Proc(PosCopy, Pos + 1)
+                    } else {
+                        _Proc(1, StrLen(Text))
+                    }
                     break
                 }
+                PosCopy := Match.Pos
                 StrReplace(SubStr(Text, Pos, Match.Pos - Pos), le, , , &linecount)
                 LineStart := nl + linecount
                 ColStart := Match.Pos['text'] - Match.Pos
@@ -200,8 +215,21 @@ class ScriptParser {
                 } else {
                     ColEnd := Match.Len['text'] - InStr(Match['text'], le, , , -1)
                 }
+                _Proc(Pos, Match.Pos)
+                nl := LineStart
+                Stack.In(Match['name'], Match.Pos['text'], Match.Pos['body'] + Stack.Active.RecursiveOffset - 1)
+                Stack.SetComponent(ClassConstructor(LineStart, ColStart, LineEnd, ColEnd, Stack.Active.Pos
+                , Match.Len['text'], Stack, , , Match.Pos['body'] + Stack.Active.Base.RecursiveOffset, Match.Len['body'], Match))
+                Pos := Match.Pos + Match.Len - 1
+                _Recurse(Match['body'])
+            }
+            if Stack.Depth {
+                Stack.Out()
+            }
+
+            _Proc(PosStart, PosEnd) {
                 if Stack.Active.IsClass {
-                    _Text := SubStr(Text, Pos, Match.Pos - Pos)
+                    _Text := SubStr(Text, PosStart, PosEnd - PosStart)
                     _Pos := 1
                     loop {
                         if !RegExMatch(_Text, SPP_PROPERTY, &_Match, _Pos) {
@@ -226,7 +254,7 @@ class ScriptParser {
                             _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
                         }
                         ClassComponent := Stack.ActiveClass
-                        Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['body'] + Stack.Active.RecursiveOffset - 1)
+                        Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['body'] + Stack.Active.RecursiveOffset)
                         if _Match.Mark == 'func' {
                             if _Match['static'] {
                                 _constructor := StaticMethodConstructor
@@ -248,7 +276,7 @@ class ScriptParser {
                         Stack.Out()
                     }
                 } else {
-                    _Text := SubStr(Text, Pos, Match.Pos - Pos)
+                    _Text := SubStr(Text, PosStart, PosEnd - PosStart)
                     _Pos := 1
                     loop {
                         if !RegExMatch(_Text, SPP_FUNCTION, &_Match, _Pos) {
@@ -272,7 +300,7 @@ class ScriptParser {
                         } else {
                             _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
                         }
-                        Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['body'] + Stack.Active.RecursiveOffset - 1)
+                        Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['body'] + Stack.Active.RecursiveOffset)
                         Stack.SetComponent(FunctionConstructor(_LineStart, _ColStart
                         , _LineEnd, _ColEnd, Stack.Active.Pos, LenFullStatement, Stack
                         , , , _Match.Pos['body'] + Stack.Active.Base.RecursiveOffset, LenBody, _Match))
@@ -280,15 +308,6 @@ class ScriptParser {
                         Stack.Out()
                     }
                 }
-                nl := LineStart
-                Stack.In(Match['name'], Match.Pos['text'], Match.Pos['body'] + Stack.Active.RecursiveOffset - 1)
-                Stack.SetComponent(ClassConstructor(LineStart, ColStart, LineEnd, ColEnd, Stack.Active.Pos
-                , Match.Len['text'], Stack, , , Match.Pos['body'] + Stack.Active.Base.RecursiveOffset, Match.Len['body'], Match))
-                Pos := Match.Pos + Match.Len - 1
-                _Recurse(Match['body'])
-            }
-            if Stack.Depth {
-                Stack.Out()
             }
         }
     }

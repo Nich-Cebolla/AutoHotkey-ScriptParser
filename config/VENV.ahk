@@ -32,11 +32,4 @@
 #include ComponentCollection.ahk
 #include ComponentBase.ahk
 
-s := ScriptParser()
-s.RemoveStringsAndComments()
-; f := FileOpen('test-output.txt', 'w')
-; f.Write(s.Content)
-; f.Close()
-s.ParseClass()
-
-sleep 1
+#include <Stringify>
