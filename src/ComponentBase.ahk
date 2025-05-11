@@ -1,12 +1,24 @@
 ﻿
 class ComponentBase {
     __New(LineStart, ColStart, LineEnd, ColEnd, Pos, Len, Stack?, RemovedMatch?, NameComponent?, PosBody?, LenBody?, Params?) {
+        if IsSet(Stack) {
+            if Stack.HasOwnProp('Active') {
+                if InStr(Stack.Active.Path, 'GetFunc') {
+                    sleep 1
+                }
+            } else {
+                if InStr(Stack.Path, 'GetFunc') {
+                    sleep 1
+                }
+            }
+        }
         this.LineStart := LineStart
         this.ColStart := ColStart
         this.LineEnd := LineEnd
         this.ColEnd := ColEnd
         this.Pos := Pos
         this.Length := Len
+        this.DefineProp('PosEnd', { Value: Pos + Len })
         if Isset(Stack) {
             this.Stack := Stack.HasOwnProp('Active') ? Stack.Active : Stack
             this.DefineProp('Name', { Get: (Self) => Self.Stack.Path })

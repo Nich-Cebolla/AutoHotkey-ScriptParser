@@ -3,13 +3,13 @@ class ParseStack extends Array {
     __New(BaseObj) {
         ObjSetBase(this.Active := { }, BaseObj)
         this.ContextMap := ParseStack.ContextMap()
-        this.NextClass := this.ActiveClass := this.PreviousMatch := ''
+        this.PosList := []
+        this.ActiveClass := ''
         this.ClassList := []
-        this.PosEnd := this.Pos := this.nl := 1
     }
-    Add(Name, Pos, PosEnd, ParentContext) {
+    Add(ParentContext, Name, Pos, RecursiveOffset) {
         Constructor := this.Constructor
-        return Constructor(Name, Pos, PosEnd, ParentContext)
+        return Constructor(Name, Pos, ParentContext, RecursiveOffset)
     }
     BreakReferenceCycles() {
         for Pos, Context in this.ContextMap {
@@ -17,7 +17,6 @@ class ParseStack extends Array {
         }
     }
     BuildList() {
-        this.PosList := []
         this.PosList.Capacity := this.ContextMap.Count
         for Pos in this.ContextMap {
             this.PosList.Push(Pos)
@@ -41,14 +40,12 @@ class ParseStack extends Array {
     ;     this.Active := Constructor(Name, Pos, this.Active, RecursiveOffset)
     ; }
     In(Name, Pos, PosEnd) {
-        if InStr(this.Active.Name, 'Proxy_Map') && InStr(Name, '__Call') {
-            sleep 1
-        }
         this.Push(this.Active)
         Constructor := this.Constructor
         this.Active := Constructor(Name, Pos, PosEnd, this.Active)
     }
     Out() {
+        this.Active.PosEnd := this.Active.__Component.PosEnd
         this.ContextMap.Set(this.Active.Pos, this.Active)
         if this.Active.IsClass {
             this.ActiveClass := this.ClassList.Pop()
@@ -76,7 +73,6 @@ class ParseStack extends Array {
     }
 
     Depth => this.Length
-    Len => this.PosEnd - this.Pos
 
     class ContextMap extends MapEx {
 

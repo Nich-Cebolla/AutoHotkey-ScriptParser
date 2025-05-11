@@ -136,8 +136,12 @@ class Ahk {
                     ColStart := Match.Pos['text'] - Match.Pos
                     if Match['arrow'] {
                         txt := this.TextBody
-                        ParseContinuationSection(&txt, Match.Pos['text'], '=>'
-                        , , &Body, &LenBody, &FullStatement, &LenFullStatement)
+                        ParseContinuationSection(
+                            &txt
+                          , Match.Pos['text']
+                          , '=>'
+                          , , &Body, &LenBody, &FullStatement, &LenFullStatement
+                        )
                     } else {
                         FullStatement := Match['text']
                         LenFullStatement := Match.Len['text']
@@ -150,7 +154,7 @@ class Ahk {
                     } else {
                         ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
                     }
-                    Stack := this.Script.Stack.Add(this.Stack, Name, Match.Pos['text'], Match.Pos['body'] + this.Stack.RecursiveOffset - 1)
+                    Stack := this.Script.Stack.Add(Name, Match.Pos['text'] + this.Pos, Match.Pos + Match.Len + this.Pos, this.Stack)
                     if Name == 'Get' {
                         Constructor := this.Script.CollectionList[SPC_GETTER].Constructor
                     } else {
@@ -158,17 +162,17 @@ class Ahk {
                     }
                     this.Script.Stack.SetComponentInactive(this, Stack, Component := Constructor(
                         LineStart
-                        , ColStart
-                        , LineEnd
-                        , ColEnd
-                        , Stack.Pos - 1
-                        , LenFullStatement
-                        , Stack
-                        ,
-                        ,
-                        , Match.Pos['body'] + Stack.Base.RecursiveOffset - 1
-                        , Lenbody
-                        , Match
+                      , ColStart
+                      , LineEnd
+                      , ColEnd
+                      , Match.Pos['text'] + this.Pos
+                      , LenFullStatement
+                      , Stack
+                      ,
+                      ,
+                      , Match.Pos['body'] + this.Pos
+                      , Lenbody
+                      , Match
                     ))
                     return Component
                 }

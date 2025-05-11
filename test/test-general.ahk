@@ -1,21 +1,34 @@
 ﻿#include ..\config\VENV.ahk
 #include <Stringify>
+#include <QuickSort_V1.0.0>
 
 
-test_TextPosition()
+test()
 
-OutputDebug('`nDone. Problems: ' test_TextPosition.Problems.Length)
 
-class test_TextPosition {
+class test {
     static PathIn := 'test-content\test-content-text-values.ahk'
     , PathOut := A_MyDocuments '\test-ScriptParser-output.json'
+    , PathOutRecreate := A_MyDocuments '\test-ScriptParser-output-recreate.ahk'
 
     static Call() {
+        this.Problems := []
+        this.Position()
+        OutputDebug('`nPosition is done. Problems: ' this.Problems.Length)
+        ; this.RecreateFile()
+
+        if this.Problems.Length {
+            this.WriteOutProblems()
+        } else {
+            this.WriteOut('No problems.')
+        }
+    }
+
+    static Position() {
         this.EstablishControls()
         Script := this.Script := ScriptParser({ PathIn: this.PathIn })
         Script.RemoveStringsAndComments()
         Script.ParseClass()
-        this.Problems := []
         Controls := this.Controls
         for obj in Controls {
             if obj.HasOwnProp('Special') {
@@ -50,12 +63,6 @@ class test_TextPosition {
                 if Component.LenBody !== obj.Control.Len['body'] {
                     this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.LenBody (' Component.LenBody ') !== obj.Control.Len[`'body`'] (' obj.Control.Len['body'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
                 }
-            }
-
-            if this.Problems.Length {
-                this.WriteOutProblems()
-            } else {
-                this.WriteOut('No problems.')
             }
 
             _Special1(obj) {
@@ -133,6 +140,45 @@ class test_TextPosition {
             }
             return match
         }
+    }
+
+    static RecreateFile() {
+        Script := ScriptParser({ PathIn: this.PathIn })
+        Script.RemoveStringsAndComments()
+        Script.ParseClass()
+        Str := ''
+        SortFn := (a, b) => a.Pos - b.Pos
+        Arr := []
+        Arr.Capacity := Script.ComponentList.Count
+        for id, Item in Script.ComponentList {
+            Arr.Push(Item)
+        }
+        Arr := QuickSort(Arr, SortFn)
+        i := 1
+        Item := Arr[i]
+        if Item.Removed {
+            Str .= Item.Removed.Match['text']
+        } else {
+            Str .= Item.TextFull
+        }
+        PosEnd := Item.PosEnd
+        loop Arr.Length - 1 {
+            Item := Arr[++i]
+            if (Diff := Item.Pos - PosEnd) > 0 {
+                Str .= Script.GetTextFull(PosEnd, Diff)
+            } else if Diff < 0 {
+                throw Error('Diff < 0', -1)
+            }
+            if Item.Removed {
+                Str .= Item.Removed.Match['text']
+            } else {
+                Str .= Item.TextFull
+            }
+            OutputDebug('`n---------------------`n' Str)
+        }
+        f := FileOpen(this.PathOutRecreate, 'w')
+        f.Write(Str)
+        f.Close()
     }
 
     static WriteOutProblems() {

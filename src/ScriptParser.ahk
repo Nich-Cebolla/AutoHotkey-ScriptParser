@@ -94,7 +94,7 @@ class ScriptParser {
         this.RemovedCollection := RemovedCollection(this)
         this.__FillerReplacement := FillStr(this.Config.ReplacementChar)
         ; `StackContextBase` is the base for `ParseStack.Context` objects.
-        ObjSetBase(this.__StackContextBase := { Script: this, Name: '', Pos: 1, RecursiveOffset: 0, IsClass: false }, ParseStack.Context.Prototype)
+        ObjSetBase(this.__StackContextBase := { Script: this, Name: '', Pos: 1, PosEnd: StrLen(this.Content), IsClass: false }, ParseStack.Context.Prototype)
         this.Stack := ParseStack(this.__StackContextBase)
         this.Stack.Constructor := ClassFactory(this.__StackContextBase)
         this.Length := StrLen(this.Content)
@@ -179,7 +179,7 @@ class ScriptParser {
         return StrReplace(StrReplace(Text, SPR_QUOTE_CONSECUTIVEDOUBLE, '""'), SPR_QUOTE_CONSECUTIVESINGLE, "''")
     }
 
-    ParseClass() {
+    ParseClass2() {
         nl := 1
         le := this.LineEnding
         Stack := this.Stack
@@ -197,14 +197,11 @@ class ScriptParser {
             Pos := 1
             loop {
                 if !RegExMatch(Text, SPP_CLASS, &Match, Pos) {
-                    if IsSet(PosCopy) {
-                        _Proc(PosCopy, Pos + 1)
-                    } else {
-                        _Proc(1, StrLen(Text))
-                    }
                     break
                 }
-                PosCopy := Match.Pos
+                if InStr(Match[0], 'class PropsInfoItem') {
+                    sleep 1
+                }
                 StrReplace(SubStr(Text, Pos, Match.Pos - Pos), le, , , &linecount)
                 LineStart := nl + linecount
                 ColStart := Match.Pos['text'] - Match.Pos
@@ -221,10 +218,16 @@ class ScriptParser {
                 Stack.SetComponent(ClassConstructor(LineStart, ColStart, LineEnd, ColEnd, Stack.Active.Pos
                 , Match.Len['text'], Stack, , , Match.Pos['body'] + Stack.Active.Base.RecursiveOffset, Match.Len['body'], Match))
                 Pos := Match.Pos + Match.Len - 1
-                _Recurse(Match['body'])
+                if _Recurse(Match['body']) {
+                    if StrLen(RTrim(this.Content, '`s`t`r`n')) - Match.Pos['body'] > 4 {
+                        _Proc(Match.Pos['body'], StrLen(this.Content))
+                    }
+                }
             }
             if Stack.Depth {
                 Stack.Out()
+            } else {
+                return 1
             }
 
             _Proc(PosStart, PosEnd) {
@@ -307,6 +310,200 @@ class ScriptParser {
                         _Pos := _Match.Pos['text'] + LenFullStatement
                         Stack.Out()
                     }
+                }
+            }
+        }
+    }
+
+    ParseClass() {
+        le := this.LineEnding
+        Stack := this.Stack
+        Stack.nl := Stack.Pos := 1
+        ClassConstructor := this.CollectionList[SPC_CLASS].Constructor
+        StaticMethodConstructor := this.CollectionList[SPC_STATICMETHOD].Constructor
+        InstanceMethodConstructor := this.CollectionList[SPC_INSTANCEMETHOD].Constructor
+        StaticPropertyConstructor := this.CollectionList[SPC_STATICPROPERTY].Constructor
+        InstancePropertyConstructor := this.CollectionList[SPC_INSTANCEPROPERTY].Constructor
+        FunctionConstructor := this.CollectionList[SPC_FUNCTION].Constructor
+        if !RegExMatch(this.Content, SPP_CLASS, &Match) {
+            Stack.PosEnd := StrLen(this.Content)
+            _Proc()
+            return
+        }
+        Stack.PosEnd := Match.Pos
+        Stack.NextClass := Match
+        loop {
+            ; if InStr(Match[0], 'class PropsInfoItem') {
+            ;     sleep 1
+            ; }
+            if Stack.PosEnd - Stack.Pos > 4 {
+                _Proc()
+            }
+            StrReplace(SubStr(this.Content, Stack.Pos, Match.Pos['body'] - Stack.Pos), le, , , &linecount)
+            LineStart := Stack.nl + linecount
+            ColStart := Match.Pos['text'] - Match.Pos
+            StrReplace(Match['text'], le, , , &linecount)
+            LineEnd := LineStart + linecount
+            if LineEnd == LineStart {
+                ColEnd := ColStart + Match.Len['text']
+            } else {
+                ColEnd := Match.Len['text'] - InStr(Match['text'], le, , , -1)
+            }
+            ; Stack.nl := LineStart
+            while Stack.ActiveClass && Stack.NextClass.Pos > Stack.ActiveClass.PosEnd {
+                Stack.Out()
+            }
+            Stack.In(Match['name'], Match.Pos['text'], Match.Pos + Match.Len)
+            Stack.SetComponent(ClassConstructor(
+                LineStart
+              , ColStart
+              , LineEnd
+              , ColEnd
+              , Match.Pos['text']
+              , Match.Len['text']
+              , Stack
+              ,
+              ,
+              , Match.Pos['body']
+              , Match.Len['body']
+              , Match
+            ))
+            Stack.Pos := Match.Pos['body']
+            if RegExMatch(this.Content, SPP_CLASS, &Match, Stack.Pos) {
+                Stack.NextClass := Match
+                if Match.Pos > Stack.ActiveClass.PosEnd {
+                    Stack.PosEnd := Stack.ActiveClass.PosEnd
+                    _Proc()
+                    Stack.Out()
+                }
+                Stack.PosEnd := Match.Pos
+            } else {
+                Stack.PosEnd := Stack.ActiveClass.PosEnd
+                _Proc()
+                Stack.Out()
+                if StrLen(RTrim(this.Content, '`r`n`s`t')) - Stack.Pos > 4 {
+                    Stack.PosEnd := StrLen(this.Content)
+                    _Proc()
+                }
+                break
+            }
+        }
+
+        return
+
+        _Proc() {
+            if Stack.Active.IsClass {
+                loop {
+                    if !RegExMatch(this.Content, SPP_PROPERTY, &_Match, Stack.Pos) {
+                        break
+                    }
+                    if _Match.Pos > Stack.PosEnd {
+                        return
+                    }
+                    StrReplace(SubStr(this.Content, Stack.Pos, _Match.Pos - Stack.Pos), le, , , &linecount)
+                    _LineStart := Stack.nl += linecount
+                    _ColStart := _Match.Pos['text'] - _Match.Pos
+                    if _Match['arrow'] || _Match['assign'] {
+                        Offset := _Match.Pos['text']
+                        ParseContinuationSection(
+                            &(Text := SubStr(this.Content, Offset, Stack.PosEnd - Offset))
+                          , 1
+                          , _Match['arrow'] ? '=>' : ':='
+                          , &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement
+                        )
+                    } else {
+                        FullStatement := _Match['text']
+                        LenFullStatement := _Match.Len['text']
+                        LenBody := _Match.Len['body']
+                    }
+                    StrReplace(FullStatement, le, , , &linecount)
+                    _LineEnd := Stack.nl += linecount
+                    if _LineEnd == _LineStart {
+                        _ColEnd := _ColStart + LenFullStatement
+                    } else {
+                        _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
+                    }
+                    Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['text'] + _Match.Len['text'])
+                    if _Match.Mark == 'func' {
+                        if _Match['static'] {
+                            _constructor := StaticMethodConstructor
+                        } else {
+                            _constructor := InstanceMethodConstructor
+                        }
+                    } else {
+                        if _Match['static'] {
+                            _constructor := StaticPropertyConstructor
+                        } else {
+                            _constructor := InstancePropertyConstructor
+                        }
+                    }
+                    Stack.SetComponent(
+                        _constructor(
+                            _LineStart
+                          , _ColStart
+                          , _LineEnd
+                          , _ColEnd
+                          , _Match.Pos['text']
+                          , LenFullStatement
+                          , Stack
+                          ,
+                          ,
+                          , _Match.Pos['body']
+                          , LenBody
+                          , [_Match, Stack.ActiveClass]
+                    ))
+                    Stack.Pos := _Match.Pos['text'] + LenFullStatement
+                    Stack.Out()
+                }
+            } else {
+                loop {
+                    if !RegExMatch(this.Content, SPP_PROPERTY, &_Match, Stack.Pos) {
+                        return
+                    }
+                    if _Match.Pos > Stack.PosEnd {
+                        return
+                    }
+                    StrReplace(SubStr(this.Content, Stack.Pos, _Match.Pos - Stack.Pos), le, , , &linecount)
+                    _LineStart := Stack.nl += linecount
+                    _ColStart := _Match.Pos['text'] - _Match.Pos
+                    if _Match['arrow'] {
+                        Offset := _Match.Pos['text']
+                        ParseContinuationSection(
+                            &(Text := SubStr(this.Content, Offset, Stack.PosEnd - Offset))
+                          , 1
+                          , '=>'
+                          , &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement
+                        )
+                    } else {
+                        FullStatement := _Match['text']
+                        LenFullStatement := _Match.Len['text']
+                        LenBody := _Match.Len['body']
+                    }
+                    StrReplace(FullStatement, le, , , &linecount)
+                    _LineEnd := Stack.nl += linecount
+                    if _LineEnd == _LineStart {
+                        _ColEnd := _ColStart + LenFullStatement
+                    } else {
+                        _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
+                    }
+                    Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['text'] + _Match.Len['text'])
+                    Stack.SetComponent(
+                        FunctionConstructor(
+                            _LineStart
+                          , _ColStart
+                          , _LineEnd
+                          , _ColEnd
+                          , _Match.Pos['text']
+                          , LenFullStatement
+                          , Stack
+                          ,
+                          ,
+                          , _Match.Pos['body']
+                          , LenBody
+                          , _Match
+                    ))
+                    Stack.Pos := _Match.Pos['text'] + LenFullStatement
+                    Stack.Out()
                 }
             }
         }
