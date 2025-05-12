@@ -10,7 +10,7 @@
 #include ..\lib
 ; #include GetMatchingBrace.ahk
 ; #include GetObjectFromString.ahk
-#include ParseContinuationSection.ahk
+#include ContinuationSection.ahk
 #include MapEx.ahk
 #include Object.Prototype.Stringify.ahk
 ; #include ParseJson.ahk

@@ -65,24 +65,12 @@ class Ahk {
         }
 
         class Method extends Ahk.Component.Function {
-            Init(Params) {
-                if Params.Length > 2 {
-                    Ahk.__ThrowInvalidParamCount('Expected: 2; Actual: ' Params.Length)
-                }
-                Match := Params[1]
-                ClassComponent := Params[2]
-                this.Params := ParamsList(Match['inner'])
+            Init(Match) {
                 if Match['static'] {
                     this.Static := true
                 }
                 if Match['arrow'] {
                     this.Arrow := true
-                }
-                if Match['static'] {
-                    this.Static := true
-                    ClassComponent.AddStaticMethod(this)
-                } else {
-                    ClassComponent.AddInstanceMethod(this)
                 }
             }
         }
@@ -103,78 +91,36 @@ class Ahk {
                 }
             }
 
-            Init(Params) {
-                if Params.Length > 2 {
-                    Ahk.__ThrowInvalidParamCount('Expected: 2; Actual: ' Params.Length)
-                }
-                Match := Params[1]
-                ClassComponent := Params[2]
-                this.Params := ParamsList(Match['inner'])
+            Init(Match) {
                 if Match['arrow'] {
                     this.Arrow := true
                 }
                 if Match['static'] {
                     this.Static := true
-                    ClassComponent.AddStaticProperty(this)
-                } else {
-                    ClassComponent.AddInstanceProperty(this)
                 }
                 if !Match['arrow'] && !Match['assign'] {
-                    local LineStart, ColStart, LineEnd, ColEnd
-                    le := this.Script.LineEnding
-                    if RegExMatch(this.TextBody, Format(SPP_ACCESSOR, 'Get'), &Match) {
-                        this.DefineProp('Get', { Value: _Proc('Get') })
+                    if RegExMatch(s := SubStr(this.Script.Text, 1, this.PosEnd), SPP_ACCESSOR_GET, &Match, this.Pos) {
+                        _Proc('Get')
                     }
-                    if RegExMatch(this.TextBody, Format(SPP_ACCESSOR, 'Set'), &Match) {
-                        this.DefineProp('Set', { Value: _Proc('Set') })
+                    if RegExMatch(s, SPP_ACCESSOR_SET, &Match, this.Pos) {
+                        _Proc('Set')
                     }
                 }
 
                 _Proc(Name) {
-                    StrReplace(SubStr(this.TextBody, 1, Match.Pos - 1), le, , , &linecount)
-                    LineStart := this.LineStart + linecount
-                    ColStart := Match.Pos['text'] - Match.Pos
                     if Match['arrow'] {
-                        txt := this.TextBody
-                        ParseContinuationSection(
-                            &txt
+                        Match := ContinuationSection(
+                            StrPtr(this.Script.Content)
                           , Match.Pos['text']
-                          , '=>'
-                          , , &Body, &LenBody, &FullStatement, &LenFullStatement
+                          , Match['arrow'] ? '=>' : ':='
                         )
-                    } else {
-                        FullStatement := Match['text']
-                        LenFullStatement := Match.Len['text']
-                        LenBody := Match.Len['body']
                     }
-                    StrReplace(FullStatement, le, , , &linecount)
-                    LineEnd := LineStart + linecount
-                    if LineEnd == LineStart {
-                        ColEnd := ColStart + LenFullStatement
-                    } else {
-                        ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
-                    }
-                    Stack := this.Script.Stack.Add(Name, Match.Pos['text'] + this.Pos, Match.Pos + Match.Len + this.Pos, this.Stack)
                     if Name == 'Get' {
-                        Constructor := this.Script.CollectionList[SPC_GETTER].Constructor
+                        this.Script.Stack.In(this.Script, Name, Match, this.Script.CollectionList[SPC_GETTER].Constructor)
                     } else {
-                        Constructor := this.Script.CollectionList[SPC_SETTER].Constructor
+                        this.Script.Stack.In(this.Script, Name, Match, this.Script.CollectionList[SPC_SETTER].Constructor)
                     }
-                    this.Script.Stack.SetComponentInactive(this, Stack, Component := Constructor(
-                        LineStart
-                      , ColStart
-                      , LineEnd
-                      , ColEnd
-                      , Match.Pos['text'] + this.Pos
-                      , LenFullStatement
-                      , Stack
-                      ,
-                      ,
-                      , Match.Pos['body'] + this.Pos
-                      , Lenbody
-                      , Match
-                    ))
-                    return Component
+                    this.Script.Stack.Out()
                 }
             }
         }
@@ -209,6 +155,11 @@ class Ahk {
                 }
                 if Match['arrow'] {
                     this.Arrow := true
+                }
+            }
+            GetParams(Match) {
+                if Match.inner {
+                    this.Params := ParamsList(Match['inner'])
                 }
             }
         }

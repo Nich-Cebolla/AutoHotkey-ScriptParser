@@ -40,8 +40,8 @@ class ScriptParser {
         BaseObjects.Set('ComponentBase', ComponentBaseBase)
         LangContent := FileRead(this.Config.Language.__GetPath())
         Pending := []
-        ToCollectionsObj := ['Class', 'CommentMultiline', 'CommentSingleline', 'Function', 'Getter', 'InstanceMethod'
-        , 'InstanceProperty', 'Jsdoc', 'Setter', 'StaticMethod', 'StaticProperty', 'String']
+        ToCollectionsObj := ['Class', 'CommentMultiline', 'CommentSingleline', 'Function', 'Getter'
+        , 'InstanceMethod', 'InstanceProperty', 'Jsdoc', 'Setter', 'StaticMethod', 'StaticProperty', 'String']
         for Prop in Component.OwnProps() {
             _component := Component.%Prop%
             if _component is Class {
@@ -135,13 +135,7 @@ class ScriptParser {
     }
 
     GetCollection(Name) {
-        global
-        try {
-            index := %'SPC_' name%
-        } catch {
-            index := this.CollectionIndex.Get(Name)
-        }
-        return this.CollectionList[index]
+        return this.CollectionList[this.CollectionIndex.Get(Name)]
     }
 
     GetText(PosStart := 1, Len?) {
@@ -179,152 +173,236 @@ class ScriptParser {
         return StrReplace(StrReplace(Text, SPR_QUOTE_CONSECUTIVEDOUBLE, '""'), SPR_QUOTE_CONSECUTIVESINGLE, "''")
     }
 
-    ParseClass2() {
-        nl := 1
-        le := this.LineEnding
-        Stack := this.Stack
-        ClassConstructor := this.CollectionList[SPC_CLASS].Constructor
-        StaticMethodConstructor := this.CollectionList[SPC_STATICMETHOD].Constructor
-        InstanceMethodConstructor := this.CollectionList[SPC_INSTANCEMETHOD].Constructor
-        StaticPropertyConstructor := this.CollectionList[SPC_STATICPROPERTY].Constructor
-        InstancePropertyConstructor := this.CollectionList[SPC_INSTANCEPROPERTY].Constructor
-        FunctionConstructor := this.CollectionList[SPC_FUNCTION].Constructor
-        _Recurse(this.Content)
+    ; ParseClass2() {
+    ;     local LineStart, ColStart, LineEnd, ColEnd
+    ;     le := this.LineEnding
+    ;     Stack := this.Stack
+    ;     Stack.Line := Stack.Pos := 1
+    ;     ClassConstructor := this.CollectionList[SPC_CLASS].Constructor
+    ;     StaticMethodConstructor := this.CollectionList[SPC_STATICMETHOD].Constructor
+    ;     InstanceMethodConstructor := this.CollectionList[SPC_INSTANCEMETHOD].Constructor
+    ;     StaticPropertyConstructor := this.CollectionList[SPC_STATICPROPERTY].Constructor
+    ;     InstancePropertyConstructor := this.CollectionList[SPC_INSTANCEPROPERTY].Constructor
+    ;     FunctionConstructor := this.CollectionList[SPC_FUNCTION].Constructor
+    ;     if !RegExMatch(this.Content, SPP_CLASS, &Match) {
+    ;         Stack.PosEnd := StrLen(this.Content)
+    ;         _Proc()
+    ;         return
+    ;     }
+    ;     Stack.PosEnd := Match.Pos
+    ;     Stack.NextClass := Match
 
-        return
+    ;     ; This is the primary parse loop. This function parses the following nodes:
+    ;     ; - Class definitions
+    ;     ;   - Property and method definitions
+    ;     ; - Global named functions
+    ;     loop {
+    ;         ; Parse the content in-between class definitions
+    ;         if Stack.PosEnd - Stack.Pos > 4 {
+    ;             _Proc()
+    ;         }
+    ;         ; Get line count between the current position and the next class definition
+    ;         StrReplace(SubStr(this.Content, Stack.Pos, Match.Pos['body'] - Stack.Pos), le, , , &linecount)
+    ;         ; Calculate start line for next class definition
+    ;         LineStart := Stack.Line + linecount
+    ;         ; Calculate start column for next class definition
+    ;         ColStart := Match.Pos['text'] - Match.Pos
+    ;         ; Get line count of next class definition
+    ;         StrReplace(Match['body'], le, , , &linecount)
+    ;         ; Calculate end line for next class definition
+    ;         LineEnd := LineStart + linecount
+    ;         ; Calculate end column for next class definition
+    ;         ColEnd := Match.Len['text'] - InStr(Match['text'], le, , , -1)
+    ;         ; Exit any active class scopes that will close before the beginning of the next class definition
+    ;         while Stack.ActiveClass && Stack.NextClass.Pos > Stack.ActiveClass.PosEnd {
+    ;             Stack.Out()
+    ;         }
+    ;         ; Enter into next class scope
+    ;         Stack.In(Match['name'], Match.Pos['text'], Match.Pos + Match.Len)
+    ;         ; Create the class component object and set it to the stack trace
+    ;         Stack.SetComponent(ClassConstructor(
+    ;             LineStart
+    ;           , ColStart
+    ;           , LineEnd
+    ;           , ColEnd
+    ;           , Match.Pos['text']
+    ;           , Match.Len['text']
+    ;           , Stack
+    ;           ,
+    ;           ,
+    ;           , Match.Pos['body']
+    ;           , Match.Len['body']
+    ;           , Match
+    ;         ))
+    ;         ; The previous lines have already determined that there are no more property or function
+    ;         ; definitions between the current position and the class definition, so we move the
+    ;         ; position to be at the beginning of the body of the class definition (first open bracket).
+    ;         ; The previous lines have already counted the lines to this point.
+    ;         Stack.Pos := Match.Pos['body']
+    ;         ; Find next class definition
+    ;         if RegExMatch(this.Content, SPP_CLASS, &Match, Stack.Pos) {
+    ;             ; Set next class definition
+    ;             Stack.NextClass := Match
+    ;             ; If the next class definition occurs outside of the current class scope
+    ;             if Match.Pos > Stack.ActiveClass.PosEnd {
+    ;                 ; Parse the content up to the end of the current class scope
+    ;                 Stack.PosEnd := Stack.ActiveClass.PosEnd
+    ;                 _Proc()
+    ;                 ; Exit the scope
+    ;                 Stack.Out()
+    ;             }
+    ;             ;
+    ;             Stack.PosEnd := Match.Pos
+    ;         } else {
+    ;             Stack.PosEnd := Stack.ActiveClass.PosEnd
+    ;             _Proc()
+    ;             Stack.Out()
+    ;             if StrLen(RTrim(this.Content, '`r`n`s`t')) - Stack.Pos > 4 {
+    ;                 Stack.PosEnd := StrLen(this.Content)
+    ;                 _Proc()
+    ;             }
+    ;             break
+    ;         }
+    ;     }
 
-        _Recurse(Text) {
-            Pos := 1
-            loop {
-                if !RegExMatch(Text, SPP_CLASS, &Match, Pos) {
-                    break
-                }
-                if InStr(Match[0], 'class PropsInfoItem') {
-                    sleep 1
-                }
-                StrReplace(SubStr(Text, Pos, Match.Pos - Pos), le, , , &linecount)
-                LineStart := nl + linecount
-                ColStart := Match.Pos['text'] - Match.Pos
-                StrReplace(Match['text'], le, , , &linecount)
-                LineEnd := LineStart + linecount
-                if LineEnd == LineStart {
-                    ColEnd := ColStart + Match.Len['text']
-                } else {
-                    ColEnd := Match.Len['text'] - InStr(Match['text'], le, , , -1)
-                }
-                _Proc(Pos, Match.Pos)
-                nl := LineStart
-                Stack.In(Match['name'], Match.Pos['text'], Match.Pos['body'] + Stack.Active.RecursiveOffset - 1)
-                Stack.SetComponent(ClassConstructor(LineStart, ColStart, LineEnd, ColEnd, Stack.Active.Pos
-                , Match.Len['text'], Stack, , , Match.Pos['body'] + Stack.Active.Base.RecursiveOffset, Match.Len['body'], Match))
-                Pos := Match.Pos + Match.Len - 1
-                if _Recurse(Match['body']) {
-                    if StrLen(RTrim(this.Content, '`s`t`r`n')) - Match.Pos['body'] > 4 {
-                        _Proc(Match.Pos['body'], StrLen(this.Content))
-                    }
-                }
-            }
-            if Stack.Depth {
-                Stack.Out()
-            } else {
-                return 1
-            }
+    ;     return
 
-            _Proc(PosStart, PosEnd) {
-                if Stack.Active.IsClass {
-                    _Text := SubStr(Text, PosStart, PosEnd - PosStart)
-                    _Pos := 1
-                    loop {
-                        if !RegExMatch(_Text, SPP_PROPERTY, &_Match, _Pos) {
-                            break
-                        }
-                        StrReplace(SubStr(_Text, _Pos, _Match.Pos - _Pos), le, , , &linecount)
-                        _LineStart := nl += linecount
-                        _ColStart := _Match.Pos['text'] - _Match.Pos
-                        if _Match['arrow'] || _Match['assign'] {
-                            ParseContinuationSection(&_Text, _Match.Pos['text'], _Match['arrow'] ? '=>' : ':='
-                            , &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement)
-                        } else {
-                            FullStatement := _Match['text']
-                            LenFullStatement := _Match.Len['text']
-                            LenBody := _Match.Len['body']
-                        }
-                        StrReplace(FullStatement, le, , , &linecount)
-                        _LineEnd := nl += linecount
-                        if _LineEnd == _LineStart {
-                            _ColEnd := _ColStart + LenFullStatement
-                        } else {
-                            _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
-                        }
-                        ClassComponent := Stack.ActiveClass
-                        Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['body'] + Stack.Active.RecursiveOffset)
-                        if _Match.Mark == 'func' {
-                            if _Match['static'] {
-                                _constructor := StaticMethodConstructor
-                            } else {
-                                _constructor := InstanceMethodConstructor
-                            }
-                        } else {
-                            if _Match['static'] {
-                                _constructor := StaticPropertyConstructor
-                            } else {
-                                _constructor := InstancePropertyConstructor
-                            }
-                        }
-                        Stack.SetComponent(_constructor(_LineStart, _ColStart
-                        , _LineEnd, _ColEnd, Stack.Active.Pos, LenFullStatement, Stack
-                        , , , _Match.Pos['body'] + Stack.Active.Base.RecursiveOffset, LenBody
-                        , [_Match, ClassComponent]))
-                        _Pos := _Match.Pos['text'] + LenFullStatement
-                        Stack.Out()
-                    }
-                } else {
-                    _Text := SubStr(Text, PosStart, PosEnd - PosStart)
-                    _Pos := 1
-                    loop {
-                        if !RegExMatch(_Text, SPP_FUNCTION, &_Match, _Pos) {
-                            break
-                        }
-                        StrReplace(SubStr(_Text, _Pos, _Match.Pos - _Pos), le, , , &linecount)
-                        _LineStart := nl += linecount
-                        _ColStart := _Match.Pos['text'] - _Match.Pos
-                        if _Match['arrow'] {
-                            ParseContinuationSection(&_Text, _Match.Pos['text'], _Match['arrow'] ? '=>' : ':='
-                            , &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement)
-                        } else {
-                            FullStatement := _Match['text']
-                            LenFullStatement := _Match.Len['text']
-                            LenBody := _Match.Len['body']
-                        }
-                        StrReplace(FullStatement, le, , , &linecount)
-                        _LineEnd := nl += linecount
-                        if _LineEnd == _LineStart {
-                            _ColEnd := _ColStart + LenFullStatement
-                        } else {
-                            _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
-                        }
-                        Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['body'] + Stack.Active.RecursiveOffset)
-                        Stack.SetComponent(FunctionConstructor(_LineStart, _ColStart
-                        , _LineEnd, _ColEnd, Stack.Active.Pos, LenFullStatement, Stack
-                        , , , _Match.Pos['body'] + Stack.Active.Base.RecursiveOffset, LenBody, _Match))
-                        _Pos := _Match.Pos['text'] + LenFullStatement
-                        Stack.Out()
-                    }
-                }
-            }
-        }
-    }
+    ;     _Proc() {
+    ;         if Stack.Active.IsClass {
+    ;             loop {
+    ;                 if !RegExMatch(this.Content, SPP_PROPERTY, &_Match, Stack.Pos) {
+    ;                     break
+    ;                 }
+    ;                 if _Match.Pos > Stack.PosEnd {
+    ;                     return
+    ;                 }
+    ;                 StrReplace(SubStr(this.Content, Stack.Pos, _Match.Pos - Stack.Pos), le, , , &linecount)
+    ;                 _LineStart := Stack.Line += linecount
+    ;                 _ColStart := _Match.Pos['text'] - _Match.Pos
+    ;                 if _Match['arrow'] || _Match['assign'] {
+    ;                     Offset := _Match.Pos['text']
+    ;                     ParseContinuationSection(
+    ;                         &(Text := SubStr(this.Content, Offset, Stack.PosEnd - Offset))
+    ;                       , 1
+    ;                       , _Match['arrow'] ? '=>' : ':='
+    ;                       , &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement
+    ;                     )
+    ;                 } else {
+    ;                     FullStatement := _Match['text']
+    ;                     LenFullStatement := _Match.Len['text']
+    ;                     LenBody := _Match.Len['body']
+    ;                 }
+    ;                 StrReplace(FullStatement, le, , , &linecount)
+    ;                 _LineEnd := Stack.Line += linecount
+    ;                 if _LineEnd == _LineStart {
+    ;                     _ColEnd := _ColStart + LenFullStatement
+    ;                 } else {
+    ;                     _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
+    ;                 }
+    ;                 Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['text'] + _Match.Len['text'])
+    ;                 if _Match.Mark == 'func' {
+    ;                     if _Match['static'] {
+    ;                         _constructor := StaticMethodConstructor
+    ;                     } else {
+    ;                         _constructor := InstanceMethodConstructor
+    ;                     }
+    ;                 } else {
+    ;                     if _Match['static'] {
+    ;                         _constructor := StaticPropertyConstructor
+    ;                     } else {
+    ;                         _constructor := InstancePropertyConstructor
+    ;                     }
+    ;                 }
+    ;                 Stack.SetComponent(
+    ;                     _constructor(
+    ;                         _LineStart
+    ;                       , _ColStart
+    ;                       , _LineEnd
+    ;                       , _ColEnd
+    ;                       , _Match.Pos['text']
+    ;                       , LenFullStatement
+    ;                       , Stack
+    ;                       ,
+    ;                       ,
+    ;                       , _Match.Pos['body']
+    ;                       , LenBody
+    ;                       , [_Match, Stack.ActiveClass]
+    ;                 ))
+    ;                 Stack.Pos := _Match.Pos['text'] + LenFullStatement
+    ;                 Stack.Out()
+    ;             }
+    ;         } else {
+    ;             loop {
+    ;                 if !RegExMatch(this.Content, SPP_PROPERTY, &_Match, Stack.Pos) {
+    ;                     return
+    ;                 }
+    ;                 if _Match.Pos > Stack.PosEnd {
+    ;                     return
+    ;                 }
+    ;                 StrReplace(SubStr(this.Content, Stack.Pos, _Match.Pos - Stack.Pos), le, , , &linecount)
+    ;                 _LineStart := Stack.Line += linecount
+    ;                 _ColStart := _Match.Pos['text'] - _Match.Pos
+    ;                 if _Match['arrow'] {
+    ;                     Offset := _Match.Pos['text']
+    ;                     ParseContinuationSection(
+    ;                         &(Text := SubStr(this.Content, Offset, Stack.PosEnd - Offset))
+    ;                       , 1
+    ;                       , '=>'
+    ;                       , &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement
+    ;                     )
+    ;                 } else {
+    ;                     FullStatement := _Match['text']
+    ;                     LenFullStatement := _Match.Len['text']
+    ;                     LenBody := _Match.Len['body']
+    ;                 }
+    ;                 StrReplace(FullStatement, le, , , &linecount)
+    ;                 _LineEnd := Stack.Line += linecount
+    ;                 if _LineEnd == _LineStart {
+    ;                     _ColEnd := _ColStart + LenFullStatement
+    ;                 } else {
+    ;                     _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
+    ;                 }
+    ;                 Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['text'] + _Match.Len['text'])
+    ;                 Stack.SetComponent(
+    ;                     FunctionConstructor(
+    ;                         _LineStart
+    ;                       , _ColStart
+    ;                       , _LineEnd
+    ;                       , _ColEnd
+    ;                       , _Match.Pos['text']
+    ;                       , LenFullStatement
+    ;                       , Stack
+    ;                       ,
+    ;                       ,
+    ;                       , _Match.Pos['body']
+    ;                       , LenBody
+    ;                       , _Match
+    ;                 ))
+    ;                 Stack.Pos := _Match.Pos['text'] + LenFullStatement
+    ;                 Stack.Out()
+    ;             }
+    ;         }
+    ;     }
+    ; }
 
     ParseClass() {
+        local LineStart, ColStart, LineEnd
         le := this.LineEnding
         Stack := this.Stack
-        Stack.nl := Stack.Pos := 1
+        Stack.Line := Stack.Pos := 1
         ClassConstructor := this.CollectionList[SPC_CLASS].Constructor
         StaticMethodConstructor := this.CollectionList[SPC_STATICMETHOD].Constructor
         InstanceMethodConstructor := this.CollectionList[SPC_INSTANCEMETHOD].Constructor
         StaticPropertyConstructor := this.CollectionList[SPC_STATICPROPERTY].Constructor
         InstancePropertyConstructor := this.CollectionList[SPC_INSTANCEPROPERTY].Constructor
         FunctionConstructor := this.CollectionList[SPC_FUNCTION].Constructor
+        ; Save the method if it already exists.
+        if RegExMatchInfo.Prototype.HasMethod('__Get') {
+            TempGetter := RegExMatchInfo.Prototype.__Get
+        }
+        ; To prevent an error when attempting to check if there was a specific subcapture group.
+        RegExMatchInfo.Prototype.DefineProp('__Get', { Call: _REMIGetHelper })
+        ; If there are no class definitions in the content, parse functions in the global scope
         if !RegExMatch(this.Content, SPP_CLASS, &Match) {
             Stack.PosEnd := StrLen(this.Content)
             _Proc()
@@ -332,56 +410,56 @@ class ScriptParser {
         }
         Stack.PosEnd := Match.Pos
         Stack.NextClass := Match
+
+        ; This is the primary parse loop. This function parses the following nodes:
+        ; - Class definitions
+        ;   - Property and method definitions
+        ; - Global named functions
         loop {
-            ; if InStr(Match[0], 'class PropsInfoItem') {
-            ;     sleep 1
-            ; }
-            if Stack.PosEnd - Stack.Pos > 4 {
+            ; Parse the content in-between class definitions
+            if Stack.PosEnd - Stack.Pos > 0 {
                 _Proc()
             }
-            StrReplace(SubStr(this.Content, Stack.Pos, Match.Pos['body'] - Stack.Pos), le, , , &linecount)
-            LineStart := Stack.nl + linecount
-            ColStart := Match.Pos['text'] - Match.Pos
-            StrReplace(Match['text'], le, , , &linecount)
-            LineEnd := LineStart + linecount
-            if LineEnd == LineStart {
-                ColEnd := ColStart + Match.Len['text']
-            } else {
-                ColEnd := Match.Len['text'] - InStr(Match['text'], le, , , -1)
-            }
-            ; Stack.nl := LineStart
+            ; Exit any active class scopes that will close before the beginning of the next class definition
             while Stack.ActiveClass && Stack.NextClass.Pos > Stack.ActiveClass.PosEnd {
                 Stack.Out()
             }
-            Stack.In(Match['name'], Match.Pos['text'], Match.Pos + Match.Len)
-            Stack.SetComponent(ClassConstructor(
-                LineStart
-              , ColStart
-              , LineEnd
-              , ColEnd
-              , Match.Pos['text']
-              , Match.Len['text']
-              , Stack
-              ,
-              ,
-              , Match.Pos['body']
-              , Match.Len['body']
-              , Match
-            ))
-            Stack.Pos := Match.Pos['body']
+            ; Enter into the scope
+            Component := Stack.In(this, Match['name'], Match, ClassConstructor)
+            ; Handle initialization tasks that are specific to a component type
+            Component.Init(Match)
+            ; The previous lines have already determined that there are no more property or function
+            ; definitions between the current position and the class definition, so we move the
+            ; position to beginning of the class definition to prevent `RegExMatch` from matching
+            ; with the same class definition. This moves it to right before the end of the line
+            ; containing the statement.
+            Stack.Pos := InStr(Match['text'], le) - 1 + Match.Pos['text']
+            ; Adjust the line count as well
+            Stack.Line := Stack.ActiveClass.LineStart
+            ; Find next class definition
             if RegExMatch(this.Content, SPP_CLASS, &Match, Stack.Pos) {
+                ; Set next class definition
                 Stack.NextClass := Match
+                ; If the next class definition occurs outside of the current class scope
                 if Match.Pos > Stack.ActiveClass.PosEnd {
+                    ; Parse the content up to the end of the current class scope
                     Stack.PosEnd := Stack.ActiveClass.PosEnd
                     _Proc()
+                    ; Exit the scope
                     Stack.Out()
                 }
+                ; Set the end position to the beginning of the next class definition
                 Stack.PosEnd := Match.Pos
+            ; If there are no more class definitions
             } else {
+                ; Set the end position to the end of the current class definition
                 Stack.PosEnd := Stack.ActiveClass.PosEnd
+                ; Parse the content
                 _Proc()
+                ; Exit the scope
                 Stack.Out()
-                if StrLen(RTrim(this.Content, '`r`n`s`t')) - Stack.Pos > 4 {
+                ; If there is more content in the global scope, parse it
+                if StrLen(RTrim(this.Content, '`r`n`s`t')) - Stack.Pos > 0 {
                     Stack.PosEnd := StrLen(this.Content)
                     _Proc()
                 }
@@ -389,123 +467,74 @@ class ScriptParser {
             }
         }
 
+        if IsSet(TempGetter) {
+            RegExMatchInfo.Prototype.DefineProp('__Get', { Call: TempGetter })
+        } else {
+            RegExMatchInfo.Prototype.DeleteProp('__Get')
+        }
+
         return
 
         _Proc() {
-            if Stack.Active.IsClass {
-                loop {
-                    if !RegExMatch(this.Content, SPP_PROPERTY, &_Match, Stack.Pos) {
-                        break
-                    }
-                    if _Match.Pos > Stack.PosEnd {
-                        return
-                    }
-                    StrReplace(SubStr(this.Content, Stack.Pos, _Match.Pos - Stack.Pos), le, , , &linecount)
-                    _LineStart := Stack.nl += linecount
-                    _ColStart := _Match.Pos['text'] - _Match.Pos
-                    if _Match['arrow'] || _Match['assign'] {
-                        Offset := _Match.Pos['text']
-                        ParseContinuationSection(
-                            &(Text := SubStr(this.Content, Offset, Stack.PosEnd - Offset))
-                          , 1
-                          , _Match['arrow'] ? '=>' : ':='
-                          , &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement
-                        )
-                    } else {
-                        FullStatement := _Match['text']
-                        LenFullStatement := _Match.Len['text']
-                        LenBody := _Match.Len['body']
-                    }
-                    StrReplace(FullStatement, le, , , &linecount)
-                    _LineEnd := Stack.nl += linecount
-                    if _LineEnd == _LineStart {
-                        _ColEnd := _ColStart + LenFullStatement
-                    } else {
-                        _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
-                    }
-                    Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['text'] + _Match.Len['text'])
-                    if _Match.Mark == 'func' {
-                        if _Match['static'] {
-                            _constructor := StaticMethodConstructor
-                        } else {
-                            _constructor := InstanceMethodConstructor
-                        }
-                    } else {
-                        if _Match['static'] {
-                            _constructor := StaticPropertyConstructor
-                        } else {
-                            _constructor := InstancePropertyConstructor
-                        }
-                    }
-                    Stack.SetComponent(
-                        _constructor(
-                            _LineStart
-                          , _ColStart
-                          , _LineEnd
-                          , _ColEnd
-                          , _Match.Pos['text']
-                          , LenFullStatement
-                          , Stack
-                          ,
-                          ,
-                          , _Match.Pos['body']
-                          , LenBody
-                          , [_Match, Stack.ActiveClass]
-                    ))
-                    Stack.Pos := _Match.Pos['text'] + LenFullStatement
-                    Stack.Out()
+            ; How to constructor is identified varies depending on the scope
+            Callback := Stack.Active.IsClass ? _CallbackClassActive : _CallbackGlobal
+            loop {
+                ; If there's no more function / property definitions
+                if !RegExMatch(this.Content, SPP_PROPERTY, &_Match, Stack.Pos) {
+                    break
                 }
-            } else {
-                loop {
-                    if !RegExMatch(this.Content, SPP_PROPERTY, &_Match, Stack.Pos) {
-                        return
-                    }
-                    if _Match.Pos > Stack.PosEnd {
-                        return
-                    }
-                    StrReplace(SubStr(this.Content, Stack.Pos, _Match.Pos - Stack.Pos), le, , , &linecount)
-                    _LineStart := Stack.nl += linecount
-                    _ColStart := _Match.Pos['text'] - _Match.Pos
-                    if _Match['arrow'] {
-                        Offset := _Match.Pos['text']
-                        ParseContinuationSection(
-                            &(Text := SubStr(this.Content, Offset, Stack.PosEnd - Offset))
-                          , 1
-                          , '=>'
-                          , &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement
-                        )
+                ; If the next function / property definition occurs outside of the current class definition
+                if _Match.Pos > Stack.PosEnd {
+                    return
+                }
+                ; Assignment and arrow operators can potentially be followed by a continuation section.
+                ; `ContinuationSection` will identify and concatenate a continuation section.
+                if _Match['arrow'] || _Match.assign {
+                    CS := ContinuationSection(
+                        StrPtr(this.Content)
+                      , _Match.Pos['text']
+                      , _Match['arrow'] ? '=>' : ':='
+                    )
+                } else {
+                    CS := _Match
+                }
+                ; Create the context object
+                Component := Stack.In(this, _Match['name'], CS, Callback())
+                ; Handle initialization tasks that are specific to a component type
+                Component.Init(_Match)
+                ; Parse function / property accessor parameters if present
+                Component.GetParams(_Match)
+                ; Move the position
+                Stack.Pos := _Match.Pos['text'] + _Match.Len['text']
+                ; Exit the function / property scope
+                Stack.Out()
+                ; Adjust the line count to the end of the function / property definition
+                Stack.Line := Component.LineEnd
+            }
+
+            _CallbackClassActive() {
+                if _Match.Mark == 'func' {
+                    if _Match['static'] {
+                        return StaticMethodConstructor
                     } else {
-                        FullStatement := _Match['text']
-                        LenFullStatement := _Match.Len['text']
-                        LenBody := _Match.Len['body']
+                        return InstanceMethodConstructor
                     }
-                    StrReplace(FullStatement, le, , , &linecount)
-                    _LineEnd := Stack.nl += linecount
-                    if _LineEnd == _LineStart {
-                        _ColEnd := _ColStart + LenFullStatement
+                } else {
+                    if _Match['static'] {
+                        return StaticPropertyConstructor
                     } else {
-                        _ColEnd := LenFullStatement - InStr(FullStatement, le, , , -1)
+                        return InstancePropertyConstructor
                     }
-                    Stack.In(_Match['name'], _Match.Pos['text'], _Match.Pos['text'] + _Match.Len['text'])
-                    Stack.SetComponent(
-                        FunctionConstructor(
-                            _LineStart
-                          , _ColStart
-                          , _LineEnd
-                          , _ColEnd
-                          , _Match.Pos['text']
-                          , LenFullStatement
-                          , Stack
-                          ,
-                          ,
-                          , _Match.Pos['body']
-                          , LenBody
-                          , _Match
-                    ))
-                    Stack.Pos := _Match.Pos['text'] + LenFullStatement
-                    Stack.Out()
                 }
             }
+            _CallbackGlobal() => FunctionConstructor
+        }
+
+        _REMIGetHelper(Self, Name, *) {
+            if Name = 'assign' || Name = 'inner' {
+                return false
+            }
+            throw PropertyError('Property does not exist on the object.', -1, Name)
         }
     }
 
@@ -549,8 +578,7 @@ class ScriptParser {
      *   - **name**: The name of the method, property, or function. This will always be present.
      *   - **static**: The `static` keyword, if present.
      *   - **func**: If it is a function definition, then this subgroup will contain the open
-     * parentheses. This is mostly to indicate whether its a function or property, but you can also
-     * use the position of the character for some tasks.
+     * parentheses. This is mostly to indicate whether its a function or property.
      *   - **prop**: If it is a property definition, then this subgroup will contain the first character
      * following the property name.
      *

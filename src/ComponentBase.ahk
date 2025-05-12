@@ -1,17 +1,6 @@
 ﻿
 class ComponentBase {
-    __New(LineStart, ColStart, LineEnd, ColEnd, Pos, Len, Stack?, RemovedMatch?, NameComponent?, PosBody?, LenBody?, Params?) {
-        if IsSet(Stack) {
-            if Stack.HasOwnProp('Active') {
-                if InStr(Stack.Active.Path, 'GetFunc') {
-                    sleep 1
-                }
-            } else {
-                if InStr(Stack.Path, 'GetFunc') {
-                    sleep 1
-                }
-            }
-        }
+    __New(LineStart, ColStart, LineEnd, ColEnd, Pos, Len, Stack?, RemovedMatch?, NameComponent?, PosBody?, LenBody?) {
         this.LineStart := LineStart
         this.ColStart := ColStart
         this.LineEnd := LineEnd
@@ -20,13 +9,8 @@ class ComponentBase {
         this.Length := Len
         this.DefineProp('PosEnd', { Value: Pos + Len })
         if Isset(Stack) {
-            this.Stack := Stack.HasOwnProp('Active') ? Stack.Active : Stack
+            this.Stack := Stack.Active
             this.DefineProp('Name', { Get: (Self) => Self.Stack.Path })
-            if Stack.HasOwnProp('ActiveClass') && !Stack.ActiveClass && this.IndexCollection !== SPC_CLASS {
-                if this.Script.GlobalCollection.AddToCategoryEx(this.NameCollection, &(Name := this.Stack.Path), this) {
-                    this.DefineProp('AltName', { Value: Name })
-                }
-            }
         } else if IsSet(NameComponent) {
             this.Name := NameComponent
         } else {
@@ -43,10 +27,6 @@ class ComponentBase {
         if IsSet(RemovedMatch) {
             this.DefineProp('Removed', { Value: GetRemovedComponent(this, RemovedMatch) })
         }
-        ; `Init` must be overridden by the inheritor.
-        if IsSet(Params) {
-            this.Init(Params)
-        }
     }
 
     AddChild(Component) {
@@ -57,7 +37,7 @@ class ComponentBase {
         Component.ParentIdu := this.idu
         this.ChildList.Push(Component)
         if this.Children.AddToCategoryEx(Component.NameCollection, &(Name := Component.Name), Component) {
-            Component.AltName := Name
+            Component.DefineProp('AltName', { Value: Name })
         }
     }
 

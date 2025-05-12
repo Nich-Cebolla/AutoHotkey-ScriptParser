@@ -88,8 +88,8 @@ SPP_DEFINEQUOTE := (
  * can be saved to a separate file and reused to significantly improve load times, and so it
  * is a good way to handle this.
  *
- * In case removing the strings from the code isn't viable or ideal, `SPP_Class_InclQuote`
- * addresses the aforementioned problem. It utilizes the subpattern `SPP_DefineQuote`. The
+ * In case removing the strings from the code isn't viable or ideal, `SPP_CLASS_INCLQUOTE`
+ * addresses the aforementioned problem. It utilizes the subpattern `SPP_DEFINEQUOTE`. The
  * modifications included in this pattern cause the PCRE engine to skip over any brackets contained
  * within quoted strings, so they don't disrupt the match. However, this does not handle continuation
  * sections as described here:
@@ -198,16 +198,25 @@ SPP_PROPERTY := (
     ')'
 )
 
-; Format the bracket with "get" or "set"
-/** @example
- * Pattern := Format(Ahk.Pattern.Accessor, 'get')
- * @
- */
-SPP_ACCESSOR := (
+; Property accessor
+SPP_ACCESSOR_GET := (
     'iJm)'
     '^(?<indent>[ \t]*)'
     '(?<text>'
-        '{}\s*'
+        'Get\s*'
+        '(?:'
+            '(?<body>\{([^}{]++|(?&body))*\})'
+        '|'
+            '(?<arrow>=>)'
+            '(?<body>.+)'
+        ')'
+    ')'
+)
+SPP_ACCESSOR_SET := (
+    'iJm)'
+    '^(?<indent>[ \t]*)'
+    '(?<text>'
+        'Set\s*'
         '(?:'
             '(?<body>\{([^}{]++|(?&body))*\})'
         '|'
