@@ -1,7 +1,7 @@
 ﻿
 class ParseStack extends Array {
     __New(BaseObj) {
-        ObjSetBase(this.Active := { }, BaseObj)
+        this.Active := BaseObj
         this.ContextMap := ParseStack.ContextMap()
         this.NextClass := this.ActiveClass := this.PreviousMatch := ''
         this.ClassList := []
@@ -48,13 +48,13 @@ class ParseStack extends Array {
         StrReplace(Match['body'], Script.LineEnding, , , &linecount)
         ; Calculate end line for the definition statement
         LineEnd := LineStart + linecount
-        ; Calculate end column.
+        ; Calculate end column
         if LineEnd == LineStart {
             ColEnd := ColStart + Match.Len['text']
         } else {
             ColEnd := Match.Len['text'] - InStr(Match['text'], Script.LineEnding, , , -1)
         }
-        ; Create the next stack context object
+        ; Create the context object
         Constructor := this.Constructor
         this.Active := Constructor(Name, Match.Pos['text'], Match.Pos['text'] + Match.Len['text'], this[-1])
         ; Create the component object
@@ -125,7 +125,13 @@ class ParseStack extends Array {
 
     class Context {
         static Call(Name, Pos, PosEnd, ParentContext) {
-            ObjSetBase(context := { Name: Name, Pos: Pos, PosEnd: PosEnd }, ParentContext)
+            ObjSetBase(context := {
+                Bounds: []
+              , Depth: ParentContext.Depth + 1
+              , Name: Name
+              , Pos: Pos
+              , PosEnd: PosEnd
+            }, ParentContext)
             return context
         }
 

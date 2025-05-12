@@ -153,10 +153,10 @@ SPP_CLASS_INCLQUOTE := (
 ; )
 
 SPP_FUNCTION := (
-    'iJm)'
-    '^(?<indent>[ \t]*)'
+    'J)'
+    '(?<=[\r\n]|^).*?'
     '(?<text>'
-        '(?<name>[a-zA-Z0-9_]+)'
+        '(?<name>[a-zA-Z0-9_]*)'
         '(?<params>\((?<inner>([^()]++|(?&params))*)\))'
         '\s*'
         '(?:'

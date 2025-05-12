@@ -45,7 +45,10 @@ class ComponentBase {
         throw PropertyError('This method must be overridden by the inheritor.', -1, A_ThisFunc)
     }
 
-    ; `IndexCollection`, `NameCollection` and `Script` are defined on the base
+    ; `IndexCollection`, `NameCollection`, and `Script` are defined on the base
+    ; The following are defined elsewhere:
+    ; `ParentIdu`, `Name`, `Children`, `ChildList`, `AltName`, `Removed`, `Length`, `Pos`, `PosEnd`
+    ; `PosBody`, `LenBody`, `LineStart`, `LineEnd`, `ColStart`, `ColEnd`, `Stack`
 
     Collection => this.Script.CollectionList[this.IndexCollection]
 
