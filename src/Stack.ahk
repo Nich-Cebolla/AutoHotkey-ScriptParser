@@ -3,7 +3,7 @@ class ParseStack extends Array {
     __New(BaseObj) {
         this.Active := BaseObj
         this.ContextMap := ParseStack.ContextMap()
-        this.NextClass := this.ActiveClass := this.PreviousMatch := ''
+        this.ActiveClass :=this.NextClass := ''
         this.ClassList := []
         this.PosEnd := this.Pos := this.Line := 1
     }
@@ -39,13 +39,13 @@ class ParseStack extends Array {
             Line := this.Line
         }
         ; Get line count between the current position and the beginning of the definition
-        StrReplace(SubStr(Script.Content, Pos, Match.Pos['body'] - Pos), Script.LineEnding, , , &linecount)
+        StrReplace(SubStr(Script.Content, Pos, Match.Pos['text'] - Pos), Script.LineEnding, , , &linecount)
         ; Calculate start line for the definition statement
         LineStart := Line + linecount
         ; Calculate start column for the definition statement
         ColStart := Match.Pos['text'] - Match.Pos
         ; Get line count of definition statement
-        StrReplace(Match['body'], Script.LineEnding, , , &linecount)
+        StrReplace(Match['text'], Script.LineEnding, , , &linecount)
         ; Calculate end line for the definition statement
         LineEnd := LineStart + linecount
         ; Calculate end column
@@ -81,8 +81,11 @@ class ParseStack extends Array {
                 Component.DefineProp('AltName', { Value: Name })
             }
         }
+        ; If the new component is a class component
         if Component.IndexCollection == SPC_CLASS {
+            ; Push current class into stack
             this.ClassList.Push(this.ActiveClass)
+            ; Set active class
             this.ActiveClass := Component
             this.Active.IsClass := true
         } else {

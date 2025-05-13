@@ -10,42 +10,6 @@ class Ahk {
                 this.Extends := Match['super']
             }
 
-            __Add(Component, Collection) {
-                if Collection.Has(Component.Name) {
-                    loop {
-                        if !Collection.Has(Name := Component.Name '-' A_Index) {
-                            break
-                        }
-                    }
-                    Collection.Set(Name, Component)
-                    Component.DefineProp('AltName', { Value: Name })
-                } else {
-                    Collection.Set(Component.Name, Component)
-                }
-            }
-            __AddInstanceMethod(Component) => this.__Add(Component, this.InstanceMethod)
-            __AddInstanceProperty(Component) => this.__Add(Component, this.InstanceProperty)
-            __AddStaticMethod(Component) => this.__Add(Component, this.StaticMethod)
-            __AddStaticProperty(Component) => this.__Add(Component, this.StaticProperty)
-            __Call(Name, Params) {
-                if HasMethod(this, '__' Name) {
-                    this.DefineProp(StrReplace(Name, 'Add', ''), { Value: Ahk.Component.Class.%StrReplace(Name, 'Add', '') 'Collection'%() })
-                    this.DefineProp(Name, Ahk.Component.Class.Prototype.GetOwnPropDesc('__' Name))
-                    this.%Name%(Params[1])
-                } else {
-                    throw PropertyError('The object does not have a method with that name.', -1, 'Name: ' Name '; Type(obj) == ' Type(this))
-                }
-            }
-
-            class InstanceMethodCollection extends MapEx {
-            }
-            class InstancePropertyCollection extends MapEx {
-            }
-            class StaticMethodCollection extends MapEx {
-            }
-            class StaticPropertyCollection extends MapEx {
-            }
-
             static __New() {
                 if this.Prototype.__Class == 'Ahk.Component.Class' {
                     Proto := this.Prototype
@@ -57,11 +21,9 @@ class Ahk {
         }
 
         class StaticMethod extends Ahk.Component.Method {
-
         }
 
         class InstanceMethod extends Ahk.Component.Method {
-
         }
 
         class Method extends Ahk.Component.Function {

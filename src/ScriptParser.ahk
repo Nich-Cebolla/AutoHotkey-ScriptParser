@@ -210,7 +210,7 @@ class ScriptParser {
         ; This is the primary parse loop. This function parses the following nodes:
         ; - Class definitions
         ;   - Property and method definitions
-        ; - Global named functions
+        ; - Global named function definitions that do not occur within an expression
         loop {
             ; Parse the content in-between class definitions
             if Stack.PosEnd - Stack.Pos > 0 {
@@ -235,9 +235,9 @@ class ScriptParser {
             if RegExMatch(this.Content, SPP_CLASS, &Match, Stack.Pos) {
                 ; Set next class definition
                 Stack.NextClass := Match
-                ; If the next class definition occurs outside of the current class scope
+                ; If the next class definition occurs outside of the current class definition
                 if Match.Pos > Stack.ActiveClass.PosEnd {
-                    ; Parse the content up to the end of the current class scope
+                    ; Parse the content up to the end of the current class definition
                     Stack.PosEnd := Stack.ActiveClass.PosEnd
                     _Proc()
                     ; Exit the scope
@@ -251,7 +251,7 @@ class ScriptParser {
                 Stack.PosEnd := Stack.ActiveClass.PosEnd
                 ; Parse the content
                 _Proc()
-                ; Exit the scope
+                ; Exit the definition
                 Stack.Out()
                 ; If there is more content in the global scope, parse it
                 if StrLen(RTrim(this.Content, '`r`n`s`t')) - Stack.Pos > 0 {
@@ -271,8 +271,9 @@ class ScriptParser {
         return
 
         _Proc() {
-            ; How to constructor is identified varies depending on the scope
-            Callback := Stack.Active.IsClass ? _CallbackClassActive : _CallbackGlobal
+            local _Match
+            ; How the constructor is identified varies depending on the scope
+            Callback := Stack.Active.IsClass ? _GetConstructorClassActive : _GetConstructorGlobal
             loop {
                 ; If there's no more function / property definitions
                 if !RegExMatch(this.Content, SPP_PROPERTY, &_Match, Stack.Pos) {
@@ -307,7 +308,7 @@ class ScriptParser {
                 Stack.Line := Component.LineEnd
             }
 
-            _CallbackClassActive() {
+            _GetConstructorClassActive() {
                 if _Match.Mark == 'func' {
                     if _Match['static'] {
                         return StaticMethodConstructor
@@ -322,7 +323,7 @@ class ScriptParser {
                     }
                 }
             }
-            _CallbackGlobal() => FunctionConstructor
+            _GetConstructorGlobal() => FunctionConstructor
         }
 
         _REMIGetHelper(Self, Name, *) {
@@ -331,12 +332,47 @@ class ScriptParser {
             }
             throw PropertyError('Property does not exist on the object.', -1, Name)
         }
-    }
 
-    ParseFunction() {
-        le := this.LineEnding
-        Stack := this.Stack
-        FunctionConstructor := this.CollectionList[SPC_FUNCTION].Constructor
+        ; Parsing nested functions is complicated and will require a tokenizer and a more advanced
+        ; context stack. I'm holding off on that for now.
+        ; _Recurse(PosEnd) {
+        ;     local _Match
+        ;     ; We use the text up to the end of the current definition
+        ;     , Text := SubStr(this.Content, Stack.Pos, PosEnd)
+        ;     loop {
+        ;         ; If there's no more function / property definitions
+        ;         if !RegExMatch(Text, SPP_FUNCTION, &_Match, Stack.Pos) {
+        ;             break
+        ;         }
+        ;         ; Arrow operators can potentially be followed by a continuation section.
+        ;         ; `ContinuationSection` will identify and concatenate a continuation section.
+        ;         if _Match['arrow'] {
+        ;             CS := ContinuationSection(
+        ;                 StrPtr(Text)
+        ;               , _Match.Pos['text']
+        ;               , '=>'
+        ;             )
+        ;         } else {
+        ;             CS := _Match
+        ;         }
+        ;         ; Create the context object. Anonymous functions get the name '()'
+        ;         Component := Stack.In(this, _Match['name'] || '()', CS, FunctionConstructor)
+        ;         ; Handle initialization tasks that are specific to a component type
+        ;         Component.Init(_Match)
+        ;         ; Parse function / property accessor parameters if present
+        ;         Component.GetParams(_Match)
+        ;         ; Move the position
+        ;         Stack.Pos := _Match.Pos['text']
+        ;         ; Recurse into the definition
+        ;         _Recurse(_Match.Pos['text'] + _Match.Len['text'])
+        ;         ; Move the position
+        ;         Stack.Pos := _Match.Pos['text'] + _Match.Len['text']
+        ;         ; Exit the function / property scope
+        ;         Stack.Out()
+        ;         ; Adjust the line count to the end of the function / property definition
+        ;         Stack.Line := Component.LineEnd
+        ;     }
+        ; }
     }
 
     /**

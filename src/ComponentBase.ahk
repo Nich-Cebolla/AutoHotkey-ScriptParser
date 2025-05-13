@@ -41,6 +41,30 @@ class ComponentBase {
         }
     }
 
+    GetOwnText() {
+        Text := this.Text
+        if this.HasOwnProp('ChildList') {
+            for Child in this.ChildList {
+                if Child.PosBody {
+                    Text := StrReplace(Text, Child.TextBody, '')
+                }
+            }
+        }
+        return Text
+    }
+
+    GetOwnTextFull() {
+        Text := this.TextFull
+        if this.HasOwnProp('ChildList') {
+            for Child in this.ChildList {
+                if Child.PosBody {
+                    Text := StrReplace(Text, Child.TextBodyFull, '')
+                }
+            }
+        }
+        return Text
+    }
+
     Init(*) {
         throw PropertyError('This method must be overridden by the inheritor.', -1, A_ThisFunc)
     }
@@ -54,13 +78,14 @@ class ComponentBase {
 
     Parent => this.Script.ComponentList.Get(this.ParentIdu)
     Path => this.Stack.Path
-    FullPath => this.Path ? this.Path '.' this.Name : this.Name
     PosEnd => this.Pos + this.Length
 
     Text => this.Script.Text[this.Pos, this.Length]
-    TextFull => this.Script.TextFull[this.Pos, this.Length]
     TextBody => this.PosBody ? this.Script.Text[this.PosBody, this.LenBody] : ''
     TextBodyFull => this.PosBody ? this.Script.TextFull[this.PosBody, this.Lenbody] : ''
+    TextFull => this.Script.TextFull[this.Pos, this.Length]
+    TextOwn => this.GetOwnText()
+    TextOwnFull => this.GetOwnTextFull()
     TextRemoved => this.Removed ? this.Removed.Match['text'] : ''
     TextReplacement => this.Removed ? this.Removed.Replacement : ''
 
@@ -74,7 +99,6 @@ class ComponentBase {
         }
     }
 }
-
 
 GetRemovedComponent(Component, Match) {
     Script := Component.Script
@@ -136,5 +160,4 @@ class ChildNodeCollection extends MapEx {
 }
 
 class ChildNodeList extends Array {
-
 }
