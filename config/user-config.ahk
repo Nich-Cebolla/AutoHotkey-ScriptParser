@@ -10,4 +10,10 @@ class ScriptParserConfig {
 
     ; Minor configuration options
     , Capacity_Removed := 1000
+
+    static __New() {
+        if this.Prototype.__Class == 'ScriptParserConfig' {
+            ObjSetBase(this, SP_Config.Default)
+        }
+    }
 }

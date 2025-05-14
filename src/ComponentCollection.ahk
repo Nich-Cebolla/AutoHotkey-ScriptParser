@@ -72,7 +72,7 @@ class RemovedCollection extends MapEx {
         this.Default := ''
         this.ConsecutiveDoubleQuotes := this.ConsecutiveSingleQuotes := 0
         this.__Index := 90000000 - 1
-        this.__MaxIndex := 91000000
+        this.__MaxCode := 91000000
         this.Capacity := Script.Config.Capacity
         this.ShortCollection := RemovedCollection.ShortCollection(Script)
     }
@@ -90,7 +90,7 @@ class RemovedCollection extends MapEx {
         return this.ShortCollection.Push(Component, &Char)
     }
     GetIndex() {
-        if ++this.__Index >= this.__MaxIndex {
+        if ++this.__Index >= this.__MaxCode {
             throw Error('Number of components have exceeded the maximum.', -1
             , 'Component: RemovedComponent; Count: ' this.__Index)
         }
@@ -100,30 +100,30 @@ class RemovedCollection extends MapEx {
     class ShortCollection extends Map {
         static __New() {
             if this.Prototype.__Class == 'RemovedCollection.ShortCollection' {
-                this.Prototype.DefineProp('__CharStartIndex', { Value: 0x2000 })
-                this.Prototype.DefineProp('__CharMaxIndex', { Value: 0xFB04 })
+                this.Prototype.DefineProp('__CharStartCode', { Value: 0x2000 })
+                this.Prototype.DefineProp('__CharMaxCode', { Value: 0xFB04 })
             }
         }
         __New(Script) {
-            this.__CharIndex := this.__CharStartIndex
-            this.__AdjustCharIndex(Script)
-            this.Set(Chr(this.__CharIndex), [])
+            this.__CharCode := this.__CharStartCode
+            this.__AdjustCharCode(Script)
+            this.Set(Chr(this.__CharCode), [])
         }
         Push(Component, &Char) {
-            Arr := this.Get(Chr(this.__CharIndex))
+            Arr := this.Get(Chr(this.__CharCode))
             if Arr.Length > 98 {
-                this.__CharIndex++
-                this.__AdjustCharIndex(Component.Script)
-                this.Set(Chr(this.__CharIndex), Arr := [])
+                this.__CharCode++
+                this.__AdjustCharCode(Component.Script)
+                this.Set(Chr(this.__CharCode), Arr := [])
             }
             Arr.Push(Component)
-            Char := Chr(this.__CharIndex)
+            Char := Chr(this.__CharCode)
             return Arr.Length
         }
-        __AdjustCharIndex(Script) {
-            while InStr(Script.Content, Chr(this.__CharIndex)) {
-                this.__CharIndex++
-                if this.__CharIndex > this.__CharMaxIndex {
+        __AdjustCharCode(Script) {
+            while InStr(Script.Content, Chr(this.__CharCode)) {
+                this.__CharCode++
+                if this.__CharCode > this.__CharMaxCode {
                     throw Error('``ScriptParser`` ran out of characters used to identify short removed strings.', -1)
                 }
             }
@@ -145,5 +145,66 @@ class GlobalCollection extends MapEx {
         this.CaseSense := false
         this.Default := ''
         this.Capacity := Capacity
+    }
+}
+
+class ChildNodeCollection extends MapEx {
+    ToArray(Include?, Exclude?) {
+        Result := []
+        if IsSet(Include) {
+            for s in StrSplit(Include, ',', '`s`t') {
+                if s && this.Has(s) {
+                    Result.Capacity += this.Get(s).Capacity
+                    for Name, Component in this.Get(s) {
+                        Result.Push(Component)
+                    }
+                }
+            }
+        } else if IsSet(Exclude) {
+            Exclude := ',' Exclude ','
+            for Name, Collection in this {
+                if InStr(Exclude, ',' Name ',') {
+                    continue
+                }
+                Result.Capacity += Collection.Capacity
+                for Name, Component in Collection {
+                    Result.Push(Component)
+                }
+            }
+        } else {
+            for Name, Collection in this {
+                Result.Capacity += Collection.Capacity
+                for Name, Component in Collection {
+                    Result.Push(Component)
+                }
+            }
+        }
+        return Result
+    }
+    ToArray2(Exclude?) {
+        Result := []
+        if IsSet(Exclude) {
+            Exclude := ',' Exclude ',Jsdoc,CommentSingleLine,CommentMultiLine,String,'
+        } else {
+            Exclude := ',Jsdoc,CommentSingleLine,CommentMultiLine,String,'
+        }
+        for Name, Collection in this {
+            if InStr(Exclude, ',' Name ',') {
+                continue
+            }
+            Result.Capacity += Collection.Capacity
+            for Name, Component in Collection {
+                Result.Push(Component)
+            }
+        }
+        return Result
+    }
+
+    static __New() {
+        if this.Prototype.__Class == 'ChildNodeCollection' {
+            Proto := this.Prototype
+            Proto.DefineProp('ConsecutiveDoubleQuotes', { Value: 0 })
+            Proto.DefineProp('ConsecutiveSingleQuotes', { Value: 0 })
+        }
     }
 }

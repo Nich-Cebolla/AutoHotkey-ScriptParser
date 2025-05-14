@@ -30,21 +30,26 @@ class ComponentBase {
     }
 
     AddChild(Component) {
+        ; I structure some methods like this for optimization reasons. If there is a condition that
+        ; only needs to be checked once, we can check the condition, override the method with a
+        ; function that does not check the condition, then call the method.
         if !this.HasOwnProp('Children') {
             this.Children := ChildNodeCollection(false)
-            this.ChildList := ChildNodeList()
         }
-        Component.ParentIdu := this.idu
-        this.ChildList.Push(Component)
-        if this.Children.AddToCategoryEx(Component.NameCollection, &(Name := Component.Name), Component) {
-            Component.DefineProp('AltName', { Value: Name })
+        this.DefineProp('AddChild', { Call: _AddChild })
+        this.AddChild(Component)
+        _AddChild(Self, Component) {
+            Component.ParentIdu := this.idu
+            if this.Children.AddToCategoryEx(Component.NameCollection, &(Name := Component.Name), Component) {
+                Component.DefineProp('AltName', { Value: Name })
+            }
         }
     }
 
     GetOwnText() {
         Text := this.Text
-        if this.HasOwnProp('ChildList') {
-            for Child in this.ChildList {
+        if this.HasOwnProp('Children') {
+            for Child in this.Children.ToArray2() {
                 if Child.PosBody {
                     Text := StrReplace(Text, Child.TextBody, '')
                 }
@@ -55,8 +60,8 @@ class ComponentBase {
 
     GetOwnTextFull() {
         Text := this.TextFull
-        if this.HasOwnProp('ChildList') {
-            for Child in this.ChildList {
+        if this.HasOwnProp('Children') {
+            for Child in this.Children.ToArray2() {
                 if Child.PosBody {
                     Text := StrReplace(Text, Child.TextBodyFull, '')
                 }
@@ -69,14 +74,51 @@ class ComponentBase {
         throw PropertyError('This method must be overridden by the inheritor.', -1, A_ThisFunc)
     }
 
-    ; `IndexCollection`, `NameCollection`, and `Script` are defined on the base
+    /**
+     * @description - This is only intended to be used for components that are not class components.
+     */
+    __AssociateRemovedComponents() {
+        Text := this.Text
+        RemovedCollection := this.Script.RemovedCollection
+        Pos := 1
+        loop {
+            if !RegExMatch(Text, SPP_REPLACEMENT, &Match, Pos) {
+                break
+            }
+            this.AddChild(RemovedCollection.Get(this.Script.NameCollection[Match['collection']])[Match['index']])
+            Pos := Match.Pos + Match.Len
+        }
+        ShortCollection := RemovedCollection.ShortCollection
+        Index := ShortCollection.__CharStartCode
+        EndIndex := ShortCollection.__CharCode
+        Pos := 1
+        loop {
+            if RegExMatch(Text, Chr(Index) '(\d+)', &Match, Pos) {
+                this.AddChild(ShortCollection.Get(Chr(Index))[Match[1]])
+                Pos := Match.Pos + Match.Len
+            } else {
+                if ++Index > EndIndex {
+                    break
+                }
+                Pos := 1
+            }
+        }
+    }
+
+    ; `AltName`, `IndexCollection`, `NameCollection`, `ParentIdu`, `Removed`, and `Script` are
+    ; defined on the base.
     ; The following are defined elsewhere:
-    ; `ParentIdu`, `Name`, `Children`, `ChildList`, `AltName`, `Removed`, `Length`, `Pos`, `PosEnd`
-    ; `PosBody`, `LenBody`, `LineStart`, `LineEnd`, `ColStart`, `ColEnd`, `Stack`
+    ; `Name`, `Children`, `Length`, `Pos`, `PosEnd`, `PosBody`, `LenBody`, `LineStart`, `LineEnd`,
+    ; `ColStart`, `ColEnd`, `Stack`.
+    ; `AltName` is overridden in cases where multiple components share the same name and are
+    ; in the same collection.
+    ; `ParentIdu` is overridden if the component is a child of another.
+    ; `Removed` is overridden if the component's text is removed from the content.
+    ; Components that are comments have additional property `TextComment`.
 
     Collection => this.Script.CollectionList[this.IndexCollection]
 
-    Parent => this.Script.ComponentList.Get(this.ParentIdu)
+    Parent => this.ParentIdu ? this.Script.ComponentList.Get(this.ParentIdu) : ''
     Path => this.Stack.Path
     PosEnd => this.Pos + this.Length
 
@@ -93,7 +135,7 @@ class ComponentBase {
     static __New() {
         if this.Prototype.__Class == 'ComponentBase' {
             Proto := this.Prototype
-            for Prop in ['Removed', 'Name', 'Stack', 'LenBody', 'AltName'] {
+            for Prop in ['AltName', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack'] {
                 Proto.DefineProp(Prop, { Value: '' })
             }
         }
@@ -116,6 +158,9 @@ GetRemovedComponent(Component, Match) {
     }
     rc.SetReplacement(Script, Component.IndexCollection)
     Script.Content := StrReplace(Script.Content, Match['text'], rc.Replacement, true, , 1)
+    if Component.IndexCollection == SPC_JSDOC {
+
+    }
     return rc
 }
 
@@ -154,10 +199,4 @@ class RemovedComponentBase {
         }
     }
     Text => this.Match['text']
-}
-
-class ChildNodeCollection extends MapEx {
-}
-
-class ChildNodeList extends Array {
 }

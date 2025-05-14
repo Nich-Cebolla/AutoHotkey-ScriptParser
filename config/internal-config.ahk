@@ -26,7 +26,6 @@ class SP_Config {
      */
     static Call(Config) {
         if IsSet(ScriptParserConfig) {
-            ObjSetBase(ScriptParserConfig, SP_Config.Default)
             ObjSetBase(Config, ScriptParserConfig)
         } else {
             ObjSetBase(Config, SP_Config.Default)

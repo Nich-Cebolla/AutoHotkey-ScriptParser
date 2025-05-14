@@ -4,7 +4,7 @@ class ParamsList extends Array {
      * @class - Parses the parameters of a function definition.
      * @param {String} Str - The string that contains the parameters.
      * @returns {Array} - An array of `ParamsList.Param` objects with properties
-     * { Optional, Default, Symbol }.
+     * { Optional, Default, Symbol, Variadic, VarRef }.
      */
     __New(Str) {
         static Brackets := ['{', '}', '[', ']', '(', ')']

@@ -58,11 +58,10 @@ class ScriptParser {
                 split := StrSplit(Match['super'], '.')
                 if BaseObjects.Has(split[-1]) {
                     ObjSetBase(B, BaseObjects.Get(split[-1]))
+                    _Proc(&Prop)
                 } else {
                     Pending.Push({ Split: split, B: B, Component: _component })
-                    continue
                 }
-                _Proc(&Prop)
             }
         }
         i := 0
@@ -136,6 +135,25 @@ class ScriptParser {
         }
     }
 
+    AssociateRemovedComponents() {
+        _removedCollection := this.RemovedCollection
+        for Component in this.ComponentList {
+            if Component.Removed {
+                continue
+            }
+            Pos := 1
+            Text := Component.Text
+            loop {
+                if !RegExMatch(Text, SPP_REPLACEMENT, &Match, Pos) {
+                    break
+                }
+                rc := _removedCollection.Get(this.NameCollection[Match['collection']])[Match['index']].Removed
+                Text := StrReplace(Text, rc.Replacement, rc.Text)
+                Pos := Match.Pos + Match.Len
+            }
+        }
+    }
+
     Dispose() {
         this.__ComponentBaseBase.DeleteProp('Script')
         this.DeleteProp('__ComponentBaseBase')
@@ -154,18 +172,18 @@ class ScriptParser {
     GetTextFull(PosStart := 1, Len?) {
         Text := SubStr(this.Content, PosStart, Len ?? unset)
         Pos := 1
-        _removedCollection := this.RemovedCollection
+        RemovedCollection := this.RemovedCollection
         loop {
             if !RegExMatch(Text, SPP_REPLACEMENT, &Match, Pos) {
                 break
             }
-            rc := _removedCollection.Get(this.NameCollection[Match['collection']])[Match['index']].Removed
+            rc := RemovedCollection.Get(this.NameCollection[Match['collection']])[Match['index']].Removed
             Text := StrReplace(Text, rc.Replacement, rc.Text)
             Pos := Match.Pos + Match.Len
         }
-        ShortCollection := _removedCollection.ShortCollection
-        index := ShortCollection.__CharStartIndex
-        EndIndex := ShortCollection.__CharIndex
+        ShortCollection := RemovedCollection.ShortCollection
+        Index := ShortCollection.__CharStartCode
+        EndIndex := ShortCollection.__CharCode
         Pos := 1
         loop {
             if RegExMatch(Text, Chr(Index) '(\d+)', &Match, Pos) {
@@ -173,7 +191,7 @@ class ScriptParser {
                 Text := StrReplace(Text, rc.Replacement, rc.Text)
                 Pos := Match.Pos + Match.Len
             } else {
-                if ++index > EndIndex {
+                if ++Index > EndIndex {
                     break
                 }
                 Pos := 1
@@ -254,7 +272,7 @@ class ScriptParser {
                 ; Exit the definition
                 Stack.Out()
                 ; If there is more content in the global scope, parse it
-                if StrLen(RTrim(this.Content, '`r`n`s`t')) - Stack.Pos > 0 {
+                if StrLen(RTrim(this.Content, '`r`n`s`t')) - Stack.PosEnd > 0 {
                     Stack.PosEnd := StrLen(this.Content)
                     _Proc()
                 }
@@ -274,14 +292,12 @@ class ScriptParser {
             local _Match
             ; How the constructor is identified varies depending on the scope
             Callback := Stack.Active.IsClass ? _GetConstructorClassActive : _GetConstructorGlobal
+            ; Only check the text up to `Stack.PosEnd`
+            Text := SubStr(this.Content, 1, Stack.PosEnd)
             loop {
                 ; If there's no more function / property definitions
-                if !RegExMatch(this.Content, SPP_PROPERTY, &_Match, Stack.Pos) {
+                if !RegExMatch(Text, SPP_PROPERTY, &_Match, Stack.Pos) {
                     break
-                }
-                ; If the next function / property definition occurs outside of the current class definition
-                if _Match.Pos > Stack.PosEnd {
-                    return
                 }
                 ; Assignment and arrow operators can potentially be followed by a continuation section.
                 ; `ContinuationSection` will identify and concatenate a continuation section.
@@ -296,6 +312,7 @@ class ScriptParser {
                 }
                 ; Create the context object
                 Component := Stack.In(this, _Match['name'], CS, Callback())
+                Component.__AssociateRemovedComponents()
                 ; Handle initialization tasks that are specific to a component type
                 Component.Init(_Match)
                 ; Parse function / property accessor parameters if present
@@ -378,32 +395,38 @@ class ScriptParser {
     /**
      * @description - `ScriptParser.Prototype.RemoveStringsAndComments` removes quoted strings and
      * comments from the content. A component is created for each item that is removed from the text.
-     * The components are not associated with a stack initially; to identify the components' position
-     * in the stack, call `ScriptParser.Prototype.SetRemovedComponentStack`.
+     * The components are not associated with a context initially.
      *
      * The match objects have additional subcapture groups which you can use to analyze the content
      * that was removed. All matches have the following:
      * - **text**: The text that was removed from the content.
+     *
+     * Quoted strings:
+     * - **string**: The text content of the quoted string, without the encompassing quote characters.
      *
      * Continuation sections:
      * - **comment**: The last comment between the open quote character and the open bracket character,
      * if any are present.
      * - **quote**: The open quote character.
      * - **body**: The text content between the open bracket and the close bracket, i.e. the continuation
-     * section's string value.
+     * section's string value before the indentation is removed.
      * - **tail**: Any code that is on the same line as the close bracket, after the close quote character.
      *
-     * Single line comments:
-     * - **comment**: The content of the comment without the semicolon character and without leading
+     * Jsdoc comments and multi-line comments:
+     * - **comment**: The content of the comment without the comment operator and without surrounding
      * whitespace.
      *
-     * Multi-line comments:
-     * - **comment**: The content of the comment without the the open and closing operators
-     * (/ * and * /) and without the surrounding whitespace.
+     * Single-line comments:
+     * - **comment**: If the single-line comment is a standalone comment (i.e. not part of a comment
+     * block consisting of consecutive lines of comments without code and each line having the same
+     * level of indentation), then the match will also have a `comment` subcapture group containing
+     * the content of the comment without the comment operator and without leading whitespace.
      *
-     * Jsdoc comments:
-     * - **comment**: The content of the comment without the open and closing operators (/ * * and * /)
-     * and without the surrounding whitespace.
+     * - **indent**: The space and tab characters that occurs on the same line as a comment (or the
+     * first line of a comment block) before any character that is not a space or tab.
+     * - **lead**: The characters following the indentation but before the comment operator.
+     *
+     * All types of comments:
      * - **line**: The next line following the comment, included so the comment can be paired with
      * whatever it is describing. If the next line of text is a class definition, these subgroups
      * are used:
@@ -416,11 +439,8 @@ class ScriptParser {
      *   - **static**: The `static` keyword, if present.
      *   - **func**: If it is a function definition, then this subgroup will contain the open
      * parentheses. This is mostly to indicate whether its a function or property.
-     *   - **prop**: If it is a property definition, then this subgroup will contain the first character
-     * following the property name.
-     *
-     * Quoted strings:
-     * - **string**: The text content of the quoted string, without the encompassing quote characters.
+     *   - **prop**: If it is a property definition, then this subgroup will contain the first
+     * character following the property name.
      */
     RemoveStringsAndComments() {
         global SPP_REMOVE_CONTINUATION, SPP_REMOVE_LOOP
@@ -440,6 +460,8 @@ class ScriptParser {
         _Process(&Pattern) {
             Pos := 1
             nl := 1
+            leLen := StrLen(this.LineEnding)
+            ActiveComment := ''
             ; This is the procedure flow for removing content and adding a value to a collection
             loop {
                 if !RegExMatch(this.Content, Pattern, &Match, Pos) {
@@ -463,8 +485,8 @@ class ScriptParser {
                 }
                 ; Adjust pos
                 Pos := Match.Pos['text'] + Match.Len['text']
-                ; Get constructor. The `Mark` value is the symbol `SPC_<collection name>` as string
-                Constructor := this.CollectionList[%Match.Mark%].Constructor
+                ; Get constructor. The `Mark` value is the symbol `SPC_<collection name>`
+                Constructor := this.CollectionList[Index := %Match.Mark%].Constructor
                 ; Call constructor. The constructor handles the rest.
                 Constructor(LineStart, ColStart, LineEnd, ColEnd, Match.Pos['text'], Match.Len['text'], , Match)
             }
@@ -477,6 +499,5 @@ class ScriptParser {
     PathIn => this.Config.PathIn
     Text[PosStart := 1, Len?] => SubStr(this.Content, PosStart, Len ?? unset)
     TextFull[PosStart := 1, Len?] => this.GetTextFull(PosStart, Len ?? unset)
-
 }
 

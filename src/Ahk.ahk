@@ -126,89 +126,90 @@ class Ahk {
             }
         }
 
-        class Jsdoc extends ComponentBase {
+        class Jsdoc extends Ahk.Component.Comment {
 
+            GetCommentText(JoinChar := '`r`n') {
+                return RegExReplace(this.Removed.Match['comment'], '\R?[ \t]*?\* ?', JoinChar)
+            }
         }
 
-        class CommentSingleLine extends ComponentBase {
+        class CommentSingleLine extends Ahk.Component.Comment {
 
+            GetCommentText(JoinChar := '`r`n') {
+                return RegExReplace(this.TextFull, '\R?.*?(?<=\s|^);[ \t]*', JoinChar)
+            }
         }
 
-        class CommentMultiLine extends ComponentBase {
+        class CommentMultiLine extends Ahk.Component.Comment {
+
+            GetCommentText(JoinChar := '`r`n') {
+                return RegExReplace(this.Removed.Match['comment'], '\R?[ \t]*', JoinChar)
+            }
+        }
+
+        class Comment extends ComponentBase {
+            GetCommentText(*) {
+                throw Error('This method must be overridden by the inheritor.', -1, A_ThisFunc)
+            }
+            TextComment[JoinChar := '`r`n'] => this.GetCommentText(JoinChar)
         }
 
         class String extends ComponentBase {
         }
 
         ; class Expression extends ComponentBase {
-
         ; }
 
         class Variable extends ComponentBase {
         }
 
         ; class Symbol extends ComponentBase {
-
         ; }
 
         ; class Value extends ComponentBase {
-
         ; }
 
         ; class Object extends Ahk.Component.Variable {
-
         ; }
 
         ; class EmptyString extends ComponentBase {
-
         ; }
 
         ; class Boolean extends ComponentBase {
-
         ; }
 
         ; class Integer extends ComponentBase {
-
         ; }
 
         ; class Hex extends ComponentBase {
-
         ; }
 
         ; class Float extends ComponentBase {
-
         ; }
 
         ; class SubExpression extends ComponentBase {
-
         ; }
 
         ; class Operator extends ComponentBase {
-
-
         ; }
 
         ; class E extends ComponentBase {
-
         ; }
+
         ; ; %Expr%
         ; class Deref extends ComponentBase {
-
         ; }
 
-        ; ; &x
+        ; ; &
         ; class Reference extends ComponentBase {
-
         ; }
 
         ; ; Var ?? Alternative
         ; class OrMaybe extends ComponentBase {
-
         ; }
 
         ; ; Obj.Prop
         ; class MemberAccess extends ComponentBase {
-
         ; }
 
         ; ; Var?
