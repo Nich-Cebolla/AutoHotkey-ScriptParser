@@ -1,6 +1,6 @@
 ﻿
 class ComponentBase {
-    __New(LineStart, ColStart, LineEnd, ColEnd, Pos, Len, Stack?, RemovedMatch?, NameComponent?, PosBody?, LenBody?) {
+    __New(LineStart, ColStart, LineEnd, ColEnd, Pos, Len, Stack?, Match?, NameComponent?, PosBody?, LenBody?, IsRemoved := false) {
         this.LineStart := LineStart
         this.ColStart := ColStart
         this.LineEnd := LineEnd
@@ -8,9 +8,16 @@ class ComponentBase {
         this.Pos := Pos
         this.Length := Len
         this.DefineProp('PosEnd', { Value: Pos + Len })
+        this.Script.ComponentList.Add(this)
         if Isset(Stack) {
             this.Stack := Stack.Active
-            this.DefineProp('Name', { Get: (Self) => Self.Stack.Path })
+            if this.IndexCollection == SPC_INSTANCEMETHOD {
+                Path := this.Stack.Path
+                this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.')) 'Prototype.' SubStr(Path, InStr(Path, '.') + 1) })
+            } else {
+                this.DefineProp('Name', { Get: (Self) => Self.Stack.Path })
+            }
+            this.Stack.ComponentIdu := this.idu
         } else if IsSet(NameComponent) {
             this.Name := NameComponent
         } else {
@@ -22,11 +29,13 @@ class ComponentBase {
         if IsSet(LenBody) {
             this.LenBody := LenBody
         }
-        this.Script.ComponentList.Add(this)
-        this.Collection.Add(this)
-        if IsSet(RemovedMatch) {
-            this.DefineProp('Removed', { Value: GetRemovedComponent(this, RemovedMatch) })
+        if HasMethod(this, 'Init') {
+            this.Init(Match)
         }
+        if IsRemoved {
+            this.DefineProp('Removed', { Value: GetRemovedComponent(this, Match) })
+        }
+        this.Collection.Add(this)
     }
 
     AddChild(Component) {
@@ -70,10 +79,6 @@ class ComponentBase {
         return Text
     }
 
-    Init(*) {
-        throw PropertyError('This method must be overridden by the inheritor.', -1, A_ThisFunc)
-    }
-
     /**
      * @description - This is only intended to be used for components that are not class components.
      */
@@ -105,16 +110,24 @@ class ComponentBase {
         }
     }
 
-    ; `AltName`, `IndexCollection`, `NameCollection`, `ParentIdu`, `Removed`, and `Script` are
-    ; defined on the base.
-    ; The following are defined elsewhere:
-    ; `Name`, `Children`, `Length`, `Pos`, `PosEnd`, `PosBody`, `LenBody`, `LineStart`, `LineEnd`,
-    ; `ColStart`, `ColEnd`, `Stack`.
+    ; `AltName`, `Params`, `ParentIdu`, and `Removed` are defined on the base as empty string values.
     ; `AltName` is overridden in cases where multiple components share the same name and are
     ; in the same collection.
+    ; `Params` is overridden if the component represents a function or property that has parameters.
     ; `ParentIdu` is overridden if the component is a child of another.
     ; `Removed` is overridden if the component's text is removed from the content.
-    ; Components that are comments have additional property `TextComment`.
+    ; `IndexCollection`, `NameCollection`, and `Script` are defined on the base with significant values.
+    ; The following are defined elsewhere:
+    ; `Children`, `ColEnd`, `ColStart`, `LenBody`, `Length`, `LineEnd`, `LineStart`, `Pos`, `PosBody`,
+    ; `PosEnd`, `Name`, `Stack`.
+    ; `idc`, `idr`, and `idu` are identifiers defined when the component is added to a collection:
+    ; `idc` - The identifier that is specific to the collection object.
+    ; `idr` - The identifier that is used for removed components.
+    ; `idu` - A general identifier used by all components.
+    ; Components that are comments have additional property `TextComment` which returns the text
+    ; without any comment operators and joined by a substring.
+    ; Components that are paired with a jsdoc comment using `ScriptParser.Prototype.JsdocAssociate`
+    ; have a property `Jsdoc` which is the component object for the jsdoc comment.
 
     Collection => this.Script.CollectionList[this.IndexCollection]
 

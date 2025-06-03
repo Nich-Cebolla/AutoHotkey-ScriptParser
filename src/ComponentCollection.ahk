@@ -64,6 +64,14 @@ class ComponentList extends MapEx {
     GetIndex() {
         return ++this.__ComponentIndex
     }
+    ToArray() {
+        Result := []
+        Result.Capacity := this.Count
+        for n, Component in this {
+            Result.Push(Component)
+        }
+        return Result
+    }
 }
 
 class RemovedCollection extends MapEx {
@@ -205,6 +213,44 @@ class ChildNodeCollection extends MapEx {
             Proto := this.Prototype
             Proto.DefineProp('ConsecutiveDoubleQuotes', { Value: 0 })
             Proto.DefineProp('ConsecutiveSingleQuotes', { Value: 0 })
+        }
+    }
+}
+
+class JsdocCollection extends ComponentCollection {
+    Add(Component) {
+        Component.idc := this.GetIndex()
+        this.Set(Component.Name, Component)
+        Match := Component.Removed.Match
+        if Match['class'] {
+            Name := Match['class']
+            if this.AddToCategoryEx('Class', &Name, Component) {
+                Component.DefineProp('AltName', { Value: Name })
+            }
+        } else if Match['name'] {
+            Name := Match['name']
+            if this.AddToCategoryEx((Match['static'] ? 'Static_' : '') (Match['func'] ? 'Func' : 'Property'), &Name, Component) {
+                Component.DefineProp('AltName', { Value: Name })
+            }
+        }
+    }
+
+    AddToCategoryEx(Key, &Name, Value) {
+        if !this.HasOwnProp(Key) {
+            this.DefineProp(Key, { Value: MapEx() })
+        }
+        M := this.%Key%
+        if M.Has(Name) {
+            temp := Name '-'
+            i := 1
+            while M.Has(temp A_Index) {
+                i := A_Index
+            }
+            M.Set(temp i, Value)
+            Name := temp i
+            return 1
+        } else {
+            M.Set(Name, Value)
         }
     }
 }

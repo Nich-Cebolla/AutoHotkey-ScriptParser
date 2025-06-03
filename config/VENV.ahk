@@ -1,8 +1,7 @@
 ﻿
 ; config
-#include define.ahk
 #include internal-config.ahk
-#include user-config.ahk
+#include define.ahk
 #include enum.ahk
 
 
@@ -11,17 +10,16 @@
 ; #include GetMatchingBrace.ahk
 ; #include GetObjectFromString.ahk
 #include ContinuationSection.ahk
-#include MapEx.ahk
-#include Object.Prototype.Stringify.ahk
+#include <MapEx>
+#include <Object.Prototype.Stringify_V1.0.0>
 ; #include ParseJson.ahk
 ; #include QuickFind.ahk
-; #include QuickSort.ahk
+#include QuickSort.ahk
 #include utilities.ahk
 ; #include DecodeUnicodeEscapeSequence.ahk
 #include FillStr.ahk
 ; #include Get.ahk
-#include ClassFactory.ahk
-#include ParamsList.ahk
+#include <ParamsList>
 
 ; src
 #include ..\src
@@ -32,4 +30,7 @@
 #include ComponentCollection.ahk
 #include ComponentBase.ahk
 
-#include <Stringify>
+
+#include <ClassFactory>
+#include <Align_V1.1.0>
+#include <MenuBarConstructor>

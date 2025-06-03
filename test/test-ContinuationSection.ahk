@@ -1,22 +1,12 @@
 ﻿
-#Include ..\lib\ParseContinuationSection.ahk
+#Include ..\lib\ContinuationSection.ahk
+
+PathOut := A_MyDocuments '\test-output-ContinuationSection.json'
+Text := FileRead('test-content\test-content-ContinuationSection.ahk')
+
 Process()
 
-Test(&Text) {
-    ; static PatternStatement := (
-    ;     'iJm)'
-    ;     '^(?<indent>[ \t]*)'
-    ;     '(?<static>static\s+)?'
-    ;     '(?<name>[a-zA-Z0-9_]+)'
-    ;     '(?:'
-    ;         '(?<params>\(([^()]++|(?&params))*\))(*MARK:func)'
-    ;         '|'
-    ;         '(?<params>\[(?:[^\][]++|(?&params))*\])?'
-    ;     ')'
-    ;     '\s*'
-    ;     '(?<arrow>=>)'
-    ;     '(?<body>.+)'
-    ; )
+Test() {
     PatternStatement := (
         'iJm)'
         '^(?<indent>[ \t]*)'
@@ -44,8 +34,7 @@ Test(&Text) {
     )
     List := []
     while RegExMatch(Text, PatternStatement, &Match, Pos ?? 1) {
-        ParseContinuationSection(&Text, Match.Pos['indent'], Match['arrow'] ? '=>' : ':=', &PosEnd, &Body, &LenBody, &FullStatement, &LenFullStatement)
-        List.Push({ PosEnd: PosEnd, Body: Body, LenBody: LenBody, FullStatement: FullStatement, LenFullStatement: LenFullStatement })
+        List.Push(ContinuationSection(StrPtr(Text), Match.Pos['indent'], Match['arrow'] ? '=>' : ':='))
         Pos := Match.Pos + Match.Len
     }
     return List
@@ -53,28 +42,32 @@ Test(&Text) {
 
 Process() {
     V := Validation()
-    Text := FileRead('test-content-ParseContinuationSection.ahk')
-    List := Test(&Text)
-    Str := FormatTime(A_Now, 'yyyy-MM-dd HH:mm:ss')
-    for o in List {
-        if V[A_Index] !== o.FullStatement {
-            OutputDebug(
+    List := Test()
+    Problems := []
+    for cs in List {
+        if V[A_Index] !== cs.Text {
+            Problems.Push(
                 '`nIndex: ' A_Index
-                '`nExpected:'
+                '`nExpected=================`n'
                 '`n' V[A_Index]
-                '`nResult:'
-                '`n' o.FullStatement
-                '`nExpected len: ' StrLen(V[A_Index]) '; Result len: ' o.LenFullStatement
-                '`nDiff: ' (StrLen(V[A_Index]) - o.LenFullStatement)
+                '`nResult-------------------`n'
+                '`n' cs.Text
+                '`nExpected len: ' StrLen(V[A_Index]) '; Result len: ' cs.Len['Text']
+                '`nDiff: ' (StrLen(V[A_Index]) - cs.Len['Text'])
             )
+            OutputDebug(Problems[-1])
+        } else {
+            OutputDebug('`nExpected----------------------`n' V[A_Index] '`nResult========================`n' cs.Text)
         }
-        ; Str .= '`r`n`r`n`r`n' l
     }
-
-    ; f := fileopen('_test4.txt', 'w')
-    ; f.write(Str)
-    ; f.close()
-    msgbox('done')
+    OutputDebug('`n`nDone. Problems: ' Problems.Length)
+    s := ''
+    for P in Problems {
+        s .= P '`n`n'
+    }
+    f := FileOpen(PathOut, 'w')
+    f.Write(s)
+    f.Close()
 }
 
 Validation() => [

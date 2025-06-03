@@ -1,9 +1,48 @@
 ﻿
-
+/**
+ * @classdesc - `ScriptParser` is a class that parses an AHK script into its components.
+ * `ScriptParser` is currently limited to the following nodes:
+ * - Class definitions
+ * - Class method and property definitions
+ *   - Property `Get` and `Set` definitions
+ * - Global function definitions that are not defined within an expression
+ * - Comments
+ *   - Jsdoc comments
+ *   - Multi-line comments
+ *   - Single-line comments
+ *   - Single-line comment blocks
+ * - Quoted strings including string continuation sections
+ *
+ * `ScriptParser` returns a `ScriptParser` object, which will be referred to as either "a
+ * `ScriptParser` object" or `Script` in this library's documentation.
+ *
+ * With only a few methods of its own, a `ScriptParser` object is primarily a collection. Functions
+ * that make use of `ScriptParser` objects are defined as external functions that accept the object
+ * as a parameter.
+ *
+ * See "lib\example-ScriptParser.ahk" file for a usage example and practical guidance regarding
+ * navigating the object's various containers.
+ */
 class ScriptParser {
-    __New(Config?) {
+    /**
+     * @class
+     * @param {Object} [Config] - The configuration object. For complete guidance regarding this
+     * parameter, see the file "config\user-config-template.ahk". The following is a list and brief
+     * description of the available options and their default values.
+     */
+    __New(PathIn?, Content?, Config?) {
         Config := this.Config := SP_Config(Config ?? {})
-        this.Content := FileRead(this.PathIn, this.Encoding || unset)
+        if IsSet(PathIn) {
+            this.Content := FileRead(PathIn, this.Encoding || unset)
+        } else if IsSet(Content) {
+            this.Content := Content
+        } else if Config.PathIn {
+            this.Content := FileRead(this.PathIn, this.Encoding || unset)
+        } else if Config.Content {
+            this.Content := Config.Content
+        } else {
+            throw Error('``ScriptParser`` requires either a content string or file path.', -1)
+        }
         if Config.StandardizeLineEnding {
             this.Content := RegExReplace(this.Content, '\R', Config.StandardizeLineEnding)
             this.LineEnding := Config.StandardizeLineEnding
@@ -40,9 +79,9 @@ class ScriptParser {
         BaseObjects.Set('ComponentBase', ComponentBaseBase)
         LangContent := FileRead(this.Config.Language.__GetPath())
         Pending := []
-        ToCollectionsObj := ['Class', 'CommentMultiline', 'CommentSingleline', 'Function', 'Getter'
-        , 'InstanceMethod', 'InstanceProperty', 'Jsdoc', 'Setter', 'StaticMethod', 'StaticProperty'
-        , 'String']
+        ToCollectionsObj := ['Class', 'CommentBlock', 'CommentMultiline', 'CommentSingleline'
+        , 'Function', 'Getter', 'InstanceMethod', 'InstanceProperty', 'Jsdoc', 'Setter', 'StaticMethod'
+        , 'StaticProperty', 'String']
         for Prop in Component.OwnProps() {
             _component := Component.%Prop%
             if _component is Class {
@@ -107,6 +146,13 @@ class ScriptParser {
         this.Stack.Constructor := ClassFactory(this.__StackContextBase)
         this.Length := StrLen(this.Content)
         this.GlobalCollection := GlobalCollection(this.Config.Capacity)
+        if Config.ProcessImmediately {
+            this.RemoveStringsAndComments()
+            this.ParseClass()
+            this.JsdocAssociate()
+        }
+
+        return
 
         _Proc(&Prop) {
             ; `B` is the base object for components in this collection.
@@ -127,7 +173,11 @@ class ScriptParser {
                 }
             }
             if flag {
-                CollectionList[index] := ComponentCollection(B, Config.Capacity)
+                if index == SPC_JSDOC {
+                    CollectionList[index] := JsdocCollection(B, Config.Capacity)
+                } else {
+                    CollectionList[index] := ComponentCollection(B, Config.Capacity)
+                }
                 CollectionIndex.Set(Prop, index)
                 ; Set `ComponentCollectionObj.Constructor`.
                 CollectionList[index].Constructor := ClassFactory(B, Prop)
@@ -135,40 +185,50 @@ class ScriptParser {
         }
     }
 
-    AssociateRemovedComponents() {
-        _removedCollection := this.RemovedCollection
-        for Component in this.ComponentList {
-            if Component.Removed {
-                continue
-            }
-            Pos := 1
-            Text := Component.Text
-            loop {
-                if !RegExMatch(Text, SPP_REPLACEMENT, &Match, Pos) {
-                    break
-                }
-                rc := _removedCollection.Get(this.NameCollection[Match['collection']])[Match['index']].Removed
-                Text := StrReplace(Text, rc.Replacement, rc.Text)
-                Pos := Match.Pos + Match.Len
-            }
+    /**
+     * @description - Breaks references cycles to allow the `ScriptParser` object's resources
+     * to be freed by AHK's garbage collection.
+     */
+    Dispose() {
+        if this.HasOwnProp('__ComponentBaseBase') {
+            this.__ComponentBaseBase.DeleteProp('Script')
+            this.DeleteProp('__ComponentBaseBase')
+        }
+        if this.HasOwnProp('__StackContextBase') {
+            this.__StackContextBase.DeleteProp('Script')
+            this.DeleteProp('__StackContextBase')
         }
     }
 
-    Dispose() {
-        this.__ComponentBaseBase.DeleteProp('Script')
-        this.DeleteProp('__ComponentBaseBase')
-        this.__StackContextBase.DeleteProp('Script')
-        this.DeleteProp('__StackContextBase')
-    }
-
+    /**
+     * @description - Returns a collections object.
+     * @param {String} Name - The name of the collection. The following values are currently in use:
+     * "Class", "CommentMultiLine", "CommentSingleLine", "Function", "Getter", "InstanceMethod",
+     * "InstanceProperty", "Jsdoc", "Setter", "StaticMethod", "StaticProperty", "String".
+     * @returns {ScriptParser.ComponentCollection} - The collection object. Collection objects
+     * are map objects with additional properties and methods.
+     */
     GetCollection(Name) {
         return this.CollectionList[this.CollectionIndex.Get(Name)]
     }
 
+    /**
+     * @description - Returns text from the script, with strings and comments still removed from
+     * the text.
+     * @param {Integer} [PosStart=1] - The character start position.
+     * @param {Integer} [Len] - The number of characters to include.
+     * @returns {String}
+     */
     GetText(PosStart := 1, Len?) {
         return SubStr(this.Content, PosStart, Len ?? unset)
     }
 
+    /**
+     * @description - Returns the original, unmodified text from the script.
+     * @param {Integer} [PosStart=1] - The character start position.
+     * @param {Integer} [Len] - The number of characters to include.
+     * @returns {String}
+     */
     GetTextFull(PosStart := 1, Len?) {
         Text := SubStr(this.Content, PosStart, Len ?? unset)
         Pos := 1
@@ -200,6 +260,47 @@ class ScriptParser {
         return StrReplace(StrReplace(Text, SPR_QUOTE_CONSECUTIVEDOUBLE, '""'), SPR_QUOTE_CONSECUTIVESINGLE, "''")
     }
 
+    JsdocAssociate() {
+        ; debug_paired := []
+        ; debug_unpaired := []
+        ComponentList := QuickSort(this.ComponentList.ToArray(), (a, b) => a.LineStart - b.LineStart)
+        i := 0
+        loop  {
+            if ++i > ComponentList.Length {
+                break
+            }
+            Component := ComponentList[i]
+            if Component.IndexCollection == SPC_JSDOC {
+                loop {
+                    if ++i > ComponentList.Length {
+                        break 2
+                    }
+                    if ComponentList[i].Removed {
+                        if ComponentList[i].IndexCollection == SPC_JSDOC {
+                            ; debug_unpaired.Push({ Jsdoc: Component })
+                            ; OutputDebug('`nNot Paired: Jsdoc: ' Component.Name '; Component: ""; Collection: ""')
+                            Component := ComponentList[i]
+                        }
+                        continue
+                    }
+                    if ComponentList[i].LineStart - 1 == Component.LineEnd {
+                        ; debug_paired.Push({ Jsdoc: Component, Component: ComponentList[i] })
+                        ; OutputDebug('`nPaired: Jsdoc: ' Component.Name '; Component: ' ComponentList[i].Name '; Collection: ' ComponentList[i].NameCollection)
+                        ComponentList[i].DefineProp('Jsdoc', { Value: Component })
+                    } else {
+                        ; debug_unpaired.Push({ Jsdoc: Component, Component: ComponentList[i] })
+                        ; OutputDebug('`nNot Paired: Jsdoc: ' Component.Name '; Component: ' ComponentList[i].Name '; Collection: ' ComponentList[i].NameCollection)
+                    }
+                    break
+                }
+            }
+        }
+    }
+
+    /**
+     * @description - The primary parsing function. For most scripts, this must be called after
+     * `ScriptParser.Prototype.RemoveStringsAndComments` to work correctly.
+     */
     ParseClass() {
         le := this.LineEnding
         Stack := this.Stack
@@ -239,9 +340,9 @@ class ScriptParser {
                 Stack.Out()
             }
             ; Enter into the scope
-            Component := Stack.In(this, Match['name'], Match, ClassConstructor)
+            Component := Stack.In(this, Match['name'], Match, ClassConstructor, Match)
             ; Handle initialization tasks that are specific to a component type
-            Component.Init(Match)
+            ; Component.Init(Match)
             ; The previous lines have already determined that there are no more property or function
             ; definitions between the current position and the class definition, so we move the
             ; position to beginning of the class definition to prevent `RegExMatch` from matching
@@ -258,7 +359,7 @@ class ScriptParser {
                     ; Parse the content up to the end of the current class definition
                     Stack.PosEnd := Stack.ActiveClass.PosEnd
                     _Proc()
-                    ; Exit the scope
+                    ; Exit the class definition
                     Stack.Out()
                 }
                 ; Set the end position to the beginning of the next class definition
@@ -311,10 +412,10 @@ class ScriptParser {
                     CS := _Match
                 }
                 ; Create the context object
-                Component := Stack.In(this, _Match['name'], CS, Callback())
+                Component := Stack.In(this, _Match['name'], CS, Callback(), _Match)
                 Component.__AssociateRemovedComponents()
                 ; Handle initialization tasks that are specific to a component type
-                Component.Init(_Match)
+                ; Component.Init(_Match)
                 ; Parse function / property accessor parameters if present
                 Component.GetParams(_Match)
                 ; Move the position
@@ -344,14 +445,14 @@ class ScriptParser {
         }
 
         _REMIGetHelper(Self, Name, *) {
-            if Name = 'assign' || Name = 'inner' {
-                return false
+            for N, str in Self {
+                if N = Name {
+                    return Self[Name]
+                }
             }
-            throw PropertyError('Property does not exist on the object.', -1, Name)
+            return false
         }
 
-        ; Parsing nested functions is complicated and will require a tokenizer and a more advanced
-        ; context stack. I'm holding off on that for now.
         ; _Recurse(PosEnd) {
         ;     local _Match
         ;     ; We use the text up to the end of the current definition
@@ -485,12 +586,16 @@ class ScriptParser {
                 }
                 ; Adjust pos
                 Pos := Match.Pos['text'] + Match.Len['text']
-                ; Get constructor. The `Mark` value is the symbol `SPC_<collection name>`
+                ; Get constructor. The `Mark` value is the symbol `SPC_<collection name>`.
                 Constructor := this.CollectionList[Index := %Match.Mark%].Constructor
                 ; Call constructor. The constructor handles the rest.
-                Constructor(LineStart, ColStart, LineEnd, ColEnd, Match.Pos['text'], Match.Len['text'], , Match)
+                Constructor(LineStart, ColStart, LineEnd, ColEnd, Match.Pos['text'], Match.Len['text'], , Match, , , , true)
             }
         }
+    }
+
+    __Delete() {
+        this.Dispose()
     }
 
     Encoding => this.Config.Encoding

@@ -30,7 +30,7 @@ class ParseStack extends Array {
         }
         return c ?? ''
     }
-    In(Script, Name, Match, ComponentConstructor, Pos?, Line?) {
+    In(Script, Name, CS, ComponentConstructor, Match, Pos?, Line?) {
         this.Push(this.Active)
         if !IsSet(Pos) {
             Pos := this.Pos
@@ -39,37 +39,37 @@ class ParseStack extends Array {
             Line := this.Line
         }
         ; Get line count between the current position and the beginning of the definition
-        StrReplace(SubStr(Script.Content, Pos, Match.Pos['text'] - Pos), Script.LineEnding, , , &linecount)
+        StrReplace(SubStr(Script.Content, Pos, CS.Pos['text'] - Pos), Script.LineEnding, , , &linecount)
         ; Calculate start line for the definition statement
         LineStart := Line + linecount
         ; Calculate start column for the definition statement
-        ColStart := Match.Pos['text'] - Match.Pos
+        ColStart := CS.Pos['text'] - CS.Pos
         ; Get line count of definition statement
-        StrReplace(Match['text'], Script.LineEnding, , , &linecount)
+        StrReplace(CS['text'], Script.LineEnding, , , &linecount)
         ; Calculate end line for the definition statement
         LineEnd := LineStart + linecount
         ; Calculate end column
         if LineEnd == LineStart {
-            ColEnd := ColStart + Match.Len['text']
+            ColEnd := ColStart + CS.Len['text']
         } else {
-            ColEnd := Match.Len['text'] - InStr(Match['text'], Script.LineEnding, , , -1)
+            ColEnd := CS.Len['text'] - InStr(CS['text'], Script.LineEnding, , , -1)
         }
         ; Create the context object
         Constructor := this.Constructor
-        this.Active := Constructor(Name, Match.Pos['text'], Match.Pos['text'] + Match.Len['text'], this[-1])
+        this.Active := Constructor(Name, CS.Pos['text'], CS.Pos['text'] + CS.Len['text'], this[-1])
         ; Create the component object
         Component := ComponentConstructor(
             LineStart
           , ColStart
           , LineEnd
           , ColEnd
-          , Match.Pos['text']
-          , Match.Len['text']
+          , CS.Pos['text']
+          , CS.Len['text']
           , this
+          , Match
           ,
-          ,
-          , Match.Pos['body']
-          , Match.Len['body']
+          , CS.Pos['body']
+          , CS.Len['body']
         )
         ; Set the component to the context. We use the `idu` to prevent a reference cycle.
         this.Active.ComponentIdu := Component.idu

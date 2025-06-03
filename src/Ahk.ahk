@@ -68,19 +68,27 @@ class Ahk {
                         _Proc('Set')
                     }
                 }
+                if !this.Static {
+                    if this.Arrow || (this.Children && (this.Children.Has('Getter') || this.Children.Has('Setter'))) {
+                        Path := this.Name
+                        this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.')) 'Prototype.' SubStr(Path, InStr(Path, '.') + 1) })
+                    }
+                }
 
                 _Proc(Name) {
                     if Match['arrow'] {
-                        Match := ContinuationSection(
+                        CS := ContinuationSection(
                             StrPtr(this.Script.Content)
                           , Match.Pos['text']
                           , Match['arrow'] ? '=>' : ':='
                         )
+                    } else {
+                        CS := Match
                     }
                     if Name == 'Get' {
-                        this.Script.Stack.In(this.Script, Name, Match, this.Script.CollectionList[SPC_GETTER].Constructor)
+                        this.Script.Stack.In(this.Script, Name, CS, this.Script.CollectionList[SPC_GETTER].Constructor, Match)
                     } else {
-                        this.Script.Stack.In(this.Script, Name, Match, this.Script.CollectionList[SPC_SETTER].Constructor)
+                        this.Script.Stack.In(this.Script, Name, CS, this.Script.CollectionList[SPC_SETTER].Constructor, Match)
                     }
                     this.Script.Stack.Out()
                 }
@@ -105,7 +113,7 @@ class Ahk {
 
         class Function extends Ahk.Component.Variable {
             static __New() {
-                if this.Prototype.__Class == 'Ahk.Component.Method' {
+                if this.Prototype.__Class == 'Ahk.Component.Function' {
                     this.Prototype.DefineProp('Arrow', { Value: false })
                     this.Prototype.DefineProp('Static', { Value: false })
                     this.Prototype.DefineProp('Params', { Value: '' })
@@ -134,6 +142,14 @@ class Ahk {
         }
 
         class CommentSingleLine extends Ahk.Component.Comment {
+
+            GetCommentText() {
+                return this.Removed.Match['comment']
+            }
+            TextComment => this.GetCommentText()
+        }
+
+        class CommentBlock extends Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
                 return RegExReplace(this.TextFull, '\R?.*?(?<=\s|^);[ \t]*', JoinChar)

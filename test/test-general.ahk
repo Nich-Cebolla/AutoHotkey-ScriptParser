@@ -1,4 +1,4 @@
-﻿#include ..\config\VENV.ahk
+﻿#include ..\.dev\user-config.ahk
 #include <Stringify>
 #include <QuickSort_V1.0.0>
 
@@ -7,7 +7,7 @@ test()
 
 
 class test {
-    static PathIn := 'test-content\test-content-text-values.ahk'
+    static PathIn := 'test-content\test-content-GetPropsInfo.ahk'
     , PathOut := A_MyDocuments '\test-ScriptParser-output.json'
     , PathOutRecreate := A_MyDocuments '\test-ScriptParser-output-recreate.ahk'
     , PathOutTextFull := A_MyDocuments '\test-ScriptParser-output-TextFull.ahk'
@@ -20,6 +20,7 @@ class test {
         this.Problems := []
         this.Position()
         this.TextFull()
+        this.Components()
         ; RecreateFile is not working
         ; this.RecreateFile()
 
@@ -28,6 +29,10 @@ class test {
         } else {
             ; this.WriteOut('No problems.')
         }
+    }
+
+    static Components() {
+        Script := this.GetScript()
     }
 
     static EstablishControls() {

@@ -2,6 +2,7 @@
 auto := _Auto_()
 
 SPC_CLASS := auto()
+SPC_COMMENTBLOCK := auto()
 SPC_COMMENTMULTILINE := auto()
 SPC_COMMENTSINGLELINE := auto()
 SPC_FUNCTION := auto()

@@ -1,15 +1,17 @@
 ﻿
-    /**
-     * @class
-     * @description - Handles the input config.
-     */
+/**
+ * @class
+ * @description - Handles the input config.
+ */
 class SP_Config {
     static Default := {
         Name: ''
       , PathIn: ''
+      , Content: ''
       , Encoding: ''
       , Capacity: 1000
       , StandardizeLineEnding: false
+      , ProcessImmediately: false
 
         ; Minor configuration options
       , Config_Removed: 1000
