@@ -24,7 +24,7 @@
 ; src
 #include ..\src
 #include ScriptParser.ahk
-#include Node.ahk
+; #include Node.ahk
 #include Stack.ahk
 #include Ahk.ahk
 #include ComponentCollection.ahk

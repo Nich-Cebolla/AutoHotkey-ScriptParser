@@ -110,7 +110,7 @@ class ComponentBase {
         }
     }
 
-    ; `AltName`, `Params`, `ParentIdu`, and `Removed` are defined on the base as empty string values.
+    ; 'AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack' are defined on the base as empty string values.
     ; `AltName` is overridden in cases where multiple components share the same name and are
     ; in the same collection.
     ; `Params` is overridden if the component represents a function or property that has parameters.
@@ -148,7 +148,7 @@ class ComponentBase {
     static __New() {
         if this.Prototype.__Class == 'ComponentBase' {
             Proto := this.Prototype
-            for Prop in ['AltName', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack'] {
+            for Prop in ['AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack'] {
                 Proto.DefineProp(Prop, { Value: '' })
             }
         }

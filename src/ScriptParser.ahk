@@ -544,16 +544,20 @@ class ScriptParser {
      * character following the property name.
      */
     RemoveStringsAndComments() {
-        global SPP_REMOVE_CONTINUATION, SPP_REMOVE_LOOP
+        global SPP_REMOVE_CONTINUATION, SPP_REMOVE_LOOP, SPP_REMOVE_COMMENT_BLOCK, SPP_REMOVE_COMMENT_SINGLE
         le := this.LineEnding
         ; Remove consecutive quotes
-        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVEDOUBLE, SPR_QUOTE_CONSECUTIVEDOUBLE, &DoubleCount)
-        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVESINGLE, SPR_QUOTE_CONSECUTIVESINGLE, &SingleCount)
+        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVE_DOUBLE, SPR_QUOTE_CONSECUTIVEDOUBLE, &DoubleCount)
+        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVE_SINGLE, SPR_QUOTE_CONSECUTIVESINGLE, &SingleCount)
         this.RemovedCollection.ConsecutiveDoubleQuotes := DoubleCount
         this.RemovedCollection.ConsecutiveSingleQuotes := SingleCount
         ; Remove continuation sections.
         _Process(&SPP_REMOVE_CONTINUATION)
-        ; Remove other quotes and comments.
+        ; Remove comment blocks
+        _Process(&SPP_REMOVE_COMMENT_BLOCK)
+        ; Remove single line comments
+        _Process(&SPP_REMOVE_COMMENT_SINGLE)
+        ; Remove other quoted strings and comments
         _Process(&SPP_REMOVE_LOOP)
 
         return
@@ -565,7 +569,7 @@ class ScriptParser {
             ActiveComment := ''
             ; This is the procedure flow for removing content and adding a value to a collection
             loop {
-                if !RegExMatch(this.Content, Pattern, &Match, Pos) {
+                if !RegExMatch(this.Content, 'JS)' Pattern, &Match, Pos) {
                     break
                 }
                 ; Get line count of the segment leading up to the match
@@ -592,6 +596,12 @@ class ScriptParser {
                 Constructor(LineStart, ColStart, LineEnd, ColEnd, Match.Pos['text'], Match.Len['text'], , Match, , , , true)
             }
         }
+    }
+
+    Process() {
+        this.RemoveStringsAndComments()
+        this.ParseClass()
+        this.JsdocAssociate()
     }
 
     __Delete() {

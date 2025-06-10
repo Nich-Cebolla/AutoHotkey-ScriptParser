@@ -19,18 +19,18 @@ class ScriptParserConfig {
 
     ; Primary configuration options ================================================================
     static Name := 'Dev'
-    , PathIn := '..\..\AutoHotkey-LibV2\inheritance\GetPropsInfo.ahk'
+    static PathIn := '..\..\AutoHotkey-LibV2\inheritance\GetPropsInfo.ahk'
     ; , PathIn := '..\..\UIA_Viewer\UIA.ahk'
-    , Capacity := unset
+    static Capacity := unset
     ; , StandardizeLineEnding := '`n'
 
 
     ; Minor configuration options ==================================================================
 
     ; Sets the capacity for the "Removed" collection
-    , Capacity_Removed := unset
+    static Capacity_Removed := unset
     ; `Ahk` is the only supported language at the moment.
-    , Language := unset
+    static Language := unset
 
     ; Replacement characters -----------------------------------------------------------------------
 
@@ -54,19 +54,19 @@ class ScriptParserConfig {
      * Defines the character which is used as the "replacement character", a general indicator that
      * a block of text has been replaced with replacement text.
      */
-    , ReplacementChar := unset
+    static ReplacementChar := unset
 
     /**
      * @property ScriptParserConfig.Quote_ConsecutiveDouble -
      * Defines the character which is used to replace consecutive double quotes
      */
-    , Quote_ConsecutiveDouble := unset
+    static Quote_ConsecutiveDouble := unset
 
     /**
      * @property ScriptParserConfig.Quote_ConsecutiveSingle -
      * Defines the character which is used to replace consecutive single quotes
      */
-    , Quote_ConsecutiveSingle := unset
+    static Quote_ConsecutiveSingle := unset
 
     /**
      * @property ScriptParserConfig.ShortCollection_StartCode -
@@ -81,7 +81,7 @@ class ScriptParserConfig {
      * - It is okay if this range overlaps with `ScriptParseConfig.Quote_ConsecutiveDouble` and
      * `ScriptParserConfig.Quote_ConsecutiveSingle`, but not with `ScriptParserConfig.ReplacementChar`.
      */
-    , ShortCollection_StartCode := unset
+    static ShortCollection_StartCode := unset
 
     /**
      * @property ScriptParserConfig.ShortCollection_EndCode -
@@ -90,7 +90,7 @@ class ScriptParserConfig {
      * 99 * (ScriptParserConfig.R_ShortCollection_EndCode - ScriptParserConfig.R_ShortCollection_StartCode)
      * `ScriptParser` will throw an error.
      */
-    , ShortCollection_EndCode := unset
+    static ShortCollection_EndCode := unset
 
     static __New() {
         if this.Prototype.__Class == 'ScriptParserConfig' {

@@ -12,6 +12,7 @@ class SP_Config {
       , Capacity: 1000
       , StandardizeLineEnding: false
       , ProcessImmediately: false
+      , Language: Ahk
 
         ; Minor configuration options
       , Config_Removed: 1000

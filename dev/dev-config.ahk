@@ -1,7 +1,7 @@
 ﻿
 ; https://github.com/Nich-Cebolla/Stringify-ahk/blob/main/Object.Prototype.StringifyA.ahk
 #include <Object.Prototype.StringifyA_V1.0.0>
-2
+
 
 class DevConfig {
     static PathIn := 'test-content\test-content-GetPropsInfo.ahk'

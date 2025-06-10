@@ -65,7 +65,7 @@ SPP_CLASS := (
  * within the greater pattern. https://www.pcre.org/pcre.txt search for "Defining subpatterns
  * for use by reference only"
  */
-SPP_DEFINEQUOTE := (
+SPP_DEFINE_QUOTE := (
     '(?(DEFINE)'
         '(?<quote>'
             '(?<!``)'
@@ -89,7 +89,7 @@ SPP_DEFINEQUOTE := (
  * is a good way to handle this.
  *
  * In case removing the strings from the code isn't viable or ideal, `SPP_CLASS_INCLQUOTE`
- * addresses the aforementioned problem. It utilizes the subpattern `SPP_DEFINEQUOTE`. The
+ * addresses the aforementioned problem. It utilizes the subpattern `SPP_DEFINE_QUOTE`. The
  * modifications included in this pattern cause the PCRE engine to skip over any brackets contained
  * within quoted strings, so they don't disrupt the match. However, this does not handle continuation
  * sections as described here:
@@ -99,7 +99,7 @@ SPP_DEFINEQUOTE := (
  */
 SPP_CLASS_INCLQUOTE := (
     'im)'
-    SPP_DEFINEQUOTE ; Include the definition
+    SPP_DEFINE_QUOTE ; Include the definition
     '^(?<indent>[ \t]*)'
     '(?<text>'
         'class\s+'
@@ -168,10 +168,6 @@ SPP_FUNCTION := (
     ')'
 )
 
-Stage2 := (
-    '(?<preceding>[^\r\n{}]+[^\s{}]\s*+)(\{(?:[^}{]++|(?-1))*\})'
-)
-
 SPP_PROPERTY := (
     'iJm)'
     '^(?<indent>[ \t]*)'
@@ -226,12 +222,12 @@ SPP_ACCESSOR_SET := (
     ')'
 )
 
-SPP_BRACKETCURLY := '(\{(?:[^}{]++|(?-1))*\})'
-SPP_BRACKETCURLYC := '(\{(?COnOpen)(?:[^}{]++|(?-1))*\}(?COnClose))'
-SPP_BRACKETROUND := '(\((?:[^)(]++|(?-1))*\))'
-SPP_BRACKETROUNDC := '(\((?COnOpen)(?:[^)(]++|(?-1))*\)(?COnClose))'
-SPP_BRACKETSQUARE := '(\[(?:[^\][]++|(?-1))*\])'
-SPP_BRACKETSQUAREC := '(\[(?COnOpen)(?:[^\][]++|(?-1))*\](?COnClose))'
+SPP_BRACKET_CURLY := '(\{(?:[^}{]++|(?-1))*\})'
+SPP_BRACKET_CURLYC := '(\{(?COnOpen)(?:[^}{]++|(?-1))*\}(?COnClose))'
+SPP_BRACKET_ROUND := '(\((?:[^)(]++|(?-1))*\))'
+SPP_BRACKET_ROUNDC := '(\((?COnOpen)(?:[^)(]++|(?-1))*\)(?COnClose))'
+SPP_BRACKET_SQUARE := '(\[(?:[^\][]++|(?-1))*\])'
+SPP_BRACKET_SQUAREC := '(\[(?COnOpen)(?:[^\][]++|(?-1))*\](?COnClose))'
 
 SPP_QUOTE := (
     's)'
@@ -244,13 +240,14 @@ SPP_QUOTE := (
     '\g{quote}'
 )
 
-SPP_QUOTE_CONSECUTIVEDOUBLE := '(?<=^|[\s=([!&%,*])""'
-SPP_QUOTE_CONSECUTIVESINGLE := '(?<=^|[\s=([!&%,*])`'`''
+SPP_QUOTE_CONSECUTIVE_DOUBLE := '(?<=^|[\s=([!&%,*])""'
+SPP_QUOTE_CONSECUTIVE_SINGLE := '(?<=^|[\s=([!&%,*])`'`''
 
 SPP_REMOVE_CONTINUATION := (
     '(?(DEFINE)(?<singleline>\s*;.*))'
     '(?(DEFINE)(?<multiline>\s*/\*[\w\W]*?\*/))'
     '(?<=[\r\n]).*?'
+    '(*MARK:SPC_STRING)'
     '(?<text>'
         '(?<=[\s=:,&(.[?]|^)'
         '(?<quote>[`'"])'
@@ -262,143 +259,103 @@ SPP_REMOVE_CONTINUATION := (
         '\s*+\('
         '(?<body>[\w\W]*?)'
         '\R[ \t]*+\).*?\g{quote}'
-        '(*MARK:SPC_STRING)'
     ')'
     '(?<tail>.*)'
 )
-SPP_REMOVE_MULTI := (
+; SPP_DEFINE_LINE := (
+;     '(?(DEFINE)(?<line>'
+;         '(?<indent>[ \t]*)'
+;         '(?:'
+;             'class[ \t]+'
+;             '(?<class>[a-zA-Z0-9_]+)'
+;             '(?:'
+;                 '[ \t]*extends[ \t]+'
+;                 '(?<super>[a-zA-Z0-9_.]+)'
+;             ')?'
+;             '\s*\{'
+;         '|'
+;             '(?<static>static[ \t]+)?'
+;             '(?<name>[\w\d_]+)'
+;             '(?:'
+;                 '(?<func>\()'
+;             '|'
+;                 '(?<prop>[^(])'
+;             ')'
+;             '.*'
+;         '|'
+;             '.*'
+;         ')'
+;     '))'
+; )
+; SPP_INCLUDE_LINE := '[ \t]*\R(?&line)?'
+SPP_NEXT_LINE := (
+    '(?:[ \t]*\R'
+    '(?<line>'
+        '(?<indent>[ \t]*)'
+        '(?:'
+            'class[ \t]+'
+            '(?<class>[a-zA-Z0-9_]+)'
+            '(?:'
+                '[ \t]*extends[ \t]+'
+                '(?<super>[a-zA-Z0-9_.]+)'
+            ')?'
+            '\s*\{'
+        '|'
+            '(?<static>static[ \t]+)?'
+            '(?<name>[\w\d_]+)'
+            '(?:'
+                '(?<func>\()'
+            '|'
+                '(?<prop>[^(])'
+            ')'
+            '.*'
+        '|'
+            '.*'
+        ')'
+    '))?'
+)
+SPP_REMOVE_COMMENT_MULTI := (
     '(?<indent>(?<=[\r\n]|^)[ \t]*)'
+    '(*MARK:SPC_COMMENTMULTILINE)'
     '(?<text>'
         '/\*\s*'
         '(?<comment>[\w\W]+?)'
         '\R[ \t]*\*/'
     ')'
-    '(*MARK:SPC_COMMENTMULTILINE)'
-    '[ \t]*\R'
-    '(?<line>'
-        '(?<indent>[ \t]*)'
-        '(?:'
-            'class[ \t]+'
-            '(?<class>[a-zA-Z0-9_]+)'
-            '(?:'
-                '[ \t]*extends[ \t]+'
-                '(?<super>[a-zA-Z0-9_.]+)'
-            ')?'
-            '\s*\{'
-        '|'
-            '(?<static>static[ \t]+)?'
-            '(?<name>[\w\d_]+)'
-            '(?:'
-                '(?<func>\()'
-            '|'
-                '(?<prop>[^(])'
-            ')'
-            '.*'
-        '|'
-            '.*'
-        ')'
-    ')?'
 )
-SPP_REMOVE_SINGLE := (
+SPP_REMOVE_COMMENT_SINGLE := (
     '(?<indent>(?<=[\r\n]|^)[ \t]*)'
     '(?<lead>[^; \t].*)?'
+    '(*MARK:SPC_COMMENTSINGLELINE)'
     '(?<text>'
         '(?<=\s|^)'
         ';[ \t]*'
         '(?<comment>.*)'
     ')'
-    '(*MARK:SPC_COMMENTSINGLELINE)'
-    '[ \t]*\R'
-    '(?<line>'
-        '(?<indent>[ \t]*)'
-        '(?:'
-            'class[ \t]+'
-            '(?<class>[a-zA-Z0-9_]+)'
-            '(?:'
-                '[ \t]*extends[ \t]+'
-                '(?<super>[a-zA-Z0-9_.]+)'
-            ')?'
-            '\s*\{'
-        '|'
-            '(?<static>static[ \t]+)?'
-            '(?<name>[\w\d_]+)'
-            '(?:'
-                '(?<func>\()'
-            '|'
-                '(?<prop>[^(])'
-            ')'
-            '.*'
-        '|'
-            '.*'
-        ')'
-    ')?'
+    SPP_NEXT_LINE
 )
-SPP_REMOVE_BLOCK := (
-    '(?<indent>(?<=[\r\n]|^)[ \t]*)'
-    '(?<text>'
-        ';.*'
-        '(?:\R\g{indent};.*)+'
-    ')'
+SPP_REMOVE_COMMENT_BLOCK := (
     '(*MARK:SPC_COMMENTBLOCK)'
-    '[ \t]*\R'
-    '(?<line>'
-        '(?<indent>[ \t]*)'
+    '(?<=[\r\n]|^)'
+    '(?<text>'
         '(?:'
-            'class[ \t]+'
-            '(?<class>[a-zA-Z0-9_]+)'
-            '(?:'
-                '[ \t]*extends[ \t]+'
-                '(?<super>[a-zA-Z0-9_.]+)'
-            ')?'
-            '\s*\{'
-        '|'
-            '(?<static>static[ \t]+)?'
-            '(?<name>[\w\d_]+)'
-            '(?:'
-                '(?<func>\()'
-            '|'
-                '(?<prop>[^(])'
-            ')'
-            '.*'
-        '|'
-            '.*'
-        ')'
-    ')?'
+            '(?<indent>[ \t]*)'
+            ';.*\R\g{indent}'
+        '){2,}'
+    ')'
+    SPP_NEXT_LINE
 )
-SPP_REMOVE_JSDOC := (
+SPP_REMOVE_COMMENT_JSDOC := (
     '(?<indent>(?<=[\r\n]|^)[ \t]*)'
+    '(*MARK:SPC_JSDOC)'
     '(?<text>'
         '/\*\*'
         '(?<comment>[\w\W]+?)'
         '\*/'
-        '(*MARK:SPC_JSDOC)'
     ')'
-    '[ \t]*\R'
-    '(?<line>'
-        '(?<indent>[ \t]*)'
-        '(?:'
-            'class[ \t]+'
-            '(?<class>[a-zA-Z0-9_]+)'
-            '(?:'
-                '[ \t]*extends[ \t]+'
-                '(?<super>[a-zA-Z0-9_.]+)'
-            ')?'
-            '\s*\{'
-        '|'
-            '(?<static>static[ \t]+)?'
-            '(?<name>[\w\d_]+)'
-            '(?:'
-                '(?<func>\()'
-            '|'
-                '(?<prop>[^(])'
-            ')'
-            '.*'
-        '|'
-            '.*'
-        ')'
-    ')?'
 )
 SPP_REMOVE_STRING := (
+    '(*MARK:SPC_STRING)'
     '(?<text>'
         '(?<=[\s=:,&(.[?]|^)'
         '([`"`'])'
@@ -406,17 +363,14 @@ SPP_REMOVE_STRING := (
         '(?<!``)'
         '(?:````)*'
         '\g{-2}'
-        '(*MARK:SPC_STRING)'
     ')'
 )
 SPP_REMOVE_LOOP := (
-    'J)'
     '(?:'
         SPP_REMOVE_STRING
-        '|' SPP_REMOVE_JSDOC
-        '|' SPP_REMOVE_MULTI
-        '|' SPP_REMOVE_BLOCK
-        '|' SPP_REMOVE_SINGLE
+        '|' SPP_REMOVE_COMMENT_JSDOC
+        '|' SPP_REMOVE_COMMENT_MULTI
     ')'
+    SPP_NEXT_LINE
 )
 
