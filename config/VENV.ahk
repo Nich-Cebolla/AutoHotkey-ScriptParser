@@ -11,13 +11,11 @@
 ; #include GetObjectFromString.ahk
 #include ContinuationSection.ahk
 #include <MapEx>
-#include <Object.Prototype.Stringify_V1.0.0>
 ; #include ParseJson.ahk
 ; #include QuickFind.ahk
-#include QuickSort.ahk
 #include utilities.ahk
 ; #include DecodeUnicodeEscapeSequence.ahk
-#include FillStr.ahk
+#include <FillStr>
 ; #include Get.ahk
 #include <ParamsList>
 
@@ -32,5 +30,6 @@
 
 
 #include <ClassFactory>
-#include <Align_V1.1.0>
+#include <Align>
 #include <MenuBarConstructor>
+#include <QuickSort>

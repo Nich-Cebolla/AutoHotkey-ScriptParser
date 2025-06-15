@@ -24,6 +24,22 @@
  * navigating the object's various containers.
  */
 class ScriptParser {
+
+    /**
+     * @description Parses an AHK object literal definition into its properties and values as strings.
+     * @param {String} Str - The object definition beginning at the open brace and ending at the close brace.
+     */
+    static GetObjectProperties(Str) {
+        Result := []
+        Str := Trim(Str, '`s`t`r`n{}')
+        Pos := 1
+        while RegExMatch(Str, SPP_AHK_OBJECT, &Match, Pos) {
+            Pos := Match.Pos + Match.Len
+            Result.Push(Match)
+        }
+        return Result
+    }
+
     /**
      * @class
      * @param {Object} [Config] - The configuration object. For complete guidance regarding this

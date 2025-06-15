@@ -10,6 +10,29 @@ SPP_REPLACEMENT := SP_REPLACEMENT '(?<collection>\d+)' SP_REPLACEMENT '(?<index>
 SPR_QUOTE_CONSECUTIVEDOUBLE := Chr(0x2000) Chr(0x2000)
 SPR_QUOTE_CONSECUTIVESINGLE := Chr(0x2001) Chr(0x2001)
 
+SPP_AHK_VALID_CHARS := '(?:[\p{L}_]|[^\x00-\x7F\x80-\x9F])'
+SPP_AHK_VALID_CHARS_NODIGITS := '(?:[\p{L}_]|[^\x00-\x7F\x80-\x9F0-9])'
+
+SPP_AHK_OBJECT := (
+    '\s*'
+    '(?<property>' SPP_AHK_VALID_CHARS_NODIGITS SPP_AHK_VALID_CHARS '*?)'
+    '\s*:\s*'
+    '(?<value>'
+        '(?:'
+            '(?:'
+                '".*?(?<!``)(?:````)*+"'
+            '|'
+                '(?<bracket1>\((?:[^)(]++|(?&bracket1))*\))'
+            '|'
+                '(?<bracket2>\[(?:[^\][]++|(?&bracket2))*\])'
+            '|'
+                '(?<bracket3>\{(?:[^}{]++|(?&bracket3))*\})'
+            ')?'
+            '[^,]*?'
+        ')+?'
+    ')'
+    '\s*(?:,|$)'
+)
 
 /** @var - Parses code that assigns a value to a symbol. */
 SPP_ASSIGN := (
@@ -166,6 +189,12 @@ SPP_FUNCTION := (
             '(?<body>.+)'
         ')'
     ')'
+)
+
+SPP_PARAMS := (
+    'im)'
+    SPP_DEFINE_QUOTE ; Include the definition
+    '(?<body>\(((?&quote)|[^"`')(]++|(?&body))*\))'
 )
 
 SPP_PROPERTY := (
