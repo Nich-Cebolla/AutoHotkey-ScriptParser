@@ -130,8 +130,27 @@ class ComponentBase {
     ; have a property `Jsdoc` which is the component object for the jsdoc comment.
 
     Collection => this.Script.CollectionList[this.IndexCollection]
-
+    Jsdoc {
+        Get => this.__Jsdoc ? this.Script.ComponentList.Get(this.__Jsdoc) : ''
+        Set {
+            if IsObject(Value) {
+                this.__Jsdoc := Value.idu
+            } else {
+                this.__Jsdoc := Value
+            }
+        }
+    }
     Parent => this.ParentIdu ? this.Script.ComponentList.Get(this.ParentIdu) : ''
+    JsdocParent {
+        Get => this.__JsdocParent ? this.Script.ComponentList.Get(this.__JsdocParent) : ''
+        Set {
+            if IsObject(Value) {
+                this.__JsdocParent := Value.idu
+            } else {
+                this.__JsdocParent := Value
+            }
+        }
+    }
     Path => this.Stack.Path
     PosEnd => this.Pos + this.Length
 
@@ -148,7 +167,8 @@ class ComponentBase {
     static __New() {
         if this.Prototype.__Class == 'ComponentBase' {
             Proto := this.Prototype
-            for Prop in ['AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack'] {
+            for Prop in ['AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack'
+            , '__Jsdoc', '__JsdocParent'] {
                 Proto.DefineProp(Prop, { Value: '' })
             }
         }
@@ -171,9 +191,6 @@ GetRemovedComponent(Component, Match) {
     }
     rc.SetReplacement(Script, Component.IndexCollection)
     Script.Content := StrReplace(Script.Content, Match['text'], rc.Replacement, true, , 1)
-    if Component.IndexCollection == SPC_JSDOC {
-
-    }
     return rc
 }
 
