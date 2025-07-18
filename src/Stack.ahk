@@ -55,8 +55,7 @@ class ParseStack extends Array {
             ColEnd := CS.Len['text'] - InStr(CS['text'], Script.LineEnding, , , -1)
         }
         ; Create the context object
-        Constructor := this.Constructor
-        this.Active := Constructor(Name, CS.Pos['text'], CS.Pos['text'] + CS.Len['text'], this[-1])
+        this.Active := this.Constructor.Call(Name, CS.Pos['text'], CS.Pos['text'] + CS.Len['text'], this[-1])
         ; Create the component object
         Component := ComponentConstructor(
             LineStart
