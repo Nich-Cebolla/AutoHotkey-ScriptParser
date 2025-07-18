@@ -4,7 +4,6 @@
 #include define.ahk
 #include enum.ahk
 
-
 ; lib
 #include ..\lib
 ; #include GetMatchingBrace.ahk
