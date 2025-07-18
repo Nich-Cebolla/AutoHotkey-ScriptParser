@@ -10,6 +10,9 @@ SPP_REPLACEMENT := SP_REPLACEMENT '(?<collection>\d+)' SP_REPLACEMENT '(?<index>
 SPR_QUOTE_CONSECUTIVEDOUBLE := Chr(0x2000) Chr(0x2000)
 SPR_QUOTE_CONSECUTIVESINGLE := Chr(0x2001) Chr(0x2001)
 
+SPP_QUOTE_CONSECUTIVE_DOUBLE := '(?<=^|[\s=(:[!&%,*])""'
+SPP_QUOTE_CONSECUTIVE_SINGLE := '(?<=^|[\s=(:[!&%,*])`'`''
+
 SPP_AHK_VALID_CHARS := '(?:[\p{L}_]|[^\x00-\x7F\x80-\x9F])'
 SPP_AHK_VALID_CHARS_NODIGITS := '(?:[\p{L}_]|[^\x00-\x7F\x80-\x9F0-9])'
 
@@ -269,9 +272,6 @@ SPP_QUOTE := (
     '\g{quote}'
 )
 
-SPP_QUOTE_CONSECUTIVE_DOUBLE := '(?<=^|[\s=([!&%,*])""'
-SPP_QUOTE_CONSECUTIVE_SINGLE := '(?<=^|[\s=([!&%,*])`'`''
-
 SPP_REMOVE_CONTINUATION := (
     '(?(DEFINE)(?<singleline>\s*;.*))'
     '(?(DEFINE)(?<multiline>\s*/\*[\w\W]*?\*/))'
@@ -352,28 +352,55 @@ SPP_REMOVE_COMMENT_MULTI := (
         '\R[ \t]*\*/'
     ')'
 )
+
 SPP_REMOVE_COMMENT_SINGLE := (
-    '(?<indent>(?<=[\r\n]|^)[ \t]*)'
-    '(?<lead>[^; \t].*)?'
+    '(?<=[\r\n]|^)'
+    '(?<indent>[ \t]*)'
+    '(?:(?<lead>.+?)[ \t]+)?'
     '(*MARK:SPC_COMMENTSINGLELINE)'
     '(?<text>'
-        '(?<=\s|^)'
         ';[ \t]*'
         '(?<comment>.*)'
     ')'
     SPP_NEXT_LINE
 )
+
+; SPP_REMOVE_COMMENT_SINGLE := (
+;     '(?<indent>(?<=[\r\n]|^)[ \t]*)'
+;     '(?<lead>[^; \t].*)?'
+;     '(*MARK:SPC_COMMENTSINGLELINE)'
+;     '(?<text>'
+;         '(?<=\s|^)'
+;         ';[ \t]*'
+;         '(?<comment>.*)'
+;     ')'
+;     SPP_NEXT_LINE
+; )
+
+
 SPP_REMOVE_COMMENT_BLOCK := (
     '(*MARK:SPC_COMMENTBLOCK)'
     '(?<=[\r\n]|^)'
     '(?<text>'
-        '(?:'
-            '(?<indent>[ \t]*)'
-            ';.*\R\g{indent}'
-        '){2,}'
+        '(?<indent>[ \t]*);.*'
+        '(?:\R\g{indent};.*){1,}'
     ')'
     SPP_NEXT_LINE
 )
+
+; SPP_REMOVE_COMMENT_BLOCK := (
+;     '(*MARK:SPC_COMMENTBLOCK)'
+;     '(?<=[\r\n]|^)'
+;     '(?<text>'
+;         '(?:'
+;             '(?<indent>[ \t]*)'
+;             ';.*\R\g{indent}'
+;         '){2,}'
+;     ')'
+;     SPP_NEXT_LINE
+; )
+
+
 SPP_REMOVE_COMMENT_JSDOC := (
     '(?<indent>(?<=[\r\n]|^)[ \t]*)'
     '(*MARK:SPC_JSDOC)'
