@@ -278,7 +278,7 @@ class ScriptParser {
 
     JsdocAssociate() {
         ; debug_paired := []
-        ; debug_unpaired := []
+        ; debug_unpaired := this.debug_unpaired := []
         ComponentList := QuickSort(this.ComponentList.ToArray(), (a, b) => a.LineStart - b.LineStart)
         i := 0
         loop  {
@@ -293,7 +293,7 @@ class ScriptParser {
                     }
                     if ComponentList[i].Removed {
                         if ComponentList[i].IndexCollection == SPC_JSDOC {
-                            ; debug_unpaired.Push({ Jsdoc: Component })
+                            ; debug_unpaired.Push({ Jsdoc: component })
                             ; OutputDebug('`nNot Paired: Jsdoc: ' Component.Name '; Component: ""; Collection: ""')
                             Component := ComponentList[i]
                         }
@@ -302,7 +302,8 @@ class ScriptParser {
                     if ComponentList[i].LineStart - 1 == Component.LineEnd {
                         ; debug_paired.Push({ Jsdoc: Component, Component: ComponentList[i] })
                         ; OutputDebug('`nPaired: Jsdoc: ' Component.Name '; Component: ' ComponentList[i].Name '; Collection: ' ComponentList[i].NameCollection)
-                        ComponentList[i].DefineProp('Jsdoc', { Value: Component })
+                        ComponentList[i].__Jsdoc := Component.idu
+                        Component.__ParentJsdoc := ComponentList[i].idu
                     } else {
                         ; debug_unpaired.Push({ Jsdoc: Component, Component: ComponentList[i] })
                         ; OutputDebug('`nNot Paired: Jsdoc: ' Component.Name '; Component: ' ComponentList[i].Name '; Collection: ' ComponentList[i].NameCollection)
@@ -341,6 +342,7 @@ class ScriptParser {
         }
         Stack.PosEnd := Match.Pos
         Stack.NextClass := Match
+        LastIndex := this.ComponentList.__ComponentIndex
 
         ; This is the primary parse loop. This function parses the following nodes:
         ; - Class definitions
@@ -407,6 +409,7 @@ class ScriptParser {
 
         _Proc() {
             local _Match
+            LastIndex := this.ComponentList.__ComponentIndex
             ; How the constructor is identified varies depending on the scope
             Callback := Stack.Active.IsClass ? _GetConstructorClassActive : _GetConstructorGlobal
             ; Only check the text up to `Stack.PosEnd`
