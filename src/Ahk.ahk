@@ -71,7 +71,7 @@ class Ahk {
                 if !this.Static {
                     if this.Arrow || (this.Children && (this.Children.Has('Getter') || this.Children.Has('Setter'))) {
                         Path := this.Name
-                        this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.')) 'Prototype.' SubStr(Path, InStr(Path, '.') + 1) })
+                        this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.')) 'Prototype.' SubStr(Path, InStr(Path, '.', , , -1) + 1) })
                     }
                 }
 
