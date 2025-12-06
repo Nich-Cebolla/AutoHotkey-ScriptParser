@@ -224,3 +224,9 @@ class ScriptParser_JsdocCollection extends ScriptParser_ComponentCollection {
         }
     }
 }
+
+class ScriptParser_JsdocTagsCollection extends ScriptParser_MapEx {
+    ToString(EndOfLine := '`r`n') {
+
+    }
+}

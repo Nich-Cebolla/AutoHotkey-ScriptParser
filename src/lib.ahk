@@ -12,7 +12,7 @@ ScriptParser_ClassFactory(Prototype, Name?, Constructor?) {
     Cls.Base := GetObjectFromString(Prototype.__Class)
     Cls.Prototype := Prototype
     if IsSet(Name) {
-        Prototype.__Class := 'ScriptParser_' Name
+        Prototype.__Class := 'ScriptParser_Ahk.Component.' Name
     }
     if IsSet(Constructor) {
         Cls.Prototype.DefineProp('__New', { Call: Constructor })

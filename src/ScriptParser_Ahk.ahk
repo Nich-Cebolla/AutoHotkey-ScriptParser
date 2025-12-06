@@ -136,6 +136,16 @@ class ScriptParser_Ahk {
             GetCommentText(JoinChar := '`r`n') {
                 return RegExReplace(this.Removed.Match['comment'], '\R?[ \t]*?\* ?', JoinChar)
             }
+            Parse(EndOfLine := '`r`n') {
+                if this.HasOwnProp('Tags') {
+                    return this.Tags.ToString(EndOfLine)
+                } else {
+                    tags := this.Tags := ScriptParser_JsdocTagsCollection()
+                    lines := StrSplit(RegExReplace(this.TextOwnFull, '\R', '`n'), '`n', '`s`t')
+                    i := 1
+
+                }
+            }
         }
 
         class CommentSingleLine extends ScriptParser_Ahk.Component.Comment {

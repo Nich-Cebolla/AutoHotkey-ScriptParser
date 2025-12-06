@@ -10,7 +10,7 @@ class ScriptParser_MapEx extends Map {
      * M := ScriptParser_MapEx(true, 'Not found!', 'Foo', 'Bar')
      * OutputDebug(M.Get('foo')) ; Not found!
      */
-    __New(CaseSense := true, Default?, Items*) {
+    __New(CaseSense := false, Default?, Items*) {
         this.CaseSense := CaseSense
         if IsSet(Default)
             this.Default := Default

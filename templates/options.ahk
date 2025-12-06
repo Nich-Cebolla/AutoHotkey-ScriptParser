@@ -1,7 +1,7 @@
 ﻿options := {
     Content: ''
+  , DeferProcess: true
   , Encoding: ''
   , EndOfLine: ''
   , Path: ''
-  , DeferProcess: true
 }

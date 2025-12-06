@@ -197,7 +197,7 @@ class ScriptParser {
     }
     Cleanup() {
         for prop in [ '__FillerReplacement', '__ScriptParser_ComponentBaseBase', '__StackContextBase'
-        , 'Stack', '__ConsecutiveDoubleReplacement', '__ConsecutiveSingleReplacement' ] {
+        , 'Stack' ] {
             if this.HasOwnProp(prop) {
                 this.DeleteProp(prop)
             }
@@ -461,41 +461,40 @@ class ScriptParser {
      *
      * Continuation sections:
      * - **comment**: The last comment between the open quote character and the open bracket character,
-     * if any are present.
+     *   if any are present.
      * - **quote**: The open quote character.
      * - **body**: The text content between the open bracket and the close bracket, i.e. the continuation
-     * section's string value before the indentation is removed.
+     *   section's string value before the indentation is removed.
      * - **tail**: Any code that is on the same line as the close bracket, after the close quote character.
      *
      * Jsdoc comments and multi-line comments:
      * - **comment**: The content of the comment without the comment operator and without surrounding
-     * whitespace.
+     *   whitespace.
      *
      * Single-line comments:
      * - **comment**: If the single-line comment is a standalone comment (i.e. not part of a comment
-     * block consisting of consecutive lines of comments without code and each line having the same
-     * level of indentation), then the match will also have a `comment` subcapture group containing
-     * the content of the comment without the comment operator and without leading whitespace.
+     *   block consisting of consecutive lines of comments without code and each line having the same
+     *   level of indentation), then the match will also have a `comment` subcapture group containing
+     *   the content of the comment without the comment operator and without leading whitespace.
      *
      * - **indent**: The space and tab characters that occurs on the same line as a comment (or the
-     * first line of a comment block) before any character that is not a space or tab.
+     *   first line of a comment block) before any character that is not a space or tab.
      * - **lead**: The characters following the indentation but before the comment operator.
      *
      * All types of comments:
      * - **line**: The next line following the comment, included so the comment can be paired with
-     * whatever it is describing. If the next line of text is a class definition, these subgroups
-     * are used:
+     *   whatever it is describing. If the next line of text is a class definition, these subgroups
+     *   are used:
      *   - **class**: The class name. This will always be present.
      *   - **super**: If the class has the `extends` keyword, this subgroup will contain the name of
-     * the superclass.
-     * If the next line of text is a class method, property, or function definition, these subgroups
-     * are used:
-     *   - **name**: The name of the method, property, or function. This will always be present.
-     *   - **static**: The `static` keyword, if present.
-     *   - **func**: If it is a function definition, then this subgroup will contain the open
-     * parentheses. This is mostly to indicate whether its a function or property.
-     *   - **prop**: If it is a property definition, then this subgroup will contain the first
-     * character following the property name.
+     *     the superclass. If the next line of text is a class method, property, or function
+     *     definition, these subgroups are used:
+     *     - **name**: The name of the method, property, or function. This will always be present.
+     *     - **static**: The `static` keyword, if present.
+     *     - **func**: If it is a function definition, then this subgroup will contain the open
+     *       parentheses. This is mostly to indicate whether its a function or property.
+     *     - **prop**: If it is a property definition, then this subgroup will contain the first
+     *       character following the property name.
      */
     RemoveStringsAndComments() {
         global SPP_REMOVE_CONTINUATION, SPP_REMOVE_LOOP, SPP_REMOVE_COMMENT_BLOCK, SPP_REMOVE_COMMENT_SINGLE
@@ -563,6 +562,7 @@ class ScriptParser {
             ScriptParser.Collection.Delete(this.IdScriptParser)
         }
     }
+
     Encoding {
         Get => this.Options.Encoding
         Set => this.Options.Encoding := Value
@@ -580,10 +580,10 @@ class ScriptParser {
             this.DeleteProp('__New')
             proto := this.Prototype
             proto.Content := ''
+            proto.DeferProcess := false
             proto.Encoding := ''
             proto.EndOfLine := ''
             proto.Path := ''
-            proto.DeferProcess := false
         }
 
         __New(options?) {

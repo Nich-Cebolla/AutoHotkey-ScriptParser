@@ -7,16 +7,23 @@
 Demo('test-content\UIA.ahk')
 
 class Demo {
+    static __New() {
+        this.DeleteProp('__New')
+        for item in [ 'Expand partial (&I)', 'Expand recursive (&X)', 'Expand all recursive (&Z)' ] {
+            TreeViewEx_ContextMenu.Prototype.DefaultItems.Remove(item)
+        }
+    }
     static Call(path, encoding?) {
         options := { Path: path, Encoding: encoding ?? unset }
         this.script := ScriptParser(options)
         ptm := PropsInfoTree_PropsTypeMap([
-                {
+                { Type: 'ScriptParser', List: '__ConsecutiveDoubleReplacement,__ConsecutiveSingleReplacement' }
+              , {
                     Type: [
-                        'ScriptParser_CommentBlock',  'ScriptParser_CommentMultiline'
-                      , 'ScriptParser_CommentSingleline',  'ScriptParser_Getter',  'ScriptParser_InstanceMethod'
-                      , 'ScriptParser_InstanceProperty',  'ScriptParser_Jsdoc',  'ScriptParser_Setter'
-                      , 'ScriptParser_StaticProperty',  'ScriptParser_String', 'ScriptParser_Class'
+                        'ScriptParser_Ahk.Component.CommentBlock',  'ScriptParser_Ahk.Component.CommentMultiline'
+                      , 'ScriptParser_Ahk.Component.CommentSingleline',  'ScriptParser_Ahk.Component.Getter',  'ScriptParser_Ahk.Component.InstanceMethod'
+                      , 'ScriptParser_Ahk.Component.InstanceProperty',  'ScriptParser_Ahk.Component.Jsdoc',  'ScriptParser_Ahk.Component.Setter'
+                      , 'ScriptParser_Ahk.Component.StaticProperty',  'ScriptParser_Ahk.Component.String', 'ScriptParser_Ahk.Component.Class'
                     ]
                   , List:  'Collection,__Jsdoc,__JsdocParent'
                   , AddToDefault: true
@@ -35,10 +42,14 @@ class Demo {
           , SetAccessors: false
           , NormalizeKeyExtent: 2
           , ShowOwnerIndex: false
-          , CallbackDelete: Demo_CallbackDelete
-          , CallbackOnChangeAfter: Demo_CallbackOnChange
         }
-        tvexTabOptions := this.TvexTabOptions := { DefaultPropsInfoTreeOptions: pitOpt, opt: 'w1400 r20', Which: 'Tab2' }
+        tvexTabOptions := this.TvexTabOptions := {
+            CallbackDelete: Demo_CallbackDelete
+          , CallbackOnChangeAfter: Demo_CallbackOnChange
+          , DefaultPropsInfoTreeOptions: pitOpt
+          , opt: 'w1400 r20'
+          , Which: 'Tab2'
+        }
         BringYourOwnObject(this.script, 'ScriptParser', pitOpt, tvexTabOptions)
     }
 }
@@ -16883,7 +16894,7 @@ class TreeViewExCollection_Template extends Map {
 class TreeViewExCollection_ContextMenuItem extends Container {
     static __New() {
         this.DeleteProp('__New')
-        proto := Container.CbNumber(TreeViewEx_CallbackValue_Name)
+        proto := Container.CbString(TreeViewEx_CallbackValue_Name, , LINGUISTIC_IGNORECASE)
         proto.__Class := this.Prototype.__Class
         this.Prototype := proto
     }
@@ -23049,7 +23060,7 @@ class TvItem extends TreeViewExStructBase {
         }
         this.stateMask := this.stateMask | TVIS_EXPANDED
     }
-    SetTextBuffer(Bytes := TVEX_DEFAULT_TEXT_MAX) {
+    SetTextBuffer(Bytes := TVEX_DEFAULT_TEXT_MAX * 2) {
         this.__pszText := Buffer(Bytes)
         this.cchTextMax := Floor(Bytes / 2)
         NumPut('ptr', this.__pszText.Ptr, this.Buffer, this.offset_pszText)
@@ -23725,7 +23736,6 @@ class MenuEx {
         this.ShowTooltips := options.ShowTooltips
         this.__Item := MenuExItemCollection()
         this.__Item.CaseSense := options.CaseSense
-        this.__Item.Default := ''
         this.Constructor := Class()
         this.Constructor.Base := MenuExItem
         this.Constructor.Prototype := {
@@ -24407,6 +24417,13 @@ class MenuExItem {
 }
 
 class MenuExItemCollection extends Map {
+    static __New() {
+        this.DeleteProp('__New')
+        this.Prototype.Default := this.DefaultItem()
+    }
+    class DefaultItem {
+        __Call(*) => ''
+    }
 }
 
 /**
@@ -26595,14 +26612,6 @@ class PropsInfoTree_Node extends TreeViewEx_Node {
         this.flag_children := flag_children
         return
     }
-    __Delete() {
-        global g_PropsInfoTree_NodeDeleteCounter
-        if IsSet(g_PropsInfoTree_NodeDeleteCounter) {
-            g_PropsInfoTree_NodeDeleteCounter.Count++
-        } else {
-            g_PropsInfoTree_NodeDeleteCounter := PropsInfoTree_NodeDeleteCounter()
-        }
-    }
     __GetChildLabelKeyChar(childNode) {
         path := childNode.Path
         return Format('{:-' this.KeyWidthChar.max '}', IsNumber(path.Name) ? path.Name : PropsInfoTree_StrEscape(path.Name, this.PropsInfoTreeOptions.__PreviewItemMaxChars))
@@ -27400,7 +27409,6 @@ class PropsInfoTree_Node_Root extends PropsInfoTree_Node_Object {
         this.DefineProp('Path', { Value: Path.ToRoot() })
         this.DefineProp('Value', { Value: Value })
     }
-    Label => this.Path.Call() ' :: ' this.GetPreview()
     Type => PROPSINFOTREE_NODETYPE_ROOT
 }
 class PropsInfoTree_Node_Base extends PropsInfoTree_Node_Object {
@@ -27595,23 +27603,6 @@ class PropsInfoTree_Node_UnsetArrayItem extends PropsInfoTree_Node_Value {
     Label => '[ ' this.Path.Name ' ] = unset'
     Type => PROPSINFOTREE_NODETYPE_UNSETARRAYITEM
 }
-
-
-class PropsInfoTree_NodeDeleteCounter {
-    __New() {
-        this.Count := 1
-        SetTimer(this, -150)
-    }
-    Call() {
-        if this.Count == 1 {
-            PropsInfoTree_ShowTooltip('1 node was destroyed.')
-        } else {
-            PropsInfoTree_ShowTooltip(this.Count ' nodes were destroyed.')
-        }
-        global g_PropsInfoTree_NodeDeleteCounter := unset
-    }
-}
-
 
 class PropsInfoTree_PreviewFormat extends Container {
     static __New() {
@@ -29206,6 +29197,42 @@ class PropsInfoTree extends TreeViewEx {
         }
     }
     /**
+     * @description - Similar to {@link PropsInfoTree.Prototype.AddNode2} except the pszText
+     * member is always set with {@link PropsInfoTree_Node_Object#Label}.
+     * @param {PropsInfoTree_Node} Node - The node object.
+     *
+     * @param {String|TvInsertStruct} [Struct = "insert"] - An instance of {@link TvInsertStruct}
+     * that is sent with TVM_INSERTITEMW, or the key associated with the {@link TvInsertStruct}
+     * object to retrieve from {@link TreeViewEx#Templates}.
+     */
+    AddNode3(Node, Struct := 'insert') {
+        global g_TreeViewEx_Node := Node
+        if !IsObject(Struct) {
+            Struct := this.Templates.Get(Struct)
+        }
+        Struct := Struct.Clone()
+        Struct.lParam := ObjPtrAddRef(Node)
+        Struct.SetTextBuffer()
+        Struct.mask := Struct.mask | TVIF_TEXT
+        Struct.pszText := node.Label
+        if this.PropsInfoTreeOptions.__CallbackBold {
+            if this.PropsInfoTreeOptions.__CallbackBold.Call(Node) {
+                Struct.mask := Struct.mask | TVIF_STATE
+                Struct.state := Struct.state | TVIS_BOLD
+                Struct.stateMask := Struct.stateMask | TVIS_BOLD
+            } else {
+                Struct.mask := Struct.mask & ~TVIF_STATE
+                Struct.state := Struct.state & ~TVIS_BOLD
+                Struct.stateMask := Struct.stateMask & ~TVIS_BOLD
+            }
+        }
+        if Node.handle := SendMessage(TVM_INSERTITEMW, 0, Struct.Ptr, this.Hwnd) {
+            g_TreeViewEx_Node := ''
+        } else {
+            throw Error('Sending ``TVM_INSERTITEMW`` failed.')
+        }
+    }
+    /**
      * @param {*} Value - The value to associate with the node.
      *
      * @param {String} [Name] - The name to assign to the node. This is displayed with the tree-view
@@ -29589,7 +29616,7 @@ Demo_ContextMenu_AddAsNewTab(TvexTab, Node, *) {
     if HasProp(TvexTab.Gui, 'Resizer') {
         pit.Resizer := { W: 1, H: 1 }
     }
-    pit.AddNode2(node, 'insert root')
+    pit.AddNode3(node, 'insert root')
     ; Return the PropsInfoTree
     return pit
 }
