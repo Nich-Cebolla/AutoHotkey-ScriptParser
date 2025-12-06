@@ -13,25 +13,11 @@ class ScriptParser_ComponentCollectionList extends Array {
     }
 }
 
-/**
- * @classdesc - When `ScriptParser_ComponentCollection` objects are created, they are added to an array
- * `ScriptParseObj.CollectionList`. The indices used are the `SPC_<collection name>` integers defined
- * in "define.ahk". Each `ScriptParser_ComponentCollection` object has a `CollectionObj.Constructor` property
- * which references the constructor for the components. These constructors are also created using
- * `ScriptParser_ClassFactory`.
- *
- * For an example of how to add values to a component collection while also removing the text from
- * the content body, see `ScriptParser.Prototype.RemoveStringsAndComments`.
- *
- * For an example of how to add values to a component collection while recursing into the stack,
- * see `ScriptParser.Prototype.ParseClass` or `ScriptParser.Prototype.ParseProperty`.
- * @
- */
 class ScriptParser_ComponentCollection extends ScriptParser_MapEx {
     __New(ScriptParser_ComponentBase) {
         this.CaseSense := false
         this.Default := ''
-        this.ScriptParser_ComponentBase := ScriptParser_ComponentBase
+        this.ComponentBase := ScriptParser_ComponentBase
         this.__ComponentIndex := Number(ScriptParser_ComponentBase.IndexCollection '000000') - 1
         this.__MaxComponentIndex := Number((ScriptParser_ComponentBase.IndexCollection + 1) '000000')
     }
@@ -41,14 +27,13 @@ class ScriptParser_ComponentCollection extends ScriptParser_MapEx {
     }
     GetIndex() {
         if ++this.__ComponentIndex >= this.__MaxComponentIndex {
-            throw Error('Number of components have exceeded the maximum.', -1
-            , 'Component: ' this.ScriptParser_ComponentBase.Name '; Count: ' this.__ComponentIndex)
+            throw Error('Number of components have exceeded the maximum.')
         }
         return this.__ComponentIndex
     }
 
-    NameCollection => this.ScriptParser_ComponentBase.NameCollection
-    IndexCollection => this.ScriptParser_ComponentBase.IndexCollection
+    NameCollection => this.ComponentBase.NameCollection
+    IndexCollection => this.ComponentBase.IndexCollection
 }
 
 class ScriptParser_ComponentList extends ScriptParser_MapEx {
@@ -96,7 +81,7 @@ class ScriptParser_RemovedCollection extends ScriptParser_MapEx {
     }
     GetIndex() {
         if ++this.__Index >= this.__MaxCode {
-            throw Error('Number of components have exceeded the maximum.', -1
+            throw Error('Number of components have exceeded the maximum.',
             , 'Component: RemovedComponent; Count: ' this.__Index)
         }
         return this.__Index
@@ -105,11 +90,10 @@ class ScriptParser_RemovedCollection extends ScriptParser_MapEx {
     class ShortCollection extends Map {
         static __New() {
             this.DeleteProp('__New')
-            this.Prototype.DefineProp('__CharStartCode', { Value: 0x2000 })
             this.Prototype.DefineProp('__CharMaxCode', { Value: 0xFB04 })
         }
         __New(Script) {
-            this.__CharCode := this.__CharStartCode
+            this.__CharStartCode := this.__CharCode := Script.__ConsecutiveSingleReplacement + 1
             this.__AdjustCharCode(Script)
             this.Set(Chr(this.__CharCode), [])
         }
@@ -128,7 +112,7 @@ class ScriptParser_RemovedCollection extends ScriptParser_MapEx {
             while InStr(Script.Content, Chr(this.__CharCode)) {
                 this.__CharCode++
                 if this.__CharCode > this.__CharMaxCode {
-                    throw Error('``ScriptParser`` ran out of characters used to identify short removed strings.', -1)
+                    throw Error('``ScriptParser`` ran out of characters used to identify short removed strings.')
                 }
             }
         }

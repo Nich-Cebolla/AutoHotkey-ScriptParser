@@ -5,9 +5,8 @@ if !A_IsCompiled && A_LineFile == A_ScriptFullPath {
     test()
 }
 
-
 class test {
-    static PathIn := 'test-content\test-content-GetPropsInfo.ahk'
+    static Path := 'test-content\test-content-GetPropsInfo.ahk'
     , PathOut := A_Temp '\test-ScriptParser-output.json'
 
     static AddProblem(Fn, Line, Msg, Obj?) {
@@ -58,46 +57,46 @@ class test {
         }
         _Get(Pattern) {
             if !RegExMatch(Content, Pattern, &match) {
-                throw Error('Match failed.', -1)
+                throw Error('Match failed.')
             }
             return match
         }
     }
     static GetContent(&Content) {
-        Content := FileRead(this.PathIn)
+        Content := FileRead(this.Path)
     }
     static GetDiffs(&Expected, &Actual, Script) {
         MaxLineSearch := 3
         Diffs := []
-        splita := StrSplit(Actual, Script.LineEnding)
-        splite := StrSplit(Expected, Script.LineEnding)
+        splita := StrSplit(Actual, Script.EndOfLine)
+        splite := StrSplit(Expected, Script.EndOfLine)
         Diffs.Capacity := splita.Length
         EqualCount := splita.Length == splite.Length
-        la := le := 1
+        la := eol := 1
         loop {
-            if splita[la] == splite[le] {
-                Diffs.Push({ Result: 0, LineActual: la, LineExpected: le, Text: splita[la] })
+            if splita[la] == splite[eol] {
+                Diffs.Push({ Result: 0, LineActual: la, LineExpected: eol, Text: splita[la] })
                 la++
-                le++
+                eol++
             } else {
                 if !_Seek() {
-                    Diffs.Push({ Result: 2, LineActual: la, LineExpected: le, Actual: splita[la], Expected: splite[le] })
+                    Diffs.Push({ Result: 2, LineActual: la, LineExpected: eol, Actual: splita[la], Expected: splite[eol] })
                 la++
-                le++
+                eol++
                 }
             }
         }
         _Seek() {
             templa := la
             loop MaxLineSearch {
-                if splita[++templa] == splite[le] {
+                if splita[++templa] == splite[eol] {
                     missing := []
                     loop templa - la {
                         missing.Push(splita[++la])
                     }
-                    Diffs.Push({ Result: 1, LineActual: la, LineExpected: le, Text: splita[la], Missing: missing })
+                    Diffs.Push({ Result: 1, LineActual: la, LineExpected: eol, Text: splita[la], Missing: missing })
                     la++
-                    le++
+                    eol++
                     return 1
                 }
             }
@@ -133,7 +132,7 @@ class test {
         }
     }
     static GetScript() {
-        Script := this.Script := ScriptParser({ PathIn: this.PathIn, DeferProcess: true })
+        Script := this.Script := ScriptParser({ Path: this.Path, DeferProcess: true })
         Script.RemoveStringsAndComments()
         Script.ParseClass()
         return Script

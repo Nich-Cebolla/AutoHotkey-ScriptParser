@@ -162,7 +162,7 @@ class ScriptParser_Ahk {
 
         class Comment extends ScriptParser_ComponentBase {
             GetCommentText(*) {
-                throw Error('This method must be overridden by the inheritor.', -1, A_ThisFunc)
+                throw Error('This method must be overridden by the inheritor.', , A_ThisFunc)
             }
             TextComment[JoinChar := '`r`n'] => this.GetCommentText(JoinChar)
         }

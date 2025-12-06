@@ -2,6 +2,7 @@
 #include enum.ahk
 #include lib.ahk
 #include ScriptParser_Ahk.ahk
+#include ScriptParser_Collection.ahk
 #include ScriptParser_ComponentBase.ahk
 #include ScriptParser_ComponentCollection.ahk
 #include ScriptParser_ContinuationSection.ahk

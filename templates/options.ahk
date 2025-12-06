@@ -2,6 +2,6 @@
     Content: ''
   , Encoding: ''
   , EndOfLine: ''
-  , PathIn: ''
+  , Path: ''
   , DeferProcess: true
 }

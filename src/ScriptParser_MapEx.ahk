@@ -16,7 +16,7 @@ class ScriptParser_MapEx extends Map {
             this.Default := Default
         if Items.Length {
             if Mod(Items.Length, 2)
-                throw Error('The number of items must be even.', -1)
+                throw Error('The number of items must be even.')
             loop Items.Length / 2
                 this.Set(Items[A_Index * 2 - 1], Items[A_Index * 2])
         }

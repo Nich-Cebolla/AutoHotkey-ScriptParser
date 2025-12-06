@@ -172,7 +172,6 @@ class ScriptParser_ComponentBase {
         , '__Jsdoc', '__JsdocParent'] {
             Proto.DefineProp(Prop, { Value: '' })
         }
-
     }
 }
 
@@ -212,10 +211,10 @@ class ScriptParser_RemovedComponent extends ScriptParser_RemovedScriptParser_Com
 class ScriptParser_RemovedScriptParser_ComponentBase {
     __SetReplacementShared(Script) {
         over := StrLen(this.Replacement)
-        le := Script.LineEnding
-        if InStr(this.Match['text'], le) {
-            leLen := StrLen(le)
-            for line in StrSplit(this.Match['text'], le) {
+        eol := Script.EndOfLine
+        if InStr(this.Match['text'], eol) {
+            leLen := StrLen(eol)
+            for line in StrSplit(this.Match['text'], eol) {
                 if over > 0 {
                     if StrLen(line) >= over {
                         this.Replacement .= Script.__FillerReplacement[StrLen(line) - over]
@@ -224,7 +223,7 @@ class ScriptParser_RemovedScriptParser_ComponentBase {
                 } else {
                     this.Replacement .= Script.__FillerReplacement[StrLen(line)]
                 }
-                this.Replacement .= le
+                this.Replacement .= eol
             }
             this.Replacement := SubStr(this.Replacement, 1, StrLen(this.Replacement) - leLen)
         } else {

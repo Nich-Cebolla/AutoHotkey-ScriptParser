@@ -7,7 +7,6 @@ SP_REPLACEMENT := Chr(0xFFFC) ; Replacement char
 /** @var - Parses a replacement string into its parts. */
 SPP_REPLACEMENT := SP_REPLACEMENT '(?<collection>\d+)' SP_REPLACEMENT '(?<index>\d+)'
 
-SPR_QUOTE_CONSECUTIVEDOUBLE := Chr(0x2000) Chr(0x2000)
 SPR_QUOTE_CONSECUTIVESINGLE := Chr(0x2001) Chr(0x2001)
 
 SPP_QUOTE_CONSECUTIVE_DOUBLE := '(?<=^|[\s=(:[!&%,*])""'
@@ -139,45 +138,6 @@ SPP_CLASS_INCLQUOTE := (
     ')'
 )
 
-; SPP_COMMENT := '/\*(?<text>[\w\W]+?)\*/'
-
-; SPP_COMMENTLINE := '\s;.*'
-
-; SPP_ScriptParser_ContinuationSection := (
-;     '(?(DEFINE)(?<singleline>\s*;.*))'
-;     '(?(DEFINE)(?<multiline>\s*/\*[\w\W]*?\*/))'
-;     '(?<=[\s=:,&(.[?]|^)(?<quote>[`'"])'
-;     '(?<comment>'
-;         '(?&singleline)'
-;         '|'
-;         '(?&multiline)'
-;     ')*'
-;     '\s*+\('
-;     '(?<text>[\w\W]*?)'
-;     '\R[ \t]*+\).*?\g{quote}(?<tail>.*)'
-; )
-
-; SPP_REMOVESTRINGS := (
-;     'J)(?<Remove>'
-;         '/\*[\w\W]+?\*/[ \t]*(?=\R|$)(*MARK:comment)'
-;     '|'
-;         '(?<=\s|^);.*(?=\R|$)(*MARK:comment)'
-;     '|'
-;         '(?<!``)(?:````)*+'
-;         '([`"`'])'
-;         '[\w\W]*?'
-;         '(?<!``)(?:````)*+'
-;         '\g{-1}(*MARK:string)'
-;     '|'
-;         '([`'"])'
-;         '\s*+'
-;         '(?:;.*\R|\s*+/\*[\w\W]*\*/[ \t]*+)*+'
-;         '\s*+\('
-;         '[\w\W]*?'
-;         '\R[ \t]*+\).*?\g{-1}(*MARK:string)'
-;     ')'
-; )
-
 SPP_FUNCTION := (
     'J)'
     '(?<=[\r\n]|^)[ \t]*?'
@@ -291,32 +251,7 @@ SPP_REMOVE_CONTINUATION := (
     ')'
     '(?<tail>.*)'
 )
-; SPP_DEFINE_LINE := (
-;     '(?(DEFINE)(?<line>'
-;         '(?<indent>[ \t]*)'
-;         '(?:'
-;             'class[ \t]+'
-;             '(?<class>[a-zA-Z0-9_]+)'
-;             '(?:'
-;                 '[ \t]*extends[ \t]+'
-;                 '(?<super>[a-zA-Z0-9_.]+)'
-;             ')?'
-;             '\s*\{'
-;         '|'
-;             '(?<static>static[ \t]+)?'
-;             '(?<name>[\w\d_]+)'
-;             '(?:'
-;                 '(?<func>\()'
-;             '|'
-;                 '(?<prop>[^(])'
-;             ')'
-;             '.*'
-;         '|'
-;             '.*'
-;         ')'
-;     '))'
-; )
-; SPP_INCLUDE_LINE := '[ \t]*\R(?&line)?'
+
 SPP_NEXT_LINE := (
     '(?:[ \t]*\R'
     '(?<line>'
@@ -365,19 +300,6 @@ SPP_REMOVE_COMMENT_SINGLE := (
     SPP_NEXT_LINE
 )
 
-; SPP_REMOVE_COMMENT_SINGLE := (
-;     '(?<indent>(?<=[\r\n]|^)[ \t]*)'
-;     '(?<lead>[^; \t].*)?'
-;     '(*MARK:SPC_COMMENTSINGLELINE)'
-;     '(?<text>'
-;         '(?<=\s|^)'
-;         ';[ \t]*'
-;         '(?<comment>.*)'
-;     ')'
-;     SPP_NEXT_LINE
-; )
-
-
 SPP_REMOVE_COMMENT_BLOCK := (
     '(*MARK:SPC_COMMENTBLOCK)'
     '(?<=[\r\n]|^)'
@@ -388,19 +310,6 @@ SPP_REMOVE_COMMENT_BLOCK := (
     SPP_NEXT_LINE
 )
 
-; SPP_REMOVE_COMMENT_BLOCK := (
-;     '(*MARK:SPC_COMMENTBLOCK)'
-;     '(?<=[\r\n]|^)'
-;     '(?<text>'
-;         '(?:'
-;             '(?<indent>[ \t]*)'
-;             ';.*\R\g{indent}'
-;         '){2,}'
-;     ')'
-;     SPP_NEXT_LINE
-; )
-
-
 SPP_REMOVE_COMMENT_JSDOC := (
     '(?<indent>(?<=[\r\n]|^)[ \t]*)'
     '(*MARK:SPC_JSDOC)'
@@ -410,6 +319,7 @@ SPP_REMOVE_COMMENT_JSDOC := (
         '\*/'
     ')'
 )
+
 SPP_REMOVE_STRING := (
     '(*MARK:SPC_STRING)'
     '(?<text>'
@@ -421,6 +331,7 @@ SPP_REMOVE_STRING := (
         '\g{-2}'
     ')'
 )
+
 SPP_REMOVE_LOOP := (
     '(?:'
         SPP_REMOVE_STRING

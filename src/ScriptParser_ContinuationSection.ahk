@@ -147,7 +147,7 @@ class ScriptParser_ContinuationSection {
                     OutPosEnd := InStr(this.Body, Br) + Pos - 1
                 }
                 if !RegExMatch(this.Text, PatternBrackets[A_Index], &Match, OutPosEnd) || Match.Pos !== OutPosEnd {
-                    throw Error('There is likely a syntax error around position: ' Match.Pos, -1)
+                    throw Error('There is likely a syntax error around position: ' Match.Pos)
                 }
                 this.Body := SubStr(this.Body, 1, (PosBr ?? InStr(this.Body, Br)) - 1) Match[0]
                 OutPosEnd := Match.Pos + Match.Len

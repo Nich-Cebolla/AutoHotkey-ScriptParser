@@ -21,7 +21,6 @@ class ScriptParser {
         }
         throw Error('Failed to produce a unique id.')
     }
-
     /**
      * @description -
      * @class
@@ -32,20 +31,25 @@ class ScriptParser {
         this.IdScriptParser := ScriptParser.__GetUid()
         ScriptParser.__Add(this)
         Options := this.Options := ScriptParser.Options(Options ?? {})
-        if IsSet(PathIn) {
-            this.Content := FileRead(PathIn, this.Encoding || unset)
+        this.Collection := ScriptParser_Collection(this)
+        if IsSet(Path) {
+            this.Content := FileRead(Path, this.Encoding || unset)
         } else if IsSet(Content) {
             this.Content := Content
-        } else if Options.PathIn {
-            this.Content := FileRead(this.PathIn, this.Encoding || unset)
+        } else if Options.Path {
+            this.Content := FileRead(this.Path, this.Encoding || unset)
         } else if Options.Content {
             this.Content := Options.Content
         } else {
-            throw Error('``ScriptParser`` requires either a content string or file path.', -1)
+            throw Error('``ScriptParser`` requires either a content string or file path.')
         }
+        n := 0x2000
+        this.__FillerReplacement := ScriptParser_FillStr(Chr(_GetOrd()))
+        this.__ConsecutiveDoubleReplacement := _GetOrd()
+        this.__ConsecutiveSingleReplacement := _GetOrd()
         if Options.EndOfLine {
             this.Content := RegExReplace(this.Content, '\R', Options.EndOfLine)
-            this.LineEnding := Options.EndOfLine
+            this.EndOfLine := Options.EndOfLine
         } else {
             ; Get line endings.
             StrReplace(this.Content, '`n', , , &countlf)
@@ -53,18 +57,18 @@ class ScriptParser {
             if countcr {
                 if countlf {
                     if countcr == countlf {
-                        RegExMatch(this.Content, '\R', &mlineending)
-                        this.LineEnding := mlineending[0]
+                        RegExMatch(this.Content, '\R', &mEndOfLine)
+                        this.EndOfLine := mEndOfLine[0]
                     } else {
-                        throw Error('The script content has mixed line endings.', -1)
+                        throw Error('The script content has mixed line endings.')
                     }
                 } else {
-                    this.LineEnding := '`r'
+                    this.EndOfLine := '`r'
                 }
             } else if countlf {
-                this.LineEnding := '`n'
+                this.EndOfLine := '`n'
             } else {
-                this.LineEnding := ''
+                this.EndOfLine := ''
             }
         }
         ; `Script.CollectionIndex` is a map with name : index pairs. The indices are associated
@@ -90,7 +94,7 @@ class ScriptParser {
                 ; reads the content in the language file and identifies the superclass for each
                 ; component class, then assigns the correct base.
                 if !RegExMatch(LangContent, 'i)class[ \t]+' Prop '[ \t]+extends[ \t]+(?<super>[\w.]+)', &Match) {
-                    throw Error('Failed to match the collection`'s class definition statement.', -1)
+                    throw Error('Failed to match the collection`'s class definition statement.')
                 }
                 ; The index values are defined in "define.ahk".
                 index := %'SPC_' Prop%
@@ -132,15 +136,6 @@ class ScriptParser {
         CollectionList.Length := i
         this.ComponentList := ScriptParser_ComponentList()
         this.RemovedCollection := ScriptParser_RemovedCollection(this)
-        n := 0xFFFD
-        loop {
-            if InStr(this.Content, Chr(n)) {
-                ++n
-            } else {
-                break
-            }
-        }
-        this.__FillerReplacement := ScriptParser_FillStr(Chr(n))
         ; `StackContextBase` is the base for `ScriptParser_Stack.Context` objects.
         this.__StackContextBase := {
             Bounds: [ { Start: 1 } ]
@@ -157,10 +152,7 @@ class ScriptParser {
         this.Length := StrLen(this.Content)
         this.GlobalCollection := ScriptParser_GlobalCollection()
         if !Options.DeferProcess {
-            this.RemoveStringsAndComments()
-            this.ParseClass()
-            this.JsdocAssociate()
-            this.Cleanup()
+            this.Process()
         }
 
         return
@@ -190,15 +182,26 @@ class ScriptParser {
                     CollectionList[index] := ScriptParser_ComponentCollection(B)
                 }
                 CollectionIndex.Set(Prop, index)
-                ; Set `ScriptParser_ComponentCollectionObj.Constructor`.
                 CollectionList[index].Constructor := ScriptParser_ClassFactory(B, Prop)
             }
         }
+        _GetOrd() {
+            loop {
+                if InStr(this.Content, Chr(n)) {
+                    ++n
+                } else {
+                    return n
+                }
+            }
+        }
     }
-
-
     Cleanup() {
-
+        for prop in [ '__FillerReplacement', '__ScriptParser_ComponentBaseBase', '__StackContextBase'
+        , 'Stack', '__ConsecutiveDoubleReplacement', '__ConsecutiveSingleReplacement' ] {
+            if this.HasOwnProp(prop) {
+                this.DeleteProp(prop)
+            }
+        }
     }
     /**
      * @description - Returns a collections object.
@@ -211,7 +214,6 @@ class ScriptParser {
     GetCollection(Name) {
         return this.CollectionList[this.CollectionIndex.Get(Name)]
     }
-
     /**
      * @description - Returns text from the script, with strings and comments still removed from
      * the text.
@@ -222,7 +224,6 @@ class ScriptParser {
     GetText(PosStart := 1, Len?) {
         return SubStr(this.Content, PosStart, Len ?? unset)
     }
-
     /**
      * @description - Returns the original, unmodified text from the script.
      * @param {Integer} [PosStart=1] - The character start position.
@@ -257,9 +258,9 @@ class ScriptParser {
                 Pos := 1
             }
         }
-        return StrReplace(StrReplace(Text, SPR_QUOTE_CONSECUTIVEDOUBLE, '""'), SPR_QUOTE_CONSECUTIVESINGLE, "''")
+        return StrReplace(StrReplace(Text, Chr(this.__ConsecutiveDoubleReplacement) Chr(this.__ConsecutiveDoubleReplacement), '""')
+        , Chr(this.__ConsecutiveSingleReplacement) Chr(this.__ConsecutiveSingleReplacement), "''")
     }
-
     JsdocAssociate() {
         listComponent := ScriptParser_QuickSort(this.ComponentList.ToArray(), (a, b) => a.LineStart - b.LineStart)
         i := 0
@@ -288,13 +289,12 @@ class ScriptParser {
             }
         }
     }
-
     /**
      * @description - The primary parsing function. For most scripts, this must be called after
      * `ScriptParser.Prototype.RemoveStringsAndComments` to work correctly.
      */
     ParseClass() {
-        le := this.LineEnding
+        eol := this.EndOfLine
         Stack := this.Stack
         Stack.Line := Stack.Pos := 1
         ClassConstructor := this.CollectionList[SPC_CLASS].Constructor
@@ -340,7 +340,7 @@ class ScriptParser {
             ; definitions between the current position and the class definition, so we move the
             ; position to beginning of the class definition to prevent `RegExMatch` from matching
             ; with the same class definition. This moves it to right before the end of the first line.
-            Stack.Pos := InStr(Match['text'], le) - 1 + Match.Pos['text']
+            Stack.Pos := InStr(Match['text'], eol) - 1 + Match.Pos['text']
             ; Adjust the line count as well
             Stack.Line := Stack.ActiveClass.LineStart
             ; Find next class definition
@@ -446,47 +446,7 @@ class ScriptParser {
             }
             return false
         }
-
-        ; _Recurse(PosEnd) {
-        ;     local _Match
-        ;     ; We use the text up to the end of the current definition
-        ;     , Text := SubStr(this.Content, Stack.Pos, PosEnd)
-        ;     loop {
-        ;         ; If there's no more function / property definitions
-        ;         if !RegExMatch(Text, SPP_FUNCTION, &_Match, Stack.Pos) {
-        ;             break
-        ;         }
-        ;         ; Arrow operators can potentially be followed by a continuation section.
-        ;         ; `ScriptParser_ContinuationSection` will identify and concatenate a continuation section.
-        ;         if _Match['arrow'] {
-        ;             CS := ScriptParser_ContinuationSection(
-        ;                 StrPtr(Text)
-        ;               , _Match.Pos['text']
-        ;               , '=>'
-        ;             )
-        ;         } else {
-        ;             CS := _Match
-        ;         }
-        ;         ; Create the context object. Anonymous functions get the name '()'
-        ;         Component := Stack.In(this, _Match['name'] || '()', CS, FunctionConstructor)
-        ;         ; Handle initialization tasks that are specific to a component type
-        ;         Component.Init(_Match)
-        ;         ; Parse function / property accessor parameters if present
-        ;         Component.GetParams(_Match)
-        ;         ; Move the position
-        ;         Stack.Pos := _Match.Pos['text']
-        ;         ; Recurse into the definition
-        ;         _Recurse(_Match.Pos['text'] + _Match.Len['text'])
-        ;         ; Move the position
-        ;         Stack.Pos := _Match.Pos['text'] + _Match.Len['text']
-        ;         ; Exit the function / property scope
-        ;         Stack.Out()
-        ;         ; Adjust the line count to the end of the function / property definition
-        ;         Stack.Line := Component.LineEnd
-        ;     }
-        ; }
     }
-
     /**
      * @description - `ScriptParser.Prototype.RemoveStringsAndComments` removes quoted strings and
      * comments from the content. A component is created for each item that is removed from the text.
@@ -539,10 +499,10 @@ class ScriptParser {
      */
     RemoveStringsAndComments() {
         global SPP_REMOVE_CONTINUATION, SPP_REMOVE_LOOP, SPP_REMOVE_COMMENT_BLOCK, SPP_REMOVE_COMMENT_SINGLE
-        le := this.LineEnding
+        eol := this.EndOfLine
         ; Remove consecutive quotes
-        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVE_DOUBLE, SPR_QUOTE_CONSECUTIVEDOUBLE, &DoubleCount)
-        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVE_SINGLE, SPR_QUOTE_CONSECUTIVESINGLE, &SingleCount)
+        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVE_DOUBLE, Chr(this.__ConsecutiveDoubleReplacement) Chr(this.__ConsecutiveDoubleReplacement), &DoubleCount)
+        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVE_SINGLE, Chr(this.__ConsecutiveSingleReplacement) Chr(this.__ConsecutiveSingleReplacement), &SingleCount)
         this.RemovedCollection.ConsecutiveDoubleQuotes := DoubleCount
         this.RemovedCollection.ConsecutiveSingleQuotes := SingleCount
         ; Remove continuation sections.
@@ -559,7 +519,7 @@ class ScriptParser {
         _Process(&Pattern) {
             Pos := 1
             nl := 1
-            leLen := StrLen(this.LineEnding)
+            leLen := StrLen(this.EndOfLine)
             ActiveComment := ''
             ; This is the procedure flow for removing content and adding a value to a collection
             loop {
@@ -567,20 +527,20 @@ class ScriptParser {
                     break
                 }
                 ; Get line count of the segment leading up to the match
-                StrReplace(SubStr(this.Content, Pos, Match.Pos - Pos), le, , , &linecount)
+                StrReplace(SubStr(this.Content, Pos, Match.Pos - Pos), eol, , , &linecount)
                 ; Calculate line start
                 LineStart := nl += linecount
                 ; Calculate col start
                 ColStart := Match.Pos['text'] - Match.Pos
                 ; Get line count of the text that will be removed
-                StrReplace(Match['text'], le, , , &linecount)
+                StrReplace(Match['text'], eol, , , &linecount)
                 ; Calculate line end
                 LineEnd := nl += (linecount || 0)
                 ; Calculate col end
                 if LineEnd == LineStart {
                     ColEnd := ColStart + Match.Len['text']
                 } else {
-                    ColEnd := Match.Len['text'] - InStr(Match['text'], le, , , -1)
+                    ColEnd := Match.Len['text'] - InStr(Match['text'], eol, , , -1)
                 }
                 ; Adjust pos
                 Pos := Match.Pos['text'] + Match.Len['text']
@@ -591,23 +551,27 @@ class ScriptParser {
             }
         }
     }
-
     Process() {
         this.RemoveStringsAndComments()
         this.ParseClass()
         this.JsdocAssociate()
+        this.Cleanup()
     }
-
     __Delete() {
         ObjPtrAddRef(this)
         if ScriptParser.Collection.Has(this.IdScriptParser) {
             ScriptParser.Collection.Delete(this.IdScriptParser)
         }
     }
-
-    Encoding => this.Options.Encoding
+    Encoding {
+        Get => this.Options.Encoding
+        Set => this.Options.Encoding := Value
+    }
     NameCollection[IndexCollection] => this.CollectionList[IndexCollection].NameCollection
-    PathIn => this.Options.PathIn
+    Path {
+        Get => this.Options.Path
+        Set => this.Options.Path := Value
+    }
     Text[PosStart := 1, Len?] => SubStr(this.Content, PosStart, Len ?? unset)
     TextFull[PosStart := 1, Len?] => this.GetTextFull(PosStart, Len ?? unset)
 
@@ -618,7 +582,7 @@ class ScriptParser {
             proto.Content := ''
             proto.Encoding := ''
             proto.EndOfLine := ''
-            proto.PathIn := ''
+            proto.Path := ''
             proto.DeferProcess := false
         }
 

@@ -1,14 +1,54 @@
 ﻿
 #SingleInstance force
-#include demo-dependencies.ahk
+#include ..\src\VENV.ahk
 
 ; Paste your own script path in to the Demo() call, or leave it as the demo script path.
 
-Demo()
+Demo('test-content\UIA.ahk')
 
 class Demo {
-    static Call() {
-
+    static Call(path, encoding?) {
+        options := { Path: path, Encoding: encoding ?? unset }
+        this.script := ScriptParser(options)
+        ptm := PropsInfoTree_PropsTypeMap([
+                {
+                    Type: [
+                        'ScriptParser_CommentBlock',  'ScriptParser_CommentMultiline'
+                      , 'ScriptParser_CommentSingleline',  'ScriptParser_Getter',  'ScriptParser_InstanceMethod'
+                      , 'ScriptParser_InstanceProperty',  'ScriptParser_Jsdoc',  'ScriptParser_Setter'
+                      , 'ScriptParser_StaticProperty',  'ScriptParser_String', 'ScriptParser_Class'
+                    ]
+                  , List:  'Collection,__Jsdoc,__JsdocParent'
+                  , AddToDefault: true
+                }
+              , { Type: 'ScriptParser_JsdocCollection', List: '__ComponentIndex,__MaxComponentIndex,ComponentBase,Constructor,Default', AddToDefault: true }
+              , { Type: 'ScriptParser_RemovedCollection', List: '__Index,__MaxCode,Default', AddToDefault: true }
+              , { Type: 'ScriptParser_ComponentCollection', List: '__ComponentIndex,__MaxComponentIndex,ComponentBase,Constructor,Default', AddToDefault: true }
+            ]
+          , 'idc,idr,idu,Script,ParentIdu'
+        )
+        pitOpt := this.PropsInfoTreeOptions := {
+            CallbackProcessProps: ptm
+          , CallbackProps: SciptParserDemo_CallbackProps
+          , CallAccessors: false
+          , GetAccessors: false
+          , SetAccessors: false
+          , NormalizeKeyExtent: 2
+          , ShowOwnerIndex: false
+          , CallbackDelete: Demo_CallbackDelete
+          , CallbackOnChangeAfter: Demo_CallbackOnChange
+        }
+        tvexTabOptions := this.TvexTabOptions := { DefaultPropsInfoTreeOptions: pitOpt, opt: 'w1400 r20', Which: 'Tab2' }
+        BringYourOwnObject(this.script, 'ScriptParser', pitOpt, tvexTabOptions)
+    }
+}
+SciptParserDemo_CallbackProps(node) {
+    switch node.Value.__Class {
+        case 'ScriptParser_ComponentList'
+        , 'ScriptParser_GlobalCollection'
+        , 'ScriptParser_ComponentList'
+        , 'ScriptParser_ComponentCollectionIndex':
+            return 1
     }
 }
 
@@ -38,8 +78,6 @@ class Demo {
 #Requires AutoHotkey >=2.0-a
 
 ; https://github.com/Nich-Cebolla/AutoHotkey-LibV2/tree/main/inheritance
-
-ObjGetOwnPropDesc := Object.Prototype.GetOwnPropDesc
 
 /**
  * @description - Traverses an object's inheritance chain and returns the base objects.
@@ -157,7 +195,7 @@ GetBaseObjects(Obj, StopAt := GBO_STOP_AT_DEFAULT ?? '-Any') {
         ; encountered, and results in this error.
         if IsSet(FlagStopBefore) || StopAt != 'Any' {
             throw Error('``GetBaseObjects`` did not encounter an object that matched the ``StopAt`` value.'
-            , -2, '``StopAt``: ' (IsSet(FlagStopBefore) ? '-' : '') StopAt)
+            , , '``StopAt``: ' (IsSet(FlagStopBefore) ? '-' : '') StopAt)
         }
     }
 }
@@ -186,44 +224,8 @@ GetPropDesc(Obj, Prop, &OutObj?, &OutIndex?) {
     if OutObj {
         return ObjGetOwnPropDesc(OutObj, Prop)
     } else {
-        throw Error('``GetPropDesc`` failed to identify the object which owns the property.', -1)
+        throw Error('``GetPropDesc`` failed to identify the object which owns the property.')
     }
-}
-
-/**
- * @description - Constructs a new class based off an existing class and prototype.
- * @param {*} Prototype - The object to use as the new class's prototype.
- * @param {String} [Name] - The name of the new class. This gets assigned to `Prototype.__Class`.
- * @param {Function} [Constructor] - An optional constructor function that is assigned to
- * `NewClassObj.Prototype.__New`. When set, this function is called for each new instance. When
- * unset, the constructor function associated with `Prototype.__Class` is called.
- */
-ScriptParser_ClassFactory(Prototype, Name?, Constructor?) {
-    Cls := Class()
-    Cls.Base := GetObjectFromString(Prototype.__Class)
-    Cls.Prototype := Prototype
-    if IsSet(Name) {
-        Prototype.__Class := Name
-    }
-    if IsSet(Constructor) {
-        Cls.Prototype.DefineProp('__New', { Call: Constructor })
-    }
-    return Cls
-
-    GetObjectFromString(Path) {
-        Split := StrSplit(Path, '.')
-        if !IsSet(%Split[1]%)
-            return
-        OutObj := %Split[1]%
-        i := 1
-        while ++i <= Split.Length {
-            if !OutObj.HasOwnProp(Split[i])
-                return
-            OutObj := OutObj.%Split[i]%
-        }
-        return OutObj
-    }
-
 }
 
 /**
@@ -939,6 +941,7 @@ GetPropsInfoEx(Obj, Options?, SkipOptions := false, &OutBaseObjList?) {
 class PropsInfo {
     static __New() {
         this.DeleteProp('__New')
+        PropsInfo_SetConstants()
         proto := this.Prototype
         proto.DefineProp('Filter', { Value: '' })
         proto.DefineProp('__FilterActive', { Value: 0 })
@@ -1175,7 +1178,7 @@ class PropsInfo {
      */
     FilterClear() {
         if !this.Filter {
-            throw Error('The filter is empty.', -1)
+            throw Error('The filter is empty.')
         }
         this.Filter.Clear()
         this.Filter.Capacity := 0
@@ -1188,7 +1191,7 @@ class PropsInfo {
      */
     FilterClearCache() {
         if !this.__FilterCache {
-            throw Error('The filter cache is empty.', -1)
+            throw Error('The filter cache is empty.')
         }
         this.__FilterCache.Clear()
         this.__FilterCache.Capacity := 0
@@ -1202,7 +1205,7 @@ class PropsInfo {
      */
     FilterDeactivate(CacheName?) {
         if !this.__FilterActive {
-            throw Error('The filter is not currently active.', -1)
+            throw Error('The filter is not currently active.')
         }
         if IsSet(CacheName) {
             this.FilterCache(CacheName)
@@ -1238,7 +1241,7 @@ class PropsInfo {
      */
     FilterDeleteFromCache(Name) {
         if !this.__FilterCache {
-            throw Error('The filter cache is empty.', -1)
+            throw Error('The filter cache is empty.')
         }
         r := this.__FilterCache.Get(Name)
         this.__FilterCache.Delete(Name)
@@ -1268,7 +1271,7 @@ class PropsInfo {
      */
     FilterRemoveFromExclude(Name) {
         if !this.Filter {
-            throw Error('The filter is empty.', -1)
+            throw Error('The filter is empty.')
         }
         Filter := this.Filter
         for _name in StrSplit(Name, ',') {
@@ -1362,7 +1365,7 @@ class PropsInfo {
                 GetCount := () => Container.Length
             } else if Container is Map {
                 if Container.CaseSense !== 'Off' {
-                    throw Error('CaseSense must be set to "Off".', -1)
+                    throw Error('CaseSense must be set to "Off".')
                 }
                 Set := _Set_Map
                 GetCount := () => Container.Count
@@ -1418,7 +1421,7 @@ class PropsInfo {
                 }
             }
         } else {
-            throw Error('The filter is empty.', -1)
+            throw Error('The filter is empty.')
         }
         Container.Capacity := GetCount()
         return IsSet(Flag_MakePropsInfo) ? PropsInfo(Container, this.__PropsInfoItemBase, Trim(StrReplace(Excluded, ',,', ','), ',')) : Container
@@ -2611,6 +2614,10 @@ class PropsInfo {
     }
 }
 
+PropsInfo_SetConstants() {
+    global ObjGetOwnPropDesc := Object.Prototype.GetOwnPropDesc
+}
+
 /**
  * @classdesc - For each base object in the input object's inheritance chain (up to the stopping
  * point), the base object's own properties are iterated, generating a `PropsInfoItem` object for
@@ -2876,7 +2883,7 @@ class PropsInfoItem {
         } else if this.HasOwnProp('Value') {
             this.DefineProp('KindIndex', { Value: 5 })
         } else {
-            throw Error('Unable to process an unexpected value.', -1)
+            throw Error('Unable to process an unexpected value.')
         }
         return this.KindIndex
     }
@@ -5502,8 +5509,8 @@ class TreeViewEx_Tab {
             if options.PropsInfoTreeContextMenu {
                 this.SetPropsInfoTreeContextMenu(IsObject(options.PropsInfoTreeContextMenu) ? options.PropsInfoTreeContextMenu : unset)
             }
-            if HasProp(DefaultTreeViewExOptions, 'DefaultPropsInfoTreeOptions') {
-                this.SetDefaultPropsInfoTreeOptions(DefaultTreeViewExOptions.DefaultPropsInfoTreeOptions, options.SetPropsInfoTreeNodeConstructor)
+            if HasProp(options, 'DefaultPropsInfoTreeOptions') {
+                this.SetDefaultPropsInfoTreeOptions(options.DefaultPropsInfoTreeOptions, options.SetPropsInfoTreeNodeConstructor)
             } else if options.SetPropsInfoTreeNodeConstructor {
                 this.SetDefaultPropsInfoTreeOptions()
             }
@@ -7056,7 +7063,7 @@ class Container_DateParser {
             _Proc(&DateFormat)
         }
         if this.12hour && !flag_period {
-            throw Error('The date format string indicates 12-hour time format, but does not include an AM/PM indicator', -1)
+            throw Error('The date format string indicates 12-hour time format, but does not include an AM/PM indicator')
         }
         for r in replacement {
             DateFormat := StrReplace(DateFormat, r.temp, r.pattern, , , 1)
@@ -10829,7 +10836,7 @@ class Container extends Array {
         i := IndexStart
         ; No return value indicates the array had no set indices between IndexStart and IndexEnd.
         if !_GetNearest_L2R() {
-            throw Error('The indices within the input range are all unset.', -1)
+            throw Error('The indices within the input range are all unset.')
         }
         left := i
         i := IndexEnd
@@ -12121,7 +12128,7 @@ class Container extends Array {
      */
     InsertionSort() {
         if !this.Length {
-            throw Error('The ``Container`` is empty.', -1)
+            throw Error('The ``Container`` is empty.')
         }
         if this.Length == 1 {
             return this
@@ -12518,7 +12525,7 @@ class Container extends Array {
      */
     ScriptParser_QuickSort(arrSizeThreshold := 8) {
         if !this.Length {
-            throw Error('The ``Container`` is empty.', -1)
+            throw Error('The ``Container`` is empty.')
         }
         if this.Length == 1 {
             return this.Clone()
@@ -13726,7 +13733,7 @@ class Container extends Array {
      */
     Sort() {
         if !this.Length {
-            throw Error('The ``Container`` is empty.', -1)
+            throw Error('The ``Container`` is empty.')
         }
         if this.Length == 1 {
             return this
@@ -15058,7 +15065,7 @@ class LibraryManagerLibraryCollection extends Array {
         WinRect.Prototype.DpiAwarenessContext := -4
         hwnd := WinExist('A')
         if !hwnd {
-            throw Error('Window not found.', -1)
+            throw Error('Window not found.')
         }
         wrc := WinRect(hwnd)
         ; This sets the dpi awareness context to -4 prior to performing the action
@@ -15243,7 +15250,7 @@ class Window32 {
         this.Hwnd := Hwnd
         if IsSet(Buf) {
             if Buf.Size < this.cbSize + Offset {
-                throw Error('The buffer`'s size is insufficient. The size must be 60 + offset or greater.', -1)
+                throw Error('The buffer`'s size is insufficient. The size must be 60 + offset or greater.')
             }
             this.Buffer := Buf
         } else {
@@ -15301,7 +15308,7 @@ class Window32 {
      *
      *  hwnd := WinExist('A')
      *  if !hwnd {
-     *      throw Error('Window not found.', -1)
+     *      throw Error('Window not found.')
      *  }
      *  win := Window32(hwnd)
      *  win.SetCallback(MyHelperFunc)
@@ -15474,7 +15481,7 @@ class WinRect extends Rect {
         this.Hwnd := Hwnd
         if IsSet(Buf) {
             if Buf.Size < 16 + Offset {
-                throw Error('The buffer`'s size is insufficient. The size must be 16 + offset or greater.', -1)
+                throw Error('The buffer`'s size is insufficient. The size must be 16 + offset or greater.')
             }
             this.Buffer := Buf
         } else {
@@ -15517,7 +15524,7 @@ class Rect extends RectBase {
     __New(L := 0, T := 0, R := 0, B := 0, Buf?, Offset := 0) {
         if IsSet(Buf) {
             if Buf.Size < 16 + Offset {
-                throw Error('The buffer`'s size is insufficient. The size must be 16 + offset or greater.', -1)
+                throw Error('The buffer`'s size is insufficient. The size must be 16 + offset or greater.')
             }
             this.Buffer := Buf
         } else {
@@ -15688,7 +15695,7 @@ class Point {
     __New(X := 0, Y := 0, Buf?, Offset := 0) {
         if IsSet(Buf) {
             if Buf.Size < 8 + Offset {
-                throw Error('The buffer`'s size is insufficient. The size must be 8 + offset or greater.', -1)
+                throw Error('The buffer`'s size is insufficient. The size must be 8 + offset or greater.')
             }
             this.Buffer := Buf
         } else {
@@ -19595,7 +19602,7 @@ class TreeViewEx_WindowSubclass {
      */
     Install() {
         if this.pfnSubclass {
-            throw Error('The subclass is already installed.', -1)
+            throw Error('The subclass is already installed.')
         }
         if IsObject(this.SubclassProc) {
             this.pfnSubclass := CallbackCreate(this.SubclassProc)
@@ -19684,7 +19691,7 @@ class TreeViewEx_WindowSubclass {
                 throw err
             }
         } else {
-            throw Error('The subclass is not installed.', -1)
+            throw Error('The subclass is not installed.')
         }
     }
     __Delete() {
@@ -20211,7 +20218,7 @@ class TreeViewEx {
             }
         }
         _Throw() {
-            throw Error('TVM_INSERTITEMW failed.', -1)
+            throw Error('TVM_INSERTITEMW failed.')
         }
     }
     /**
@@ -20629,7 +20636,7 @@ class TreeViewEx {
             depth--
         }
         _Throw() {
-            throw Error('Sending message ``TVM_GETITEMW`` failed.', -1)
+            throw Error('Sending message ``TVM_GETITEMW`` failed.')
         }
     }
     /**
@@ -20704,7 +20711,7 @@ class TreeViewEx {
             depth--
         }
         _Throw() {
-            throw Error('Sending message ``TVM_GETITEMW`` failed.', -1)
+            throw Error('Sending message ``TVM_GETITEMW`` failed.')
         }
     }
     /**
@@ -20854,7 +20861,7 @@ class TreeViewEx {
             depth--
         }
         _Throw() {
-            throw Error('Sending message ``TVM_GETITEMW`` failed.', -1)
+            throw Error('Sending message ``TVM_GETITEMW`` failed.')
         }
     }
     /**
@@ -20973,7 +20980,7 @@ class TreeViewEx {
             depth--
         }
         _Throw() {
-            throw Error('Sending message ``TVM_GETITEMW`` failed.', -1)
+            throw Error('Sending message ``TVM_GETITEMW`` failed.')
         }
     }
     /**
@@ -21036,7 +21043,7 @@ class TreeViewEx {
         if !IsSet(Handle) {
             Handle := SendMessage(TVM_GETNEXTITEM, TVGN_NEXTSELECTED, 0, this.Hwnd)
             if !Handle {
-                throw Error('No item is selected', -1)
+                throw Error('No item is selected')
             }
         }
         NumPut('ptr', Handle, rc, 0)
@@ -22387,7 +22394,7 @@ class TreeViewExStructBase {
                         break
                     }
                 } else {
-                    throw Error('Unable to identify the prototype object.', -1)
+                    throw Error('Unable to identify the prototype object.')
                 }
             }
             if Offset {
@@ -24182,7 +24189,7 @@ class MenuEx {
             if MenuEx.TooltipHandler.Numbers.Length {
                 n := MenuEx.TooltipHandler.Numbers.Pop()
             } else {
-                throw Error('The maximum number of concurrent tooltips has been reached.', -1)
+                throw Error('The maximum number of concurrent tooltips has been reached.')
             }
             if IsSet(Options) {
                 Get := _Get1
@@ -24748,7 +24755,7 @@ FormatStr_FormatCode_AllSpecifiers(DefaultFormatCode, FormatCodeParams, Conditio
     if ConditionalGroupToken {
         ConditionalGroupToken.SetFlag(FORMATSTR_FLAG_ALLCONDITIONS, 1)
     } else {
-        throw Error('The "!a" format code may only be used within a conditional group.', -1)
+        throw Error('The "!a" format code may only be used within a conditional group.')
     }
 }
 
@@ -24814,7 +24821,7 @@ FormatStr_GetPrototypes(Base) {
 FormatStr_SetConstants() {
     global
     if IsSet(FORMATSTR_TYPE_INDEX_CONDITIONALGROUP) {
-        throw Error('Values have already been initialized.', -1)
+        throw Error('Values have already been initialized.')
     }
     FORMATSTR_TYPE_INDEX_CONDITIONALGROUP :=
     FORMATSTR_TYPE_INDEX_DEFAULTFORMATCODE :=
@@ -26280,19 +26287,19 @@ class PropsInfoTree_CallbackList extends Container {
     }
 }
 
-
 class PropsInfoTree_ContextMenu extends TreeViewEx_ContextMenu {
     static __New() {
         this.DeleteProp('__New')
         proto := this.Prototype
         proto.DefaultItems := Container.Prototype.DeepClone.Call(TreeViewEx_ContextMenu.Prototype.DefaultItems)
-        ; Used accelerators: A, B, C, D, E, F, H, I, J, O, P, Q, R, S, T, V, W, X, Z
+        ; Used accelerators: A, B, C, D, E, F, H, I, J, K, O, P, Q, R, S, T, V, W, X, Z
         proto.DefaultItems.Push(
             { Name: 'Add as root node (&R)', Value: 'SelectAddAsRootNode' }
           , { Name: 'Add object root node (&Y)', Value: 'SelectAddObjectAsRootNode' }
           , { Name: 'Copy object path (&J)', Value: 'SelectCopyObjectPath' }
           , { Name: 'Copy object property list (&H)', Value: 'SelectCopyObjectPropertyList' }
           , { Name: 'Copy object property list with values (&I)', Value: 'SelectCopyObjectPropertyListWithValues' }
+          , { Name: 'Copy value (&K)', Value: 'SelectCopyValue' }
         )
         proto.__node := ''
     }
@@ -26326,12 +26333,18 @@ class PropsInfoTree_ContextMenu extends TreeViewEx_ContextMenu {
             } else {
                 items.Get('Copy object property list (&H)').Disable()
             }
+            if IsObject(this.__node.Value) {
+                items.Get('Copy value (&K)').Disable()
+            } else {
+                items.Get('Copy value (&K)').Enable()
+            }
         } else {
             items.Get('Add as root node (&R)').Disable()
             if items.Has('Add as new tab (&V)') {
                 items.Get('Add as new tab (&V)').Disable()
             }
             items.Get('Copy object property list (&H)').Disable()
+            items.Get('Copy value (&K)').Disable()
         }
     }
     RegisterTreeViewExTab(HwndPit, TvexTab, CallbackAdd, CallbackDelete) {
@@ -26406,6 +26419,10 @@ class PropsInfoTree_ContextMenu extends TreeViewEx_ContextMenu {
         } else {
             return 'Cannot copy this value.'
         }
+    }
+    SelectCopyValue(Name, ItemPos, MenuObj, GuiObj, Ctrl, Item) {
+        A_Clipboard := this.__node.Value
+        return 'Copied: ' A_Clipboard
     }
     SelectDeleteTab(Name, ItemPos, MenuObj, GuiObj, Ctrl, Item) {
         obj := this.TvexTabCollection.Get(Ctrl.Hwnd)
@@ -26494,7 +26511,6 @@ PropsInfoTree_ContextMenu_ExpandCallback(handle, parent, depth, pit) {
         return 3
     }
 }
-
 
 class PropsInfoTree_Node extends TreeViewEx_Node {
     static __New() {
@@ -28892,12 +28908,16 @@ class PropsInfoTree_PropsTypeMap extends Container {
                 if item.__Class = cls {
                     this.Insert(item)
                 } else if item.Type is Array {
-                    params := [ item.List, , ]
+                    params := [ item.List ]
+                    params.Length := 4
                     if HasProp(item, 'Positive') {
                         params[2] := item.Positive
                     }
                     if HasProp(item, 'Negative') {
                         params[3] := item.Negative
+                    }
+                    if HasProp(item, 'AddToDefault') {
+                        params[4] := item.AddToDefault
                     }
                     for t in item.Type {
                         this.Insert(constructor(t, params*))
@@ -29458,7 +29478,9 @@ class BringYourOwnObject {
      *
      * @param {*} Obj - The object to explore visually using a tree-view control.
      */
-    static Call(Obj, PropsInfoTreeOptions?, TvexTabOptions?, TvexOptions?, AddOptions?) {
+    static Call(Obj, Name := 'BringYourOwnObject', PropsInfoTreeOptions?, TvexTabOptions?, TvexOptions?, AddOptions?) {
+        if PropsInfoTree {
+        }
         g := this.g := Gui('+Resize')
         g.SetFont('s11 q5', 'Segoe Ui')
         if IsSet(PropsInfoTreeOptions) {
@@ -29506,14 +29528,14 @@ class BringYourOwnObject {
         }
         g.Show()
 
-        item := tvexTab.Add('BringYourOwnObject')
+        item := tvexTab.Add(Name)
         pit := item.tvex
         tvexTab.PropsInfoTreeContextMenu.RegisterTreeViewExTab(pit.Hwnd, tvexTab, Demo_ContextMenu_AddAsNewTab, Demo_ContextMenu_DeleteTab)
         lf := pit.GetFont()
         lf.FontSize := 11
         lf.FaceName := 'Segoe Ui'
         lf.Apply()
-        pit.AddRootNode(Obj, 'BringYourOwnObject')
+        pit.AddRootNode(Obj, Name)
         pit.Resizer := { W: 1, H: 1 }
         this.controls := [ item.tvex ]
         g.resizer := GuiResizer(g, { NoDeferAll: true }, this.controls)

@@ -39,20 +39,20 @@ class ScriptParser_Stack extends Array {
             Line := this.Line
         }
         ; Get line count between the current position and the beginning of the definition
-        StrReplace(SubStr(Script.Content, Pos, CS.Pos['text'] - Pos), Script.LineEnding, , , &linecount)
+        StrReplace(SubStr(Script.Content, Pos, CS.Pos['text'] - Pos), Script.EndOfLine, , , &linecount)
         ; Calculate start line for the definition statement
         LineStart := Line + linecount
         ; Calculate start column for the definition statement
         ColStart := CS.Pos['text'] - CS.Pos
         ; Get line count of definition statement
-        StrReplace(CS['text'], Script.LineEnding, , , &linecount)
+        StrReplace(CS['text'], Script.EndOfLine, , , &linecount)
         ; Calculate end line for the definition statement
         LineEnd := LineStart + linecount
         ; Calculate end column
         if LineEnd == LineStart {
             ColEnd := ColStart + CS.Len['text']
         } else {
-            ColEnd := CS.Len['text'] - InStr(CS['text'], Script.LineEnding, , , -1)
+            ColEnd := CS.Len['text'] - InStr(CS['text'], Script.EndOfLine, , , -1)
         }
         ; Create the context object
         this.Active := this.Constructor.Call(Name, CS.Pos['text'], CS.Pos['text'] + CS.Len['text'], this[-1])

@@ -377,7 +377,7 @@ class PropsInfo {
      */
     FilterClear() {
         if !this.Filter {
-            throw Error('The filter is empty.', -1)
+            throw Error('The filter is empty.')
         }
         this.Filter.Clear()
         this.Filter.Capacity := 0
@@ -390,7 +390,7 @@ class PropsInfo {
      */
     FilterClearCache() {
         if !this.__FilterCache {
-            throw Error('The filter cache is empty.', -1)
+            throw Error('The filter cache is empty.')
         }
         this.__FilterCache.Clear()
         this.__FilterCache.Capacity := 0
@@ -404,7 +404,7 @@ class PropsInfo {
      */
     FilterDeactivate(CacheName?) {
         if !this.__FilterActive {
-            throw Error('The filter is not currently active.', -1)
+            throw Error('The filter is not currently active.')
         }
         if IsSet(CacheName) {
             this.FilterCache(CacheName)
@@ -473,7 +473,7 @@ class PropsInfo {
      */
     FilterDeleteFromCache(Name) {
         if !this.__FilterCache {
-            throw Error('The filter cache is empty.', -1)
+            throw Error('The filter cache is empty.')
         }
         r := this.__FilterCache.Get(Name)
         this.__FilterCache.Delete(Name)
@@ -487,7 +487,7 @@ class PropsInfo {
      */
     FilterRemoveFromExclude(Name) {
         if !this.Filter {
-            throw Error('The filter is empty.', -1)
+            throw Error('The filter is empty.')
         }
         Filter := this.Filter
         for _name in StrSplit(Name, ',') {
@@ -564,7 +564,7 @@ class PropsInfo {
                 GetCount := () => Container.Length
             } else if Container is Map {
                 if Container.CaseSense !== 'Off' {
-                    throw Error('CaseSense must be set to "Off".', -1)
+                    throw Error('CaseSense must be set to "Off".')
                 }
                 Set := _Set_Map
                 GetCount := () => Container.Count
@@ -610,7 +610,7 @@ class PropsInfo {
                 }
             }
         } else {
-            throw Error('The filter is empty.', -1)
+            throw Error('The filter is empty.')
         }
         Container.Capacity := GetCount()
         return IsSet(Flag_MakePropsInfo) ? PropsInfo(Container, this.__PropsInfoItemBase) : Container
@@ -1180,7 +1180,7 @@ class PropsInfoItem {
         if b.HasOwnProp(this.Name) {
             return b
         } else {
-            throw Error('Unable to retrieve the property`'s owner.', -1)
+            throw Error('Unable to retrieve the property`'s owner.')
         }
     }
 
@@ -1312,7 +1312,7 @@ class PropsInfoItem {
         } else if this.HasOwnProp('Value') {
             this.DefineProp('KindIndex', { Value: 5 })
         } else {
-            throw Error('Unable to process an unexpected value.', -1)
+            throw Error('Unable to process an unexpected value.')
         }
         return this.KindIndex
     }
