@@ -216,7 +216,9 @@ class RemovedComponentBase {
             leLen := StrLen(le)
             for line in StrSplit(this.Match['text'], le) {
                 if over > 0 {
-                    this.Replacement .= Script.__FillerReplacement[StrLen(line) - over]
+                    if StrLen(line) >= over {
+                        this.Replacement .= Script.__FillerReplacement[StrLen(line) - over]
+                    }
                     over -= StrLen(line)
                 } else {
                     this.Replacement .= Script.__FillerReplacement[StrLen(line)]
