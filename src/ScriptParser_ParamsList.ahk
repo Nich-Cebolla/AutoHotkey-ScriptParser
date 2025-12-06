@@ -1,9 +1,9 @@
 ﻿
-class ParamsList extends Array {
+class ScriptParser_ParamsList extends Array {
     /**
      * @class - Parses the parameters of a function definition.
      * @param {String} Str - The string that contains the parameters.
-     * @returns {Array} - An array of `ParamsList.Param` objects with properties
+     * @returns {ScriptParser_ParamsList} - An array of `ScriptParser_ParamsList.Param` objects with properties
      * { Optional, Default, Symbol, Variadic, VarRef }.
      */
     __New(Str) {
@@ -17,21 +17,24 @@ class ParamsList extends Array {
         ; Extract all quoted strings and replace them with a unique identifier that will not interfere with pattern matching.
         while RegExMatch(Str, '(?<=[\s=:,&(.[?]|^)([`"`'])[\w\W]*?(?<!``)(?:````)*+\g{-1}', &Match) {
             Replaced.Push(Match)
-            Str := StrReplace(Str, Match[0], _GetReplacement, , , 1)
+            Str := StrReplace(Str, Match[0], _GetReplacement(), , , 1)
         }
         ; Extract bracketed text
         loop 3 {
             while RegExMatch(Str, Format('\{1}([^{1}\{2}]++|(?R))*\{2}', Brackets[A_Index * 2 - 1], Brackets[A_Index * 2]), &Match) {
                 Replaced.Push(Match)
-                Str := StrReplace(Str, Match[0], _GetReplacement, , , 1)
+                Str := StrReplace(Str, Match[0], _GetReplacement(), , , 1)
             }
         }
         Split := StrSplit(Str, ',')
         this.Capacity := Split.Length
         for P in Split {
-            this.Push(ParamsList.Param(P))
+            this.Push(ScriptParser_ParamsList.Param(P))
             if this[-1].Default && RegExMatch(this[-1].Default, Replacement '(\d+)' Replacement, &Match) {
                 this[-1].Default := Trim(Replaced[Match[1]][0], '`s`t`r`n')
+            }
+            if this[-1].Symbol && RegExMatch(this[-1].Symbol, Replacement '(\d+)' Replacement, &Match) {
+                this[-1].Symbol := Trim(Replaced[Match[1]][0], '`s`r`r`n')
             }
         }
 
@@ -44,11 +47,10 @@ class ParamsList extends Array {
 
     class Param {
         static __New() {
-            if this.Prototype.__Class == 'ParamsList.Param' {
-                Proto := this.Prototype
-                for Prop in ['Optional', 'Default', 'Variadic', 'VarRef'] {
-                    Proto.DefineProp(Prop, { Value: false })
-                }
+            this.DeleteProp('__New')
+            Proto := this.Prototype
+            for Prop in ['Optional', 'Default', 'Variadic', 'VarRef'] {
+                Proto.DefineProp(Prop, { Value: false })
             }
         }
         __New(Str) {

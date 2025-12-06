@@ -1,11 +1,5 @@
-﻿/*
-    Github: https://github.com/Nich-Cebolla/AutoHotkey-LibV2/blob/main/MapEx.ahk
-    Author: Nich-Cebolla
-    Version: 1.0.0
-    License: MIT
-*/
-
-class MapEx extends Map {
+﻿
+class ScriptParser_MapEx extends Map {
 
     /**
      * @description - The class instance constructor.
@@ -13,8 +7,8 @@ class MapEx extends Map {
      * @param {Any} [Default] - The default value.
      * @param {Any[]} [Items] - The items to add to the map.
      * @example
-        M := MapEx(true, 'Not found!', 'Foo', 'Bar')
-        OutputDebug(M.Get('foo')) ; Not found!
+     * M := ScriptParser_MapEx(true, 'Not found!', 'Foo', 'Bar')
+     * OutputDebug(M.Get('foo')) ; Not found!
      */
     __New(CaseSense := true, Default?, Items*) {
         this.CaseSense := CaseSense
@@ -29,27 +23,27 @@ class MapEx extends Map {
     }
 
     /**
-     * @description - Creates a nested MapEx object with the given key if one does not exist for
+     * @description - Creates a nested ScriptParser_MapEx object with the given key if one does not exist for
      * that key, then adds the Name-Value pair to the nested object.
-     * @param {String} Key - The key that accesses the nested MapEx object.
+     * @param {String} Key - The key that accesses the nested ScriptParser_MapEx object.
      * @param {String} Name - The name of the item to add.
      * @param {*} Value - The value of the item to add.
-     * @return {MapEx} - Returns the nested MapEx object.
+     * @return {ScriptParser_MapEx} - Returns the nested ScriptParser_MapEx object.
      * @example
-        M := MapEx()
-        M.AddToCategory('Foo', 'Bar', 'Baz')
-        OutputDebug(M.Get('Foo').Get('Bar')) ; Baz
+     * M := ScriptParser_MapEx()
+     * M.AddToCategory('Foo', 'Bar', 'Baz')
+     * OutputDebug(M.Get('Foo').Get('Bar')) ; Baz
      */
     AddToCategory(Key, Name, Value) {
         if !this.Has(Key)
-            this.Set(Key, MapEx())
+            this.Set(Key, ScriptParser_MapEx())
         this.Get(Key).Set(Name, Value)
         return this.Get(Key)
     }
 
     AddToCategoryEx(Key, &Name, Value) {
         if !this.Has(Key) {
-            this.Set(Key, MapEx())
+            this.Set(Key, ScriptParser_MapEx())
         }
         M := this.Get(Key)
         if M.Has(Name) {
@@ -81,14 +75,14 @@ class MapEx extends Map {
     }
 
     /**
-     * @description - Similar to `AddToCategory`, except no item is added; only the nested MapEx
+     * @description - Similar to `AddToCategory`, except no item is added; only the nested ScriptParser_MapEx
      * object is created.
-     * @param {String} Key - The key that accesses the nested MapEx object.
-     * @return {MapEx} - Returns the nested MapEx object.
+     * @param {String} Key - The key that accesses the nested ScriptParser_MapEx object.
+     * @return {ScriptParser_MapEx} - Returns the nested ScriptParser_MapEx object.
      */
     GetCategoryIf(Key) {
         if !this.Has(Key)
-            this.Set(Key, MapEx())
+            this.Set(Key, ScriptParser_MapEx())
         return this.Get(Key)
     }
 
@@ -110,12 +104,12 @@ class MapEx extends Map {
      * @description - Gets a value if it exists and returns 1. If the item does not exist and the default
      * is set, gets the default and returns 2. Else returns empty string.
      * @example
-        M := MapEx()
-        M.Set('Foo', 'Bar')
-        if M.GetIf('foo', &Value)
-            OutputDebug(Value)
-        else
-            OutputDebug('Not found') ; Because of CaseSense, this is what we would see.
+     * M := ScriptParser_MapEx()
+     * M.Set('Foo', 'Bar')
+     * if M.GetIf('foo', &Value)
+     *     OutputDebug(Value)
+     * else
+     *     OutputDebug('Not found') ; Because of CaseSense, this is what we would see.
      * @
      * @param {String|Number} Key - The item key.
      * @param {VarRef} [OutValue] - The variable to receive the value.

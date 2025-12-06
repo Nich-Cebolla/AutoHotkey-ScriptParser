@@ -1,8 +1,8 @@
 ﻿
-class ParseStack extends Array {
+class ScriptParser_Stack extends Array {
     __New(BaseObj) {
         this.Active := BaseObj
-        this.ContextMap := ParseStack.ContextMap()
+        this.ContextMap := ScriptParser_Stack.ContextMap()
         this.ActiveClass :=this.NextClass := ''
         this.ClassList := []
         this.PosEnd := this.Pos := this.Line := 1
@@ -12,7 +12,7 @@ class ParseStack extends Array {
         return Constructor(Name, Pos, PosEnd, ParentContext)
     }
     BuildScopeMap() {
-        this.ScopeMap := ParseStack.ScopeMap()
+        this.ScopeMap := ScriptParser_Stack.ScopeMap()
         this.PosList.Capacity := this.ContextMap.Count
         for Pos, Context in this.ContextMap {
             this.PosList.Push(Pos)
@@ -117,11 +117,11 @@ class ParseStack extends Array {
     Depth => this.Length
     Len => this.PosEnd - this.Pos
 
-    class ContextMap extends MapEx {
+    class ContextMap extends ScriptParser_MapEx {
 
     }
 
-    class ScopeMap extends MapEx {
+    class ScopeMap extends ScriptParser_MapEx {
 
     }
 
@@ -156,11 +156,11 @@ class ParseStack extends Array {
         Component => this.Script.ComponentList.Get(this.ComponentIdu)
         Length => this.PosEnd - this.Pos
         Path => this.GetPath()
+        Script => ScriptParser.Collection.Get(this.IdScriptParser)
 
         static __New() {
-            if this.Prototype.__Class == 'ParseStack.Context' {
-                this.Prototype.DefineProp('PosEnd', { Value: '' })
-            }
+            this.DeleteProp('__New')
+            this.Prototype.DefineProp('PosEnd', { Value: '' })
         }
     }
 }

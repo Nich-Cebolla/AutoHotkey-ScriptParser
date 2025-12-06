@@ -1,5 +1,5 @@
 ﻿
-class ComponentCollectionIndex extends MapEx {
+class ScriptParser_ComponentCollectionIndex extends ScriptParser_MapEx {
     __New(Count) {
         this.CaseSense := false
         this.Default := ''
@@ -7,18 +7,18 @@ class ComponentCollectionIndex extends MapEx {
     }
 }
 
-class ComponentCollectionList extends Array {
+class ScriptParser_ComponentCollectionList extends Array {
     __New(Count) {
         this.Length := Count
     }
 }
 
 /**
- * @classdesc - When `ComponentCollection` objects are created, they are added to an array
+ * @classdesc - When `ScriptParser_ComponentCollection` objects are created, they are added to an array
  * `ScriptParseObj.CollectionList`. The indices used are the `SPC_<collection name>` integers defined
- * in "define.ahk". Each `ComponentCollection` object has a `CollectionObj.Constructor` property
+ * in "define.ahk". Each `ScriptParser_ComponentCollection` object has a `CollectionObj.Constructor` property
  * which references the constructor for the components. These constructors are also created using
- * `ClassFactory`.
+ * `ScriptParser_ClassFactory`.
  *
  * For an example of how to add values to a component collection while also removing the text from
  * the content body, see `ScriptParser.Prototype.RemoveStringsAndComments`.
@@ -27,14 +27,13 @@ class ComponentCollectionList extends Array {
  * see `ScriptParser.Prototype.ParseClass` or `ScriptParser.Prototype.ParseProperty`.
  * @
  */
-class ComponentCollection extends MapEx {
-    __New(ComponentBase, Capacity) {
+class ScriptParser_ComponentCollection extends ScriptParser_MapEx {
+    __New(ScriptParser_ComponentBase) {
         this.CaseSense := false
         this.Default := ''
-        this.ComponentBase := ComponentBase
-        this.__ComponentIndex := Number(ComponentBase.IndexCollection '000000') - 1
-        this.__MaxComponentIndex := Number((ComponentBase.IndexCollection + 1) '000000')
-        this.Capacity := Capacity
+        this.ScriptParser_ComponentBase := ScriptParser_ComponentBase
+        this.__ComponentIndex := Number(ScriptParser_ComponentBase.IndexCollection '000000') - 1
+        this.__MaxComponentIndex := Number((ScriptParser_ComponentBase.IndexCollection + 1) '000000')
     }
     Add(Component) {
         this.Set(Component.Name, Component)
@@ -43,18 +42,17 @@ class ComponentCollection extends MapEx {
     GetIndex() {
         if ++this.__ComponentIndex >= this.__MaxComponentIndex {
             throw Error('Number of components have exceeded the maximum.', -1
-            , 'Component: ' this.ComponentBase.Name '; Count: ' this.__ComponentIndex)
+            , 'Component: ' this.ScriptParser_ComponentBase.Name '; Count: ' this.__ComponentIndex)
         }
         return this.__ComponentIndex
     }
 
-    NameCollection => this.ComponentBase.NameCollection
-    IndexCollection => this.ComponentBase.IndexCollection
+    NameCollection => this.ScriptParser_ComponentBase.NameCollection
+    IndexCollection => this.ScriptParser_ComponentBase.IndexCollection
 }
 
-class ComponentList extends MapEx {
-    __New(Capacity?) {
-        this.Capacity := Capacity ?? SP_Config.Default.Capacity
+class ScriptParser_ComponentList extends ScriptParser_MapEx {
+    __New() {
         this.__ComponentIndex := 100000000 - 1
     }
     Add(Component) {
@@ -74,15 +72,14 @@ class ComponentList extends MapEx {
     }
 }
 
-class RemovedCollection extends MapEx {
+class ScriptParser_RemovedCollection extends ScriptParser_MapEx {
     __New(Script) {
         this.CaseSense := false
         this.Default := ''
         this.ConsecutiveDoubleQuotes := this.ConsecutiveSingleQuotes := 0
         this.__Index := 90000000 - 1
         this.__MaxCode := 91000000
-        this.Capacity := Script.Config.Capacity
-        this.ShortCollection := RemovedCollection.ShortCollection(Script)
+        this.ShortCollection := ScriptParser_RemovedCollection.ShortCollection(Script)
     }
 
     AddToCategory(Component) {
@@ -107,10 +104,9 @@ class RemovedCollection extends MapEx {
 
     class ShortCollection extends Map {
         static __New() {
-            if this.Prototype.__Class == 'RemovedCollection.ShortCollection' {
-                this.Prototype.DefineProp('__CharStartCode', { Value: 0x2000 })
-                this.Prototype.DefineProp('__CharMaxCode', { Value: 0xFB04 })
-            }
+            this.DeleteProp('__New')
+            this.Prototype.DefineProp('__CharStartCode', { Value: 0x2000 })
+            this.Prototype.DefineProp('__CharMaxCode', { Value: 0xFB04 })
         }
         __New(Script) {
             this.__CharCode := this.__CharStartCode
@@ -140,23 +136,14 @@ class RemovedCollection extends MapEx {
 
 }
 
-class ConstructorCollection extends MapEx {
-    __New(Count) {
+class ScriptParser_GlobalCollection extends ScriptParser_MapEx {
+    __New() {
         this.CaseSense := false
         this.Default := ''
-        this.Capacity := Count
     }
 }
 
-class GlobalCollection extends MapEx {
-    __New(Capacity) {
-        this.CaseSense := false
-        this.Default := ''
-        this.Capacity := Capacity
-    }
-}
-
-class ChildNodeCollection extends MapEx {
+class ScriptParser_ChildNodeCollection extends ScriptParser_MapEx {
     ToArray(Include?, Exclude?) {
         Result := []
         if IsSet(Include) {
@@ -209,15 +196,14 @@ class ChildNodeCollection extends MapEx {
     }
 
     static __New() {
-        if this.Prototype.__Class == 'ChildNodeCollection' {
-            Proto := this.Prototype
-            Proto.DefineProp('ConsecutiveDoubleQuotes', { Value: 0 })
-            Proto.DefineProp('ConsecutiveSingleQuotes', { Value: 0 })
-        }
+        this.DeleteProp('__New')
+        Proto := this.Prototype
+        Proto.DefineProp('ConsecutiveDoubleQuotes', { Value: 0 })
+        Proto.DefineProp('ConsecutiveSingleQuotes', { Value: 0 })
     }
 }
 
-class JsdocCollection extends ComponentCollection {
+class ScriptParser_JsdocCollection extends ScriptParser_ComponentCollection {
     Add(Component) {
         Component.idc := this.GetIndex()
         this.Set(Component.Name, Component)
@@ -237,7 +223,7 @@ class JsdocCollection extends ComponentCollection {
 
     AddToCategoryEx(Key, &Name, Value) {
         if !this.HasOwnProp(Key) {
-            this.DefineProp(Key, { Value: MapEx() })
+            this.DefineProp(Key, { Value: ScriptParser_MapEx() })
         }
         M := this.%Key%
         if M.Has(Name) {

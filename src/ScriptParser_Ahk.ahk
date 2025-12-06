@@ -1,32 +1,31 @@
 ﻿
 
-class Ahk {
+class ScriptParser_Ahk {
 
     class Component {
 
-        class Class extends Ahk.Component.Variable {
+        class Class extends ScriptParser_Ahk.Component.Variable {
             Init(Match) {
                 this.Indent := Match.Len['indent']
                 this.Extends := Match['super']
             }
 
             static __New() {
-                if this.Prototype.__Class == 'Ahk.Component.Class' {
-                    Proto := this.Prototype
-                    for Prop in ['InstanceMethods', 'InstanceProperties', 'StaticMethods', 'StaticProperties'] {
-                        Proto.DefineProp(Prop, { Value: '' })
-                    }
+                this.DeleteProp('__New')
+                Proto := this.Prototype
+                for Prop in ['InstanceMethods', 'InstanceProperties', 'StaticMethods', 'StaticProperties'] {
+                    Proto.DefineProp(Prop, { Value: '' })
                 }
             }
         }
 
-        class StaticMethod extends Ahk.Component.Method {
+        class StaticMethod extends ScriptParser_Ahk.Component.Method {
         }
 
-        class InstanceMethod extends Ahk.Component.Method {
+        class InstanceMethod extends ScriptParser_Ahk.Component.Method {
         }
 
-        class Method extends Ahk.Component.Function {
+        class Method extends ScriptParser_Ahk.Component.Function {
             Init(Match) {
                 if Match['static'] {
                     this.Static := true
@@ -37,20 +36,19 @@ class Ahk {
             }
         }
 
-        class StaticProperty extends Ahk.Component.Property {
+        class StaticProperty extends ScriptParser_Ahk.Component.Property {
 
         }
 
-        class InstanceProperty extends Ahk.Component.Property {
+        class InstanceProperty extends ScriptParser_Ahk.Component.Property {
 
         }
 
-        class Property extends Ahk.Component.Function {
+        class Property extends ScriptParser_Ahk.Component.Function {
             static __New() {
-                if this.Prototype.__Class == 'Ahk.Component.Property' {
-                    this.Prototype.DefineProp('Get', { Value: false })
-                    this.Prototype.DefineProp('Set', { Value: false })
-                }
+                this.DeleteProp('__New')
+                this.Prototype.DefineProp('Get', { Value: false })
+                this.Prototype.DefineProp('Set', { Value: false })
             }
 
             Init(Match) {
@@ -77,7 +75,7 @@ class Ahk {
 
                 _Proc(Name) {
                     if Match['arrow'] {
-                        CS := ContinuationSection(
+                        CS := ScriptParser_ContinuationSection(
                             StrPtr(this.Script.Content)
                           , Match.Pos['text']
                           , Match['arrow'] ? '=>' : ':='
@@ -95,7 +93,7 @@ class Ahk {
             }
         }
 
-        class Getter extends Ahk.Component.Function {
+        class Getter extends ScriptParser_Ahk.Component.Function {
             Init(Match) {
                 if Match['arrow'] {
                     this.Arrow := true
@@ -103,7 +101,7 @@ class Ahk {
             }
         }
 
-        class Setter extends Ahk.Component.Function {
+        class Setter extends ScriptParser_Ahk.Component.Function {
             Init(Match) {
                 if Match['arrow'] {
                     this.Arrow := true
@@ -111,17 +109,16 @@ class Ahk {
             }
         }
 
-        class Function extends Ahk.Component.Variable {
+        class Function extends ScriptParser_Ahk.Component.Variable {
             static __New() {
-                if this.Prototype.__Class == 'Ahk.Component.Function' {
-                    this.Prototype.DefineProp('Arrow', { Value: false })
-                    this.Prototype.DefineProp('Static', { Value: false })
-                    this.Prototype.DefineProp('Params', { Value: '' })
-                }
+                this.DeleteProp('__New')
+                this.Prototype.DefineProp('Arrow', { Value: false })
+                this.Prototype.DefineProp('Static', { Value: false })
+                this.Prototype.DefineProp('Params', { Value: '' })
             }
             Init(Match) {
                 if Match['inner'] {
-                    this.Params := ParamsList(Match['inner'])
+                    this.Params := ScriptParser_ParamsList(Match['inner'])
                 }
                 if Match['arrow'] {
                     this.Arrow := true
@@ -129,19 +126,19 @@ class Ahk {
             }
             GetParams(Match) {
                 if Match.inner {
-                    this.Params := ParamsList(Match['inner'])
+                    this.Params := ScriptParser_ParamsList(Match['inner'])
                 }
             }
         }
 
-        class Jsdoc extends Ahk.Component.Comment {
+        class Jsdoc extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
                 return RegExReplace(this.Removed.Match['comment'], '\R?[ \t]*?\* ?', JoinChar)
             }
         }
 
-        class CommentSingleLine extends Ahk.Component.Comment {
+        class CommentSingleLine extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText() {
                 return this.Removed.Match['comment']
@@ -149,88 +146,32 @@ class Ahk {
             TextComment => this.GetCommentText()
         }
 
-        class CommentBlock extends Ahk.Component.Comment {
+        class CommentBlock extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
                 return RegExReplace(this.TextFull, '\R?.*?(?<=\s|^);[ \t]*', JoinChar)
             }
         }
 
-        class CommentMultiLine extends Ahk.Component.Comment {
+        class CommentMultiLine extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
                 return RegExReplace(this.Removed.Match['comment'], '\R?[ \t]*', JoinChar)
             }
         }
 
-        class Comment extends ComponentBase {
+        class Comment extends ScriptParser_ComponentBase {
             GetCommentText(*) {
                 throw Error('This method must be overridden by the inheritor.', -1, A_ThisFunc)
             }
             TextComment[JoinChar := '`r`n'] => this.GetCommentText(JoinChar)
         }
 
-        class String extends ComponentBase {
+        class String extends ScriptParser_ComponentBase {
         }
 
-        ; class Expression extends ComponentBase {
-        ; }
-
-        class Variable extends ComponentBase {
+        class Variable extends ScriptParser_ComponentBase {
         }
-
-        ; class Symbol extends ComponentBase {
-        ; }
-
-        ; class Value extends ComponentBase {
-        ; }
-
-        ; class Object extends Ahk.Component.Variable {
-        ; }
-
-        ; class EmptyString extends ComponentBase {
-        ; }
-
-        ; class Boolean extends ComponentBase {
-        ; }
-
-        ; class Integer extends ComponentBase {
-        ; }
-
-        ; class Hex extends ComponentBase {
-        ; }
-
-        ; class Float extends ComponentBase {
-        ; }
-
-        ; class SubExpression extends ComponentBase {
-        ; }
-
-        ; class Operator extends ComponentBase {
-        ; }
-
-        ; class E extends ComponentBase {
-        ; }
-
-        ; ; %Expr%
-        ; class Deref extends ComponentBase {
-        ; }
-
-        ; ; &
-        ; class Reference extends ComponentBase {
-        ; }
-
-        ; ; Var ?? Alternative
-        ; class OrMaybe extends ComponentBase {
-        ; }
-
-        ; ; Obj.Prop
-        ; class MemberAccess extends ComponentBase {
-        ; }
-
-        ; ; Var?
-        ; class Maybe extends ComponentBase {
-        ; }
     }
 
     static __ThrowInvalidParamCount(Extra) {
@@ -238,4 +179,3 @@ class Ahk {
     }
     static __GetPath() => A_LineFile
 }
-

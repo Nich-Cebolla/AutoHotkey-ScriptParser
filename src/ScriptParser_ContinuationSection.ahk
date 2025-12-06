@@ -1,56 +1,53 @@
 ﻿/*
-    Github: https://github.com/Nich-Cebolla/AutoHotkey-LibV2/blob/main/ContinuationSection.ahk
+    Github: https://github.com/Nich-Cebolla/AutoHotkey-LibV2/blob/main/ScriptParser_ContinuationSection.ahk
     Author: Nich-Cebolla
     Version: 1.0.0
     License: MIT
 */
 
 /**
- * @description - `ContinuationSection` implements the same logic as `ParseContinuationSection`.
+ * @description - A parsing function for use with AHK code.
  *
- * `ContinuationSection` is a parsing function for use with AHK code.
- * `ContinuationSection` will analyze the input text, and if the lines are joined by a
- * continuation operator or bracket, `ContinuationSection` will concatenate the related lines
+ * {@link ScriptParser_ContinuationSection} will analyze the input text, and if the lines are joined by a
+ * continuation operator or bracket, {@link ScriptParser_ContinuationSection} will concatenate the related lines
  * into a single string.
- * - **Note** that, in this description and in the code, "Body" refers to the text content that follows
+ *
+ * **Note** that, in this description and in the code, "Body" refers to the text content that follows
  * the operator, including the entire continuation section.
- * - **Limitations**:
- *   - If any quoted strings or comments contain one or more brackets that doesn't have an opposing
- * match, the string may need to be removed prior to calling `ParseContinuationSection`.
- *   - `ContinuationSection` is not designed to handle string continuation sections as described
- * here: {@link https://www.autohotkey.com/docs/v2/Scripts.htm#continuation-section}. If you need
- * to handle string continuation sections, there's a pattern in
- * {@link https://github.com/Nich-Cebolla/AutoHotkey-LibV2/blob/main/re/Pattern.ahk}
- * that will match with valid string continuation sections.
  *
- * See test-files\test-ContinuationSection.ahk for a usage example.
+ * Properties:
+ * - {@link ScriptParser_ContinuationSection#Text} - The full text starting from `Pos` to the end of the statement.
+ * - {@link ScriptParser_ContinuationSection#Body} - the text beginning after the operator and ending at the end
+ *   of the statement.
+ * - {@link ScriptParser_ContinuationSection#Len} - This property takes one parameter, which should either be
+ *   "Text", or "Body". It is designed this way to mirror a `RegExMatchInfo` object. So to get either
+ *   length, you use `ScriptParser_ContinuationSectionObj.Len["Text"]` or `ScriptParser_ContinuationSectionObj.Len["Body"]`.
+ * - {@link ScriptParser_ContinuationSection#Pos} - Similar to the above, use either
+ *   `ScriptParser_ContinuationSectionObj.Pos["Text"]` or `ScriptParser_ContinuationSectionObj.Pos["Body"]`. Accessing `Pos` without
+ *   a parameter returns the character position of the start of the line.
+ * - {@link ScriptParser_ContinuationSection#PosEnd} - Returns `this.Pos['Body'] + StrLen(this.Body)`, which
+ *   is the end position of the statement relative to the input text.
+ * - {@link ScriptParser_ContinuationSection#__Item} - Also to mirror a `RegExMatchInfo` object. Accessing
+ *   `ScriptParser_ContinuationSectionObj["Text"]` returns `ScriptParser_ContinuationSectionObj.Text`, and likewise for "Body".
  *
- * @param {VarRef} StringPtr - The pointer to the string to parse. `ContinuationSection` will make
+ * **Limitations**:
+ * - If any quoted strings or comments contain one or more brackets that doesn't have an opposing
+ *   match, the string may need to be removed prior to calling `ParseScriptParser_ContinuationSection`.
+ * - {@link ScriptParser_ContinuationSection} is not designed to handle string continuation sections as described
+ *   {@link https://www.autohotkey.com/docs/v2/Scripts.htm#continuation-section in the AHK docs}.
+ *   See {@link SPP_REMOVE_CONTINUATION} for a pattern that matches with AHK continuation sections.
+ *
+ * @param {VarRef} StringPtr - The pointer to the string to parse. {@link ScriptParser_ContinuationSection} will make
  * a copy of the string beginning at `Pos` and leave the buffer unchanged. The string is expected to
  * be AHK code. The string should contain a statement with an operator that might be followed by a
  * continuation section.
  * @param {Integer} Pos - The character position within `Text` where the left side of the statement
- * begins. This position becomes the beginning of `ContinuationSectionObj.Text` and is set to
- * `ContinuationSectionObj.Pos["Text"]` to mirror a `RegExMatchInfo` object.
+ * begins. This position becomes the beginning of `ScriptParser_ContinuationSectionObj.Text` and is set to
+ * `ScriptParser_ContinuationSectionObj.Pos["Text"]` to mirror a `RegExMatchInfo` object.
  * @param {String} Operator - The operator within the statement that might be followed by a
  * continuation section.
- * @returns {ContinuationSection} -
- * The available properties are:
- * @property ContinuationSectionObj.Text - The full text starting from `Pos` to the end of the statement.
- * @property ContinuationSectionObj.Body - the text beginning after the operator and ending at the end
- * of the statement.
- * @property ContinuationSectionObj.Len - This property takes one parameter, which should either be
- * "Text", or "Body". It is designed this way to mirror a `RegExMatchInfo` object. So to get either
- * length, you use `ContinuationSectionObj.Len["Text"]` or `ContinuationSectionObj.Len["Body"]`.
- * @property ContinuationSectionObj.Pos - Similar to the above, use either
- * `ContinuationSectionObj.Pos["Text"]` or `ContinuationSectionObj.Pos["Body"]`. Accessing `Pos` without
- * a parameter returns the character position of the start of the line.
- * @property ContinuationSectionObj.PosEnd - Returns `this.Pos['Body'] + StrLen(this.Body)`, which
- * is the end position of the statement relative to the input text.
- * @property ContinuationSectionObj.__Item - Also to mirror a `RegExMatchInfo` object. Accessing
- * `ContinuationSectionObj["Text"]` returns `ContinuationSectionObj.Text`, and likewise for "Body".
  */
-class ContinuationSection {
+class ScriptParser_ContinuationSection {
     __New(StringPtr, Pos, Operator) {
         static Brackets := ['[', ']', '(', ')', '{', '}']
         static PatternBrackets := [

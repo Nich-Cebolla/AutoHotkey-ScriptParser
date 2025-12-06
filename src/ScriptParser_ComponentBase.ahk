@@ -1,5 +1,5 @@
 ﻿
-class ComponentBase {
+class ScriptParser_ComponentBase {
     __New(LineStart, ColStart, LineEnd, ColEnd, Pos, Len, Stack?, Match?, NameComponent?, PosBody?, LenBody?, IsRemoved := false) {
         this.LineStart := LineStart
         this.ColStart := ColStart
@@ -43,7 +43,7 @@ class ComponentBase {
         ; only needs to be checked once, we can check the condition, override the method with a
         ; function that does not check the condition, then call the method.
         if !this.HasOwnProp('Children') {
-            this.Children := ChildNodeCollection(false)
+            this.Children := ScriptParser_ChildNodeCollection(false)
         }
         this.DefineProp('AddChild', { Call: _AddChild })
         this.AddChild(Component)
@@ -153,6 +153,7 @@ class ComponentBase {
     }
     Path => this.Stack.Path
     PosEnd => this.Pos + this.Length
+    Script => ScriptParser.Collection.Get(this.IdScriptParser)
 
     Text => this.Script.Text[this.Pos, this.Length]
     TextBody => this.PosBody ? this.Script.Text[this.PosBody, this.LenBody] : ''
@@ -165,13 +166,13 @@ class ComponentBase {
 
 
     static __New() {
-        if this.Prototype.__Class == 'ComponentBase' {
-            Proto := this.Prototype
-            for Prop in ['AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack'
-            , '__Jsdoc', '__JsdocParent'] {
-                Proto.DefineProp(Prop, { Value: '' })
-            }
+        this.DeleteProp('__New')
+        Proto := this.Prototype
+        for Prop in ['AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack'
+        , '__Jsdoc', '__JsdocParent'] {
+            Proto.DefineProp(Prop, { Value: '' })
         }
+
     }
 }
 
@@ -183,9 +184,9 @@ GetRemovedComponent(Component, Match) {
       , ComponentIdu: Component.idu
     }
     if StrLen(Component.IndexCollection rc.IndexRemoved) + 2 <= Match.Len['text'] {
-        ObjSetBase(rc, RemovedComponent.Prototype)
+        ObjSetBase(rc, ScriptParser_RemovedComponent.Prototype)
     } else {
-        ObjSetBase(rc, RemovedShortComponent.Prototype)
+        ObjSetBase(rc, ScriptParser_RemovedShortComponent.Prototype)
         rc.IndexRemovedShort := Script.RemovedCollection.AddToShortCollection(Component, &Char)
         rc.ShortChar := Char
     }
@@ -194,21 +195,21 @@ GetRemovedComponent(Component, Match) {
     return rc
 }
 
-class RemovedShortComponent extends RemovedComponentBase {
+class ScriptParser_RemovedShortComponent extends ScriptParser_RemovedScriptParser_ComponentBase {
     SetReplacement(Script, *) {
         this.Replacement := this.ShortChar this.IndexRemovedShort
         this.__SetReplacementShared(Script)
     }
 }
 
-class RemovedComponent extends RemovedComponentBase {
+class ScriptParser_RemovedComponent extends ScriptParser_RemovedScriptParser_ComponentBase {
     SetReplacement(Script, IndexCollection) {
         this.Replacement := Chr(0xFFFC) IndexCollection Chr(0xFFFC) this.IndexRemoved
         this.__SetReplacementShared(Script)
     }
 }
 
-class RemovedComponentBase {
+class ScriptParser_RemovedScriptParser_ComponentBase {
     __SetReplacementShared(Script) {
         over := StrLen(this.Replacement)
         le := Script.LineEnding

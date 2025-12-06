@@ -143,7 +143,7 @@ SPP_CLASS_INCLQUOTE := (
 
 ; SPP_COMMENTLINE := '\s;.*'
 
-; SPP_CONTINUATIONSECTION := (
+; SPP_ScriptParser_ContinuationSection := (
 ;     '(?(DEFINE)(?<singleline>\s*;.*))'
 ;     '(?(DEFINE)(?<multiline>\s*/\*[\w\W]*?\*/))'
 ;     '(?<=[\s=:,&(.[?]|^)(?<quote>[`'"])'
@@ -429,4 +429,3 @@ SPP_REMOVE_LOOP := (
     ')'
     SPP_NEXT_LINE
 )
-

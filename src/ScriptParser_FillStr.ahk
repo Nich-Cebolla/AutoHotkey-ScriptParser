@@ -1,31 +1,25 @@
-/*
-    Github: https://github.com/Nich-Cebolla/AutoHotkey-LibV2/blob/main/FillStr.ahk
-    Author: Nich-Cebolla
-    Version: 1.0.0
-    License: MIT
-*/
-
+﻿
 /**
  * @class
- * In this documentation an instance of `FillStr` is referred to as `Filler`.
- * FillStr constructs strings of the requested length out of the provided filler string. Multiple
+ * In this documentation an instance of `ScriptParser_FillStr` is referred to as `Filler`.
+ * ScriptParser_FillStr constructs strings of the requested length out of the provided filler string. Multiple
  * `Filler` objects can be active at any time. It would technically be possible to use a single
  * `Filler` object and swap out the substrings on the property `Filler.Str`, but this is not
- * recommended because FillStr caches some substrings for efficiency, so you may not get the expected
+ * recommended because ScriptParser_FillStr caches some substrings for efficiency, so you may not get the expected
  * result after swapping out the `Str` property.
  *
- * Internally, FillStr works by deconstructing the input integer into its base 10 components. It
+ * Internally, ScriptParser_FillStr works by deconstructing the input integer into its base 10 components. It
  * constructs then caches the strings for components that are divisible by 10, then adds on the
  * remainder. This offers a balance between efficiency, flexibility, and memory usage.
  *
  * Since this is expected to be most frequently used to pad strings with surrounding whitespace,
- * the `FillStr` object is instantiated with an instance of itself using a single space character
- * as the filler string. This is available on the property `FillStr.S`, and can also be utilized using
- * `FillStr[Qty]` to output a string of Qty space characters.
+ * the `ScriptParser_FillStr` object is instantiated with an instance of itself using a single space character
+ * as the filler string. This is available on the property `ScriptParser_FillStr.S`, and can also be utilized using
+ * `ScriptParser_FillStr[Qty]` to output a string of Qty space characters.
  */
-class FillStr {
+class ScriptParser_FillStr {
     static __New() {
-        this.S := FillStr(' ')
+        this.S := ScriptParser_FillStr(' ')
     }
     static __Item[Qty] {
         Get => Qty ? this.S[Qty] : ''
@@ -57,8 +51,8 @@ class FillStr {
         if R := Mod(Len, self.Len) {
             switch TruncateAction {
                 case 0: Out .= self[1]
-                case 2: Out := FillStr[R] Out
-                case 3: Out .= FillStr[R]
+                case 2: Out := ScriptParser_FillStr[R] Out
+                case 3: Out .= ScriptParser_FillStr[R]
                 case 4: Out := SubStr(self[1], self.Len - R + 1) Out
                 case 5: Out .= SubStr(self[1], 1, R)
             }
@@ -67,65 +61,73 @@ class FillStr {
     }
 
     /**
-     * @description - Creates a new FillStr object, referred to as `Filler` in this documentation.
-     * Use the FillStr instance to generate strings of repeating characters. For general usage,
-     * see {@link FillStr#__Item}.
+     * @description - Creates a new ScriptParser_FillStr object, referred to as `Filler` in this documentation.
+     * Use the ScriptParser_FillStr instance to generate strings of repeating characters. For general usage,
+     * see {@link ScriptParser_FillStr#__Item}.
      * @param {String} Str - The string to repeat.
      * @example
-        Filler := FillStr('-')
-        Filler[10] ; ----------
+        Filler := ScriptParser_FillStr('-')
+        Filler[10]                                  ; ----------
         Filler.LeftAlign('Hello, world!', 26)       ; Hello, world!-------------
         Filler.LeftAlign('Hello, world!', 26, 5)    ; -----Hello, world!--------
         Filler.CenterAlign('Hello, world!', 26)     ; -------Hello, world!------
         Filler.CenterAlign('Hello, world!', 26, 1)  ; -------Hello, world!------
         Filler.CenterAlign('Hello, world!', 26, 2)  ; ------Hello, world!-------
         Filler.CenterAlign('Hello, world!', 26, 3)  ; -------Hello, world!-------
-        Filler.CenterAlign('Hello, world!', 26, 4)  ; ------Hello, world!------
         Filler.RightAlign('Hello, world!', 26)      ; -------------Hello, world!
         Filler.RightAlign('Hello, world!', 26, 5)   ; --------Hello, world!-----
      * @
-     * @returns {FillStr} - A new FillStr object.
+     * @returns {ScriptParser_FillStr} - A new ScriptParser_FillStr object.
      */
     __New(Str) {
         this.Str := Str
-        Loop 10
+        this.Cache := Map()
+        Loop 10 {
             Out .= Str
+        }
         this[10] := Out
         this.Len := StrLen(Str)
     }
-    Cache := Map()
     __Item[Qty] {
         /**
          * @description - Returns the string of the specified number of repetitions. The `Qty`
-         * parameter does not represent string length, it represents number of repetitions of
-         * `Filler.Str`, which is the same as string length only when the length of `Filler.Str` == 1.
+         * represents number of repetitions of `Filler.Str`.
          * @param {Integer} Qty - The number of repetitions.
          * @returns {String} - The string of the specified number of repetitions.
          */
         Get {
-            if !Qty
+            if !Qty {
                 return ''
+            }
+            cache := this.Cache
+            s := this.Str
             Out := ''
-            if this.Cache.Has(Number(Qty))
-                return this.Cache[Number(Qty)]
+            VarSetStrCapacity(&Out, Qty * this.Len)
+            if cache.Has(Number(Qty)) {
+                return cache[Number(Qty)]
+            }
             r := Mod(Qty, 10)
-            Loop r
-                Out .= this.Str
+            Loop r {
+                Out .= s
+            }
             Qty -= r
             if Qty {
-                Split := StrSplit(Qty)
-                for n in Split {
-                    if n = 0
+                for n in StrSplit(Qty) {
+                    if n = 0 {
                         continue
+                    }
                     Tens := 1
-                    Loop StrLen(Qty) - A_Index
-                        Tens := Tens * 10
-                    if this.Cache.Has(Tens) {
-                        Loop n
-                            Out .= this.Cache.Get(Tens)
+                    Loop StrLen(Qty) - A_Index {
+                        Tens *= 10
+                    }
+                    if cache.Has(Tens) {
+                        Loop n {
+                            Out .= cache.Get(Tens)
+                        }
                     } else {
-                        Loop n
+                        Loop n {
                             Out .= _Process(Tens)
+                        }
                     }
                 }
             }
@@ -133,22 +135,22 @@ class FillStr {
 
             _Process(Qty) {
                 local Out
-                ; if !RegExMatch(Qty, '^10+$')
-                ;     throw Error('Logical error in _Process function call.', -1)
                 Tenth := Integer(Qty / 10)
-                if this.Cache.Has(Tenth) {
-                    Loop 10
-                        Out .= this.Cache.Get(Tenth)
-                } else
+                if cache.Has(Tenth) {
+                    Loop 10 {
+                        Out .= cache.Get(Tenth)
+                    }
+                } else {
                     Out := _Process(Tenth)
-                this.Cache.Set(Number(Qty), Out)
+                }
+                cache.Set(Number(Qty), Out)
                 return Out
             }
         }
         /**
          * @description - Sets the cache value of the indicated `Qty`. This can be useful in a
          * situation where you know you will be using a string of X length often, but X is not
-         * divisible by 10. `FillStr` instances do not cache lengths unless they are divisible by
+         * divisible by 10. `ScriptParser_FillStr` instances do not cache lengths unless they are divisible by
          * 10 to avoid memory bloat, but will still return a cached value if the input Qty exists in
          * the cache.
          */
@@ -168,8 +170,18 @@ class FillStr {
      * - 1: Add the remainder to the left side.
      * - 2: Add the remainder to the right side.
      * - 3: Add the remainder to both sides.
+     * @param {String} [Padding=' '] - The `Padding` value is added to the left and right side of
+     * `Str` to create space between the string and the filler characters. To not use padding, set
+     * it to an empty string.
+     * @param {Integer} [TruncateActionLeft=1] - This parameter controls how the filler string
+     * `Filler.Str` is truncated when the LeftOffset is not evenly divisible by the length of
+     * `Filler.Str`. For a full explanation, see {@link ScriptParser_FillStr.GetOffsetStr}.
+     * @param {Integer} [TruncateActionRight=2] - This parameter controls how the filler string
+     * `Filler.Str` is truncated when the remaining character count on the right side of the output
+     * string is not evenly divisible by the length of `Filler.Str`. For a full explanation, see
+     * {@link ScriptParser_FillStr.GetOffsetStr}.
      */
-    CenterAlign(Str, Width, RemainderAction := 1, Padding := ' ', TruncateActionLeft := 1, TruncateActionRight := 2) {
+    CenterAlignEx(Str, Width, RemainderAction := 1, Padding := ' ', TruncateActionLeft := 1, TruncateActionRight := 2) {
         Space := Width - StrLen(Str) - (LenPadding := StrLen(Padding) * 2)
         if Space < 1
             return Str
@@ -185,7 +197,7 @@ class FillStr {
             }
         } else
             LeftOffset := RightOffset := Split
-        return FillStr.GetOffsetStr(LeftOffset, TruncateActionLeft, this) Padding Str Padding FillStr.GetOffsetStr(RightOffset, TruncateActionRight, this)
+        return ScriptParser_FillStr.GetOffsetStr(LeftOffset, TruncateActionLeft, this) Padding Str Padding ScriptParser_FillStr.GetOffsetStr(RightOffset, TruncateActionRight, this)
     }
 
     /**
@@ -201,7 +213,7 @@ class FillStr {
      * - 3: Add the remainder to both sides.
      * @returns {String} - The center aligned string.
      */
-    CenterAlignA(Str, Width, RemainderAction := 1) {
+    CenterAlign(Str, Width, RemainderAction := 1) {
         Space := Width - StrLen(Str)
         r := Mod(Space, 2)
         Split := (Space - r) / 2
@@ -231,20 +243,20 @@ class FillStr {
      * it to an empty string.
      * @param {Integer} [TruncateActionLeft=1] - This parameter controls how the filler string
      * `Filler.Str` is truncated when the LeftOffset is not evenly divisible by the length of
-     * `Filler.Str`. For a full explanation, see {@link FillStr.GetOffsetStr}.
+     * `Filler.Str`. For a full explanation, see {@link ScriptParser_FillStr.GetOffsetStr}.
      * @param {Integer} [TruncateActionRight=2] - This parameter controls how the filler string
      * `Filler.Str` is truncated when the remaining character count on the right side of the output
      * string is not evenly divisible by the length of `Filler.Str`. For a full explanation, see
-     * {@link FillStr.GetOffsetStr}.
+     * {@link ScriptParser_FillStr.GetOffsetStr}.
      */
-    LeftAlign(Str, Width, LeftOffset := 0, Padding := ' ', TruncateActionLeft := 1, TruncateActionRight := 2) {
+    LeftAlignEx(Str, Width, LeftOffset := 0, Padding := ' ', TruncateActionLeft := 1, TruncateActionRight := 2) {
         if LeftOffset + (LenStr := StrLen(Str)) + (LenPadding := StrLen(Padding) * 2) > Width
             LeftOffset := Width - LenStr - LenPadding
         if LeftOffset > 0
-            Out .= FillStr.GetOffsetStr(LeftOffset, TruncateActionLeft, this)
+            Out .= ScriptParser_FillStr.GetOffsetStr(LeftOffset, TruncateActionLeft, this)
         Out .= Padding Str Padding
         if (Remainder := Width - StrLen(Out))
-            Out .= FillStr.GetOffsetStr(Remainder, TruncateActionRight, this)
+            Out .= ScriptParser_FillStr.GetOffsetStr(Remainder, TruncateActionRight, this)
         return Out
     }
 
@@ -256,13 +268,30 @@ class FillStr {
      * @param {Number} [LeftOffset=0] - The offset from the left side.
      * @returns {String} - The left aligned string.
      */
-    LeftAlignA(Str, Width, LeftOffset := 0) {
+    LeftAlign(Str, Width, LeftOffset := 0) {
         if LeftOffset {
             if LeftOffset + StrLen(Str) > Width
                 LeftOffset := Width - StrLen(Str)
             return this[LeftOffset] Str this[Width - StrLen(Str) - LeftOffset]
         }
         return Str this[Width - StrLen(Str)]
+    }
+
+    /**
+     * @description - Right aligns a string within a specified width. This method is only compatible
+     * with filler strings that are 1 character in length.
+     * @param {String} Str - The string to right align.
+     * @param {Number} Width - The width of the output string.
+     * @param {Number} [RightOffset=0] - The offset from the right side.
+     * @returns {String} - The right aligned string.
+     */
+    RightAlign(Str, Width, RightOffset := 0) {
+        if RightOffset {
+            if RightOffset + StrLen(Str) > Width
+                RightOffset := Width - StrLen(Str)
+            return this[Width - StrLen(Str) - RightOffset] Str this[RightOffset]
+        }
+        return this[Width - StrLen(Str)] Str
     }
 
     /**
@@ -279,37 +308,20 @@ class FillStr {
      * @param {Integer} [TruncateActionLeft=1] - This parameter controls how the filler string
      * `Filler.Str` is truncated when the remaining character count on the left side of the output
      * string is not evenly divisible by the length of `Filler.Str`. For a full explanation, see
-     * {@link FillStr.GetOffsetStr}.
+     * {@link ScriptParser_FillStr.GetOffsetStr}.
      * @param {Integer} [TruncateActionRight=2] - This parameter controls how the filler string
      * `Filler.Str` is truncated when the RightOffset is not evenly divisible by the length of
-     * `Filler.Str`. For a full explanation, see {@link FillStr.GetOffsetStr}.
+     * `Filler.Str`. For a full explanation, see {@link ScriptParser_FillStr.GetOffsetStr}.
      * @returns {String} - The right aligned string.
      */
-    RightAlign(Str, Width, RightOffset := 0, Padding := ' ', TruncateActionLeft := 1, TruncateActionRight := 2) {
+    RightAlignEx(Str, Width, RightOffset := 0, Padding := ' ', TruncateActionLeft := 1, TruncateActionRight := 2) {
         if RightOffset + (LenStr := StrLen(Str)) + (LenPadding := StrLen(Padding) * 2) > Width
             RightOffset := Width - LenStr - LenPadding
         Out := Padding Str Padding
         if (Remainder := Width - StrLen(Out) - RightOffset)
-            Out := FillStr.GetOffsetStr(Remainder, TruncateActionRight, this) Out
+            Out := ScriptParser_FillStr.GetOffsetStr(Remainder, TruncateActionRight, this) Out
         if RightOffset > 0
-            Out := FillStr.GetOffsetStr(RightOffset, TruncateActionLeft, this) Out
+            Out := ScriptParser_FillStr.GetOffsetStr(RightOffset, TruncateActionLeft, this) Out
         return Out
-    }
-
-    /**
-     * @description - Right aligns a string within a specified width. This method is only compatible
-     * with filler strings that are 1 character in length.
-     * @param {String} Str - The string to right align.
-     * @param {Number} Width - The width of the output string.
-     * @param {Number} [RightOffset=0] - The offset from the right side.
-     * @returns {String} - The right aligned string.
-     */
-    RightAlignA(Str, Width, RightOffset := 0) {
-        if RightOffset {
-            if RightOffset + StrLen(Str) > Width
-                RightOffset := Width - StrLen(Str)
-            return this[Width - StrLen(Str) - RightOffset] Str this[RightOffset]
-        }
-        return this[Width - StrLen(Str)] Str
     }
 }

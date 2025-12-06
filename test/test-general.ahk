@@ -1,40 +1,39 @@
-﻿#include ..\.dev\user-config.ahk
-#include <Stringify>
-#include <QuickSort_V1.0.0>
+﻿
+#include ..\src\venv.ahk
 
-
-test()
+if !A_IsCompiled && A_LineFile == A_ScriptFullPath {
+    test()
+}
 
 
 class test {
     static PathIn := 'test-content\test-content-GetPropsInfo.ahk'
-    , PathOut := A_MyDocuments '\test-ScriptParser-output.json'
-    , PathOutRecreate := A_MyDocuments '\test-ScriptParser-output-recreate.ahk'
-    , PathOutTextFull := A_MyDocuments '\test-ScriptParser-output-TextFull.ahk'
+    , PathOut := A_Temp '\test-ScriptParser-output.json'
 
     static AddProblem(Fn, Line, Msg, Obj?) {
         this.Problems.Push({ Fn: Fn, Line: Line, Message: Msg, Obj: Obj ?? unset })
     }
-
-    static Call() {
+    static Call(WriteProblems := false) {
         this.Problems := []
         this.Position()
-        this.TextFull()
+        result := this.TextFull(WriteProblems)
         this.Components()
-        ; RecreateFile is not working
-        ; this.RecreateFile()
 
         if this.Problems.Length {
-            this.WriteOutProblems()
+            OutputDebug(A_ScriptName ' : complete with ' this.Problems.Length ' problems.`n')
+            if WriteProblems {
+                this.WriteOutProblems(result)
+                Run(this.PathOut)
+            } else {
+                OutputDebug(this.GetProblems() '`n')
+            }
         } else {
-            ; this.WriteOut('No problems.')
+            OutputDebug(A_ScriptName ' : complete.`n')
         }
     }
-
     static Components() {
         Script := this.GetScript()
     }
-
     static EstablishControls() {
         this.GetContent(&Content)
         (Controls := this.Controls := []).Capacity := 20
@@ -58,18 +57,15 @@ class test {
             })
         }
         _Get(Pattern) {
-            ; OutputDebug('`n' Pattern '`n')
             if !RegExMatch(Content, Pattern, &match) {
                 throw Error('Match failed.', -1)
             }
             return match
         }
     }
-
     static GetContent(&Content) {
         Content := FileRead(this.PathIn)
     }
-
     static GetDiffs(&Expected, &Actual, Script) {
         MaxLineSearch := 3
         Diffs := []
@@ -108,14 +104,40 @@ class test {
         }
         return Diffs
     }
+    static GetProblems() {
+        s := ''
+        i := '    '
+        n := 0
+        for problem in this.Problems {
+            s .= 'Problem ' A_Index '`n'
+            _Proc(problem)
+        }
 
+        return s
+
+        _Proc(obj) {
+            ++n
+            for prop, val in obj.OwnProps() {
+                loop n {
+                    s .= i
+                }
+                s .= prop
+                if IsObject(val) {
+                    s .= ' :: `n'
+                    _Proc(val)
+                } else {
+                    s .=  ': ' val '`n'
+                }
+            }
+            --n
+        }
+    }
     static GetScript() {
-        Script := this.Script := ScriptParser({ PathIn: this.PathIn })
+        Script := this.Script := ScriptParser({ PathIn: this.PathIn, DeferProcess: true })
         Script.RemoveStringsAndComments()
         Script.ParseClass()
         return Script
     }
-
     static Position() {
         this.EstablishControls()
         Script := this.GetScript()
@@ -154,7 +176,7 @@ class test {
                     this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.LenBody (' Component.LenBody ') !== obj.Control.Len[`'body`'] (' obj.Control.Len['body'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
                 }
             }
-            OutputDebug('`nPosition is done. Problems: ' this.Problems.Length)
+            OutputDebug('Position is done. Problems: ' this.Problems.Length '`n')
 
             return
 
@@ -199,77 +221,28 @@ class test {
             }
         }
     }
-
-    static RecreateFile() {
-        ; Not currently working
-        Script := this.GetScript()
-        Str := ''
-        Arr := []
-        Arr.Capacity := Script.ComponentList.Count
-        for id, Item in Script.ComponentList {
-            Arr.Push(Item)
-        }
-        Arr := QuickSort(Arr, (a, b) => a.Pos - b.Pos)
-        i := 1
-        Item := Arr[i]
-        if Item.Removed {
-            Str .= Item.Removed.Match['text']
-        } else {
-            Str .= Item.TextFull
-        }
-        PosEnd := Item.PosEnd
-        loop Arr.Length - 1 {
-            Item := Arr[++i]
-            if Item.Pos - PosEnd >= 0 {
-                Str .= Script.GetTextFull(PosEnd + 1, Item.Pos - PosEnd - 1)
-                if Item.Removed {
-                    Str .= Item.Removed.Match['text']
-                    ; OutputDebug('`n`n---------------------`n'  A_Index '`n' Item.Removed.Match['text'])
-                } else {
-                    Str .= Item.Text
-                    ; OutputDebug('`n`n---------------------`n'  A_Index '`n' Item.TextFull)
-                }
-                ; OutputDebug('`n`n---------------------`n' A_Index '`n' Script.GetTextFull(PosEnd, Diff))
-                PosEnd := Item.PosEnd
-            } else {
-                if Item.Removed {
-                    ; OutputDebug('`n`n---------------------`n' A_Index ' Str:`n' Str)
-                    ; OutputDebug('`n`n---------------------`n' A_Index ' Item.Removed.Match["text"]:`n' Item.Removed.Match['text'])
-                    ; OutputDebug('`n`n---------------------`n' A_Index ' Item.Text:`n' Item.Text)
-                    Str := SubStr(Str, 1, Item.Pos - 1) Item.Removed.Match['text'] SubStr(Str, Item.PosEnd + 1)
-                } else {
-                    ; OutputDebug('`n`n---------------------`n' A_Index ' Str:`n' Str)
-                    ; OutputDebug('`n`n---------------------`n' A_Index ' Item.Text:`n' Item.Text)
-                    Str := SubStr(Str, 1, Item.Pos - 1) Item.Text SubStr(Str, Item.PosEnd + 1)
-                }
-            }
-            ; OutputDebug('`n---------------------`n' Str)
-        }
-        f := FileOpen(this.PathOutRecreate, 'w')
-        f.Write(Str)
-        f.Close()
-    }
-
-    static TextFull() {
+    static TextFull(WriteProblems := false) {
         Script := this.GetScript()
         this.GetContent(&Content)
         if (txt := Script.TextFull) !== Content {
-            f := FileOpen(this.PathOutTextFull, 'w')
-            f.Write(txt)
-            f.Close()
+            if WriteProblems {
+                f := FileOpen(this.PathOut, 'w')
+                f.Write(txt '`n`n`n')
+                f.Close()
+            }
             this.AddProblem(A_ThisFunc, A_LineNumber, 'Script.TextFull !== Content', { LenTextFull: StrLen(txt), LenContent: StrLen(Content), Diffs: this.GetDiffs(&Content, &txt, Script) })
-            OutputDebug('`nTextFull is done. Problem: Script.TextFull !== Content')
+            OutputDebug('TextFull is done. Problem: Script.TextFull !== Content`n')
+            return 1
         } else {
-            OutputDebug('`nTextFull is done. Problems: 0')
+            OutputDebug('TextFull is done. Problems: 0`n')
+            return 0
         }
     }
-
-    static WriteOutProblems() {
-        f := FileOpen(this.PathOut, 'w')
-        f.Write(Stringify(this.Problems))
+    static WriteOutProblems(append := false) {
+        f := FileOpen(this.PathOut, append ? 'a' : 'w')
+        f.Write(this.GetProblems())
         f.Close()
     }
-
     static WriteOut(Str) {
         f := FileOpen(this.PathOut, 'w')
         f.Write(Str)

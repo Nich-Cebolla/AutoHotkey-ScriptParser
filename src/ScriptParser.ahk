@@ -1,67 +1,51 @@
 ﻿
 /**
- * @classdesc - `ScriptParser` is a class that parses an AHK script into its components.
- * `ScriptParser` is currently limited to the following nodes:
- * - Class definitions
- * - Class method and property definitions
- *   - Property `Get` and `Set` definitions
- * - Global function definitions that are not defined within an expression
- * - Comments
- *   - Jsdoc comments
- *   - Multi-line comments
- *   - Single-line comments
- *   - Single-line comment blocks
- * - Quoted strings including string continuation sections
- *
- * `ScriptParser` returns a `ScriptParser` object, which will be referred to as either "a
- * `ScriptParser` object" or `Script` in this library's documentation.
- *
- * With only a few methods of its own, a `ScriptParser` object is primarily a collection. Functions
- * that make use of `ScriptParser` objects are defined as external functions that accept the object
- * as a parameter.
- *
- * See "lib\example-ScriptParser.ahk" file for a usage example and practical guidance regarding
- * navigating the object's various containers.
+ * @classdesc - Parses an AHK script into its components.
  */
 class ScriptParser {
-
-    /**
-     * @description Parses an AHK object literal definition into its properties and values as strings.
-     * @param {String} Str - The object definition beginning at the open brace and ending at the close brace.
-     */
-    static GetObjectProperties(Str) {
-        Result := []
-        Str := Trim(Str, '`s`t`r`n{}')
-        Pos := 1
-        while RegExMatch(Str, SPP_AHK_OBJECT, &Match, Pos) {
-            Pos := Match.Pos + Match.Len
-            Result.Push(Match)
+    static __New() {
+        this.DeleteProp('__New')
+        this.Collection := Map()
+        this.Collection.CaseSense := false
+    }
+    static __Add(obj) {
+        this.Collection.Set(obj.IdScriptParser, obj)
+        ObjRelease(ObjPtr(obj))
+    }
+    static __GetUid() {
+        loop 100 {
+            n := Random(1, 4294967295)
+            if !this.Collection.Has(n) {
+                return n
+            }
         }
-        return Result
+        throw Error('Failed to produce a unique id.')
     }
 
     /**
+     * @description -
      * @class
-     * @param {Object} [Config] - The configuration object. For complete guidance regarding this
-     * parameter, see the file "config\user-config-template.ahk". The following is a list and brief
-     * description of the available options and their default values.
+     * @param {Object|ScriptParser.Options} Options - An object with zero or more options
+     * as property : value pairs, or a {@link ScriptParser.Options} object.
      */
-    __New(PathIn?, Content?, Config?) {
-        Config := this.Config := SP_Config(Config ?? {})
+    __New(Options) {
+        this.IdScriptParser := ScriptParser.__GetUid()
+        ScriptParser.__Add(this)
+        Options := this.Options := ScriptParser.Options(Options ?? {})
         if IsSet(PathIn) {
             this.Content := FileRead(PathIn, this.Encoding || unset)
         } else if IsSet(Content) {
             this.Content := Content
-        } else if Config.PathIn {
+        } else if Options.PathIn {
             this.Content := FileRead(this.PathIn, this.Encoding || unset)
-        } else if Config.Content {
-            this.Content := Config.Content
+        } else if Options.Content {
+            this.Content := Options.Content
         } else {
             throw Error('``ScriptParser`` requires either a content string or file path.', -1)
         }
-        if Config.StandardizeLineEnding {
-            this.Content := RegExReplace(this.Content, '\R', Config.StandardizeLineEnding)
-            this.LineEnding := Config.StandardizeLineEnding
+        if Options.EndOfLine {
+            this.Content := RegExReplace(this.Content, '\R', Options.EndOfLine)
+            this.LineEnding := Options.EndOfLine
         } else {
             ; Get line endings.
             StrReplace(this.Content, '`n', , , &countlf)
@@ -85,15 +69,16 @@ class ScriptParser {
         }
         ; `Script.CollectionIndex` is a map with name : index pairs. The indices are associated
         ; with `Script.CollectionList` items. To get an item by name: `Script.CollectionList[Script.CollectionIndex.Get(Name)]`.
-        CollectionIndex := this.CollectionIndex := ComponentCollectionIndex(ObjOwnPropCount(Ahk.Component))
-        CollectionList := this.CollectionList := ComponentCollectionList(ObjOwnPropCount(Ahk.Component))
-        Component := this.Config.Language.Component
-        ; `ComponentBaseBase` is the base for component objects.
-        ObjSetBase(ComponentBaseBase := this.__ComponentBaseBase := { Script: this }, ComponentBase.Prototype)
+        CollectionIndex := this.CollectionIndex := ScriptParser_ComponentCollectionIndex(ObjOwnPropCount(ScriptParser_Ahk.Component))
+        CollectionList := this.CollectionList := ScriptParser_ComponentCollectionList(ObjOwnPropCount(ScriptParser_Ahk.Component))
+        Component := ScriptParser_Ahk.Component
+        ; `ScriptParser_ComponentBaseBase` is the base for component objects.
+        ScriptParser_ComponentBaseBase := this.__ScriptParser_ComponentBaseBase := { IdScriptParser: this.IdScriptParser }
+        ObjSetBase(ScriptParser_ComponentBaseBase, ScriptParser_ComponentBase.Prototype)
         BaseObjects := Map()
         BaseObjects.CaseSense := false
-        BaseObjects.Set('ComponentBase', ComponentBaseBase)
-        LangContent := FileRead(this.Config.Language.__GetPath())
+        BaseObjects.Set('ScriptParser_ComponentBase', ScriptParser_ComponentBaseBase)
+        LangContent := FileRead(ScriptParser_Ahk.__GetPath())
         Pending := []
         ToCollectionsObj := ['Class', 'CommentBlock', 'CommentMultiline', 'CommentSingleline'
         , 'Function', 'Getter', 'InstanceMethod', 'InstanceProperty', 'Jsdoc', 'Setter', 'StaticMethod'
@@ -145,27 +130,37 @@ class ScriptParser {
             }
         }
         CollectionList.Length := i
-        this.ComponentList := ComponentList(Config.Capacity)
-        this.RemovedCollection := RemovedCollection(this)
-        this.__FillerReplacement := FillStr(this.Config.ReplacementChar)
-        ; `StackContextBase` is the base for `ParseStack.Context` objects.
-        ObjSetBase(this.__StackContextBase := {
-            Bounds: [{ Start: 1 }]
+        this.ComponentList := ScriptParser_ComponentList()
+        this.RemovedCollection := ScriptParser_RemovedCollection(this)
+        n := 0xFFFD
+        loop {
+            if InStr(this.Content, Chr(n)) {
+                ++n
+            } else {
+                break
+            }
+        }
+        this.__FillerReplacement := ScriptParser_FillStr(Chr(n))
+        ; `StackContextBase` is the base for `ScriptParser_Stack.Context` objects.
+        this.__StackContextBase := {
+            Bounds: [ { Start: 1 } ]
           , Depth: 0
           , IsClass: false
           , Name: ''
           , Pos: 1
           , PosEnd: StrLen(this.Content)
-          , Script: this
-        }, ParseStack.Context.Prototype)
-        this.Stack := ParseStack(this.__StackContextBase)
-        this.Stack.Constructor := ClassFactory(this.__StackContextBase)
+          , IdScriptParser: this.IdScriptParser
+        }
+        ObjSetBase(this.__StackContextBase, ScriptParser_Stack.Context.Prototype)
+        this.Stack := ScriptParser_Stack(this.__StackContextBase)
+        this.Stack.Constructor := ScriptParser_ClassFactory(this.__StackContextBase)
         this.Length := StrLen(this.Content)
-        this.GlobalCollection := GlobalCollection(this.Config.Capacity)
-        if Config.ProcessImmediately {
+        this.GlobalCollection := ScriptParser_GlobalCollection()
+        if !Options.DeferProcess {
             this.RemoveStringsAndComments()
             this.ParseClass()
             this.JsdocAssociate()
+            this.Cleanup()
         }
 
         return
@@ -190,38 +185,27 @@ class ScriptParser {
             }
             if flag {
                 if index == SPC_JSDOC {
-                    CollectionList[index] := JsdocCollection(B, Config.Capacity)
+                    CollectionList[index] := ScriptParser_JsdocCollection(B)
                 } else {
-                    CollectionList[index] := ComponentCollection(B, Config.Capacity)
+                    CollectionList[index] := ScriptParser_ComponentCollection(B)
                 }
                 CollectionIndex.Set(Prop, index)
-                ; Set `ComponentCollectionObj.Constructor`.
-                CollectionList[index].Constructor := ClassFactory(B, Prop)
+                ; Set `ScriptParser_ComponentCollectionObj.Constructor`.
+                CollectionList[index].Constructor := ScriptParser_ClassFactory(B, Prop)
             }
         }
     }
 
-    /**
-     * @description - Breaks references cycles to allow the `ScriptParser` object's resources
-     * to be freed by AHK's garbage collection.
-     */
-    Dispose() {
-        if this.HasOwnProp('__ComponentBaseBase') {
-            this.__ComponentBaseBase.DeleteProp('Script')
-            this.DeleteProp('__ComponentBaseBase')
-        }
-        if this.HasOwnProp('__StackContextBase') {
-            this.__StackContextBase.DeleteProp('Script')
-            this.DeleteProp('__StackContextBase')
-        }
-    }
 
+    Cleanup() {
+
+    }
     /**
      * @description - Returns a collections object.
      * @param {String} Name - The name of the collection. The following values are currently in use:
      * "Class", "CommentMultiLine", "CommentSingleLine", "Function", "Getter", "InstanceMethod",
      * "InstanceProperty", "Jsdoc", "Setter", "StaticMethod", "StaticProperty", "String".
-     * @returns {ScriptParser.ComponentCollection} - The collection object. Collection objects
+     * @returns {ScriptParser.ScriptParser_ComponentCollection} - The collection object. Collection objects
      * are map objects with additional properties and methods.
      */
     GetCollection(Name) {
@@ -277,36 +261,27 @@ class ScriptParser {
     }
 
     JsdocAssociate() {
-        ; debug_paired := []
-        ; debug_unpaired := this.debug_unpaired := []
-        ComponentList := QuickSort(this.ComponentList.ToArray(), (a, b) => a.LineStart - b.LineStart)
+        listComponent := ScriptParser_QuickSort(this.ComponentList.ToArray(), (a, b) => a.LineStart - b.LineStart)
         i := 0
         loop  {
-            if ++i > ComponentList.Length {
+            if ++i > listComponent.Length {
                 break
             }
-            Component := ComponentList[i]
+            Component := listComponent[i]
             if Component.IndexCollection == SPC_JSDOC {
                 loop {
-                    if ++i > ComponentList.Length {
+                    if ++i > listComponent.Length {
                         break 2
                     }
-                    if ComponentList[i].Removed {
-                        if ComponentList[i].IndexCollection == SPC_JSDOC {
-                            ; debug_unpaired.Push({ Jsdoc: component })
-                            ; OutputDebug('`nNot Paired: Jsdoc: ' Component.Name '; Component: ""; Collection: ""')
-                            Component := ComponentList[i]
+                    if listComponent[i].Removed {
+                        if listComponent[i].IndexCollection == SPC_JSDOC {
+                            Component := listComponent[i]
                         }
                         continue
                     }
-                    if ComponentList[i].LineStart - 1 == Component.LineEnd {
-                        ; debug_paired.Push({ Jsdoc: Component, Component: ComponentList[i] })
-                        ; OutputDebug('`nPaired: Jsdoc: ' Component.Name '; Component: ' ComponentList[i].Name '; Collection: ' ComponentList[i].NameCollection)
-                        ComponentList[i].__Jsdoc := Component.idu
-                        Component.__ParentJsdoc := ComponentList[i].idu
-                    } else {
-                        ; debug_unpaired.Push({ Jsdoc: Component, Component: ComponentList[i] })
-                        ; OutputDebug('`nNot Paired: Jsdoc: ' Component.Name '; Component: ' ComponentList[i].Name '; Collection: ' ComponentList[i].NameCollection)
+                    if listComponent[i].LineStart - 1 == Component.LineEnd {
+                        listComponent[i].__Jsdoc := Component.idu
+                        Component.__ParentJsdoc := listComponent[i].idu
                     }
                     break
                 }
@@ -420,9 +395,9 @@ class ScriptParser {
                     break
                 }
                 ; Assignment and arrow operators can potentially be followed by a continuation section.
-                ; `ContinuationSection` will identify and concatenate a continuation section.
+                ; `ScriptParser_ContinuationSection` will identify and concatenate a continuation section.
                 if _Match['arrow'] || _Match.assign {
-                    CS := ContinuationSection(
+                    CS := ScriptParser_ContinuationSection(
                         StrPtr(this.Content)
                       , _Match.Pos['text']
                       , _Match['arrow'] ? '=>' : ':='
@@ -482,9 +457,9 @@ class ScriptParser {
         ;             break
         ;         }
         ;         ; Arrow operators can potentially be followed by a continuation section.
-        ;         ; `ContinuationSection` will identify and concatenate a continuation section.
+        ;         ; `ScriptParser_ContinuationSection` will identify and concatenate a continuation section.
         ;         if _Match['arrow'] {
-        ;             CS := ContinuationSection(
+        ;             CS := ScriptParser_ContinuationSection(
         ;                 StrPtr(Text)
         ;               , _Match.Pos['text']
         ;               , '=>'
@@ -624,14 +599,40 @@ class ScriptParser {
     }
 
     __Delete() {
-        this.Dispose()
+        ObjPtrAddRef(this)
+        if ScriptParser.Collection.Has(this.IdScriptParser) {
+            ScriptParser.Collection.Delete(this.IdScriptParser)
+        }
     }
 
-    Encoding => this.Config.Encoding
-    Name => this.Config.Name
+    Encoding => this.Options.Encoding
     NameCollection[IndexCollection] => this.CollectionList[IndexCollection].NameCollection
-    PathIn => this.Config.PathIn
+    PathIn => this.Options.PathIn
     Text[PosStart := 1, Len?] => SubStr(this.Content, PosStart, Len ?? unset)
     TextFull[PosStart := 1, Len?] => this.GetTextFull(PosStart, Len ?? unset)
-}
 
+    class Options {
+        static __New() {
+            this.DeleteProp('__New')
+            proto := this.Prototype
+            proto.Content := ''
+            proto.Encoding := ''
+            proto.EndOfLine := ''
+            proto.PathIn := ''
+            proto.DeferProcess := false
+        }
+
+        __New(options?) {
+            if IsSet(options) {
+                for prop in ScriptParser.Options.Prototype.OwnProps() {
+                    if HasProp(options, prop) {
+                        this.%prop% := options.%prop%
+                    }
+                }
+                if this.HasOwnProp('__Class') {
+                    this.DeleteProp('__Class')
+                }
+            }
+        }
+    }
+}

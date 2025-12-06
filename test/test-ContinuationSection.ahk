@@ -1,7 +1,7 @@
 ﻿
-#Include ..\lib\ContinuationSection.ahk
+#Include ..\src\ScriptParser_ContinuationSection.ahk
 
-PathOut := A_MyDocuments '\test-output-ContinuationSection.json'
+PathOut := A_MyDocuments '\test-content-ContinuationSection.json'
 Text := FileRead('test-content\test-content-ContinuationSection.ahk')
 
 Process()
@@ -34,7 +34,7 @@ Test() {
     )
     List := []
     while RegExMatch(Text, PatternStatement, &Match, Pos ?? 1) {
-        List.Push(ContinuationSection(StrPtr(Text), Match.Pos['indent'], Match['arrow'] ? '=>' : ':='))
+        List.Push(ScriptParser_ContinuationSection(StrPtr(Text), Match.Pos['indent'], Match['arrow'] ? '=>' : ':='))
         Pos := Match.Pos + Match.Len
     }
     return List

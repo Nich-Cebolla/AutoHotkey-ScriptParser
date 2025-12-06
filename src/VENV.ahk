@@ -1,0 +1,13 @@
+﻿#include define.ahk
+#include enum.ahk
+#include lib.ahk
+#include ScriptParser_Ahk.ahk
+#include ScriptParser_ComponentBase.ahk
+#include ScriptParser_ComponentCollection.ahk
+#include ScriptParser_ContinuationSection.ahk
+#include ScriptParser_FillStr.ahk
+#include ScriptParser_MapEx.ahk
+#include ScriptParser_ParamsList.ahk
+#include ScriptParser_Stack.ahk
+#include ScriptParser.ahk
+#include utilities.ahk
