@@ -52,13 +52,15 @@ class ScriptParser_Ahk {
             }
 
             Init(Match) {
-                if Match['arrow'] {
-                    this.Arrow := true
-                }
                 if Match['static'] {
                     this.Static := true
                 }
-                if !Match['arrow'] && !Match['assign'] {
+                if Match['arrow'] {
+                    this.Arrow := true
+                    this.Get := true
+                    this.Script.Stack.In(this.Script, 'Get', Match, this.Script.CollectionList[SPC_GETTER].Constructor, Match)
+                    this.Script.Stack.Out()
+                } else if !Match['assign'] {
                     if RegExMatch(s := SubStr(this.Script.Text, 1, this.PosEnd), SPP_ACCESSOR_GET, &Match, this.Pos) {
                         _Proc('Get')
                     }
@@ -69,9 +71,11 @@ class ScriptParser_Ahk {
                 if !this.Static {
                     if this.Arrow || (this.Children && (this.Children.Has('Getter') || this.Children.Has('Setter'))) {
                         Path := this.Name
-                        this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.')) 'Prototype.' SubStr(Path, InStr(Path, '.', , , -1) + 1) })
+                        this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.', , , -1)) 'Prototype.' SubStr(Path, InStr(Path, '.', , , -1) + 1) })
                     }
                 }
+
+                return
 
                 _Proc(Name) {
                     if Match['arrow'] {
@@ -84,8 +88,10 @@ class ScriptParser_Ahk {
                         CS := Match
                     }
                     if Name == 'Get' {
+                        this.Get := true
                         this.Script.Stack.In(this.Script, Name, CS, this.Script.CollectionList[SPC_GETTER].Constructor, Match)
                     } else {
+                        this.Set := true
                         this.Script.Stack.In(this.Script, Name, CS, this.Script.CollectionList[SPC_SETTER].Constructor, Match)
                     }
                     this.Script.Stack.Out()
@@ -134,7 +140,7 @@ class ScriptParser_Ahk {
         class Jsdoc extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
-                return RegExReplace(this.Removed.Match['comment'], '\R?[ \t]*?\* ?', JoinChar)
+                return RegExReplace(this.Match['comment'], '\R?[ \t]*?\* ?', JoinChar)
             }
             Parse(EndOfLine := '`r`n') {
                 if this.HasOwnProp('Tags') {
@@ -151,7 +157,7 @@ class ScriptParser_Ahk {
         class CommentSingleLine extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText() {
-                return this.Removed.Match['comment']
+                return this.Match['comment']
             }
             TextComment => this.GetCommentText()
         }
@@ -159,14 +165,14 @@ class ScriptParser_Ahk {
         class CommentBlock extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
-                return RegExReplace(this.TextFull, '\R?.*?(?<=\s|^);[ \t]*', JoinChar)
+                return RegExReplace(RegExReplace(this.TextFull, '^[ \t]*;[ \t]*', ''), '\R[ \t]*;[ \t]*', '`r`n')
             }
         }
 
         class CommentMultiLine extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
-                return RegExReplace(this.Removed.Match['comment'], '\R?[ \t]*', JoinChar)
+                return RegExReplace(this.Match['comment'], '\R?[ \t]*', JoinChar)
             }
         }
 

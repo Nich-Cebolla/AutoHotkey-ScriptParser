@@ -49,8 +49,8 @@ class ScriptParser_ParamsList extends Array {
         static __New() {
             this.DeleteProp('__New')
             Proto := this.Prototype
-            for Prop in ['Optional', 'Default', 'Variadic', 'VarRef'] {
-                Proto.DefineProp(Prop, { Value: false })
+            for Prop in ['Optional', 'Default', 'Variadic', 'VarRef', 'DefaultValue'] {
+                Proto.DefineProp(Prop, { Value: '' })
             }
         }
         __New(Str) {
@@ -60,7 +60,8 @@ class ScriptParser_ParamsList extends Array {
             } else if InStr(Str, ':=') {
                 this.Optional := true
                 split := StrSplit(Str, ':=', '`s`t`r`n')
-                this.Default := split[2]
+                this.Default := true
+                this.DefaultValue := split[2]
                 this.Symbol := split[1]
             } else if InStr(Str, '*') {
                 this.Variadic := this.Optional := true

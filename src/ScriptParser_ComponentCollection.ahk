@@ -76,8 +76,8 @@ class ScriptParser_RemovedCollection extends ScriptParser_MapEx {
         Arr.Push(Component)
         return Arr.Length
     }
-    AddToShortCollection(Component, &Char) {
-        return this.ShortCollection.Push(Component, &Char)
+    AddToShortCollection(Component, Match, &Char) {
+        return this.ShortCollection.Add(Component, Match, &Char)
     }
     GetIndex() {
         if ++this.__Index >= this.__MaxCode {
@@ -97,15 +97,24 @@ class ScriptParser_RemovedCollection extends ScriptParser_MapEx {
             this.__AdjustCharCode(Script)
             this.Set(Chr(this.__CharCode), [])
         }
-        Push(Component, &Char) {
-            Arr := this.Get(Chr(this.__CharCode))
-            if Arr.Length > 98 {
-                this.__CharCode++
-                this.__AdjustCharCode(Component.Script)
-                this.Set(Chr(this.__CharCode), Arr := [])
+        Add(Component, Match, &Char) {
+            if Match.Len['text'] = 1 {
+                if !this.Has(Chr(Component.Script.__LoneSemicolonReplacement)) {
+                    this.Set(Chr(Component.Script.__LoneSemicolonReplacement), [])
+                }
+                Arr := this.Get(Chr(Component.Script.__LoneSemicolonReplacement))
+                Arr.Push(Component)
+                Char := Chr(Component.Script.__LoneSemicolonReplacement)
+            } else {
+                Arr := this.Get(Chr(this.__CharCode))
+                if Arr.Length > 98 {
+                    this.__CharCode++
+                    this.__AdjustCharCode(Component.Script)
+                    this.Set(Chr(this.__CharCode), Arr := [])
+                }
+                Arr.Push(Component)
+                Char := Chr(this.__CharCode)
             }
-            Arr.Push(Component)
-            Char := Chr(this.__CharCode)
             return Arr.Length
         }
         __AdjustCharCode(Script) {
@@ -191,7 +200,7 @@ class ScriptParser_JsdocCollection extends ScriptParser_ComponentCollection {
     Add(Component) {
         Component.idc := this.GetIndex()
         this.Set(Component.Name, Component)
-        Match := Component.Removed.Match
+        Match := Component.__Removed.Match
         if Match['class'] {
             Name := Match['class']
             if this.AddToCategoryEx('Class', &Name, Component) {

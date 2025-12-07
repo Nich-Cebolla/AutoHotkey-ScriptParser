@@ -13,7 +13,7 @@ class ScriptParser_ComponentBase {
             this.Stack := Stack.Active
             if this.IndexCollection == SPC_INSTANCEMETHOD {
                 Path := this.Stack.Path
-                this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.')) 'Prototype.' SubStr(Path, InStr(Path, '.') + 1) })
+                this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.', , , -1)) 'Prototype.' SubStr(Path, InStr(Path, '.', , , -1) + 1) })
             } else {
                 this.DefineProp('Name', { Get: (Self) => Self.Stack.Path })
             }
@@ -33,7 +33,7 @@ class ScriptParser_ComponentBase {
             this.Init(Match)
         }
         if IsRemoved {
-            this.DefineProp('Removed', { Value: GetRemovedComponent(this, Match) })
+            this.DefineProp('__Removed', { Value: ScriptParser_GetRemovedComponent(this, Match) })
         }
         this.Collection.Add(this)
     }
@@ -126,31 +126,32 @@ class ScriptParser_ComponentBase {
     ; `idu` - A general identifier used by all components.
     ; Components that are comments have additional property `TextComment` which returns the text
     ; without any comment operators and joined by a substring.
-    ; Components that are paired with a jsdoc comment using `ScriptParser.Prototype.JsdocAssociate`
+    ; Components that are paired with a jsdoc comment using `ScriptParser.Prototype.AssociateComments`
     ; have a property `Jsdoc` which is the component object for the jsdoc comment.
 
     Collection => this.Script.CollectionList[this.IndexCollection]
-    Jsdoc {
-        Get => this.__Jsdoc ? this.Script.ComponentList.Get(this.__Jsdoc) : ''
+    Comment {
+        Get => this.__Comment ? this.Script.ComponentList.Get(this.__Comment) : ''
         Set {
             if IsObject(Value) {
-                this.__Jsdoc := Value.idu
+                this.__Comment := Value.idu
             } else {
-                this.__Jsdoc := Value
+                this.__Comment := Value
             }
         }
     }
+    CommentParent {
+        Get => this.__CommentParent ? this.Script.ComponentList.Get(this.__CommentParent) : ''
+        Set {
+            if IsObject(Value) {
+                this.__CommentParent := Value.idu
+            } else {
+                this.__CommentParent := Value
+            }
+        }
+    }
+    Match => this.__Removed ? this.__Removed.Match : ''
     Parent => this.ParentIdu ? this.Script.ComponentList.Get(this.ParentIdu) : ''
-    JsdocParent {
-        Get => this.__JsdocParent ? this.Script.ComponentList.Get(this.__JsdocParent) : ''
-        Set {
-            if IsObject(Value) {
-                this.__JsdocParent := Value.idu
-            } else {
-                this.__JsdocParent := Value
-            }
-        }
-    }
     Path => this.Stack.Path
     PosEnd => this.Pos + this.Length
     Script => ScriptParser.Collection.Get(this.IdScriptParser)
@@ -161,21 +162,19 @@ class ScriptParser_ComponentBase {
     TextFull => this.Script.TextFull[this.Pos, this.Length]
     TextOwn => this.GetOwnText()
     TextOwnFull => this.GetOwnTextFull()
-    TextRemoved => this.Removed ? this.Removed.Match['text'] : ''
-    TextReplacement => this.Removed ? this.Removed.Replacement : ''
 
 
     static __New() {
         this.DeleteProp('__New')
         Proto := this.Prototype
-        for Prop in ['AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack'
-        , '__Jsdoc', '__JsdocParent'] {
+        for Prop in ['AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', '__Removed', 'Stack'
+        , 'HasJsdoc', '__Comment', '__CommentParent'] {
             Proto.DefineProp(Prop, { Value: '' })
         }
     }
 }
 
-GetRemovedComponent(Component, Match) {
+ScriptParser_GetRemovedComponent(Component, Match) {
     Script := Component.Script
     rc := {
         IndexRemoved: Script.RemovedCollection.AddToCategory(Component)
@@ -184,12 +183,17 @@ GetRemovedComponent(Component, Match) {
     }
     if StrLen(Component.IndexCollection rc.IndexRemoved) + 2 <= Match.Len['text'] {
         ObjSetBase(rc, ScriptParser_RemovedComponent.Prototype)
+        rc.SetReplacement(Script, Component.IndexCollection)
+    } else if Match.Len['text'] = 1 {
+        ObjSetBase(rc, ScriptParser_RemovedShortComponent.Prototype)
+        rc.IndexRemovedShort := Script.RemovedCollection.AddToShortCollection(Component, Match, &Char)
+        rc.Replacement := rc.ShortChar := Char
     } else {
         ObjSetBase(rc, ScriptParser_RemovedShortComponent.Prototype)
-        rc.IndexRemovedShort := Script.RemovedCollection.AddToShortCollection(Component, &Char)
+        rc.IndexRemovedShort := Script.RemovedCollection.AddToShortCollection(Component, Match, &Char)
         rc.ShortChar := Char
+        rc.SetReplacement(Script, Component.IndexCollection)
     }
-    rc.SetReplacement(Script, Component.IndexCollection)
     Script.Content := StrReplace(Script.Content, Match['text'], rc.Replacement, true, , 1)
     return rc
 }

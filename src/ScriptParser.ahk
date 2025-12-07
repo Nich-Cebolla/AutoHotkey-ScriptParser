@@ -45,6 +45,7 @@ class ScriptParser {
         }
         n := 0x2000
         this.__FillerReplacement := ScriptParser_FillStr(Chr(_GetOrd()))
+        this.__LoneSemicolonReplacement := _GetOrd()
         this.__ConsecutiveDoubleReplacement := _GetOrd()
         this.__ConsecutiveSingleReplacement := _GetOrd()
         if Options.EndOfLine {
@@ -157,6 +158,15 @@ class ScriptParser {
 
         return
 
+        _GetOrd() {
+            loop {
+                if InStr(this.Content, Chr(n)) {
+                    ++n
+                } else {
+                    return n
+                }
+            }
+        }
         _Proc(&Prop) {
             ; `B` is the base object for components in this collection.
             BaseObjects.Set(Prop, B)
@@ -165,8 +175,6 @@ class ScriptParser {
             for _Prop in _Proto.OwnProps() {
                 B.DefineProp(_Prop, _Proto.GetOwnPropDesc(_Prop))
             }
-            ; This is temporary; when I expand the script all collections will be used. But for now
-            ; most of them are not in use.
             flag := 0
             for _prop in ToCollectionsObj {
                 if Prop = _prop {
@@ -183,15 +191,6 @@ class ScriptParser {
                 }
                 CollectionIndex.Set(Prop, index)
                 CollectionList[index].Constructor := ScriptParser_ClassFactory(B, Prop)
-            }
-        }
-        _GetOrd() {
-            loop {
-                if InStr(this.Content, Chr(n)) {
-                    ++n
-                } else {
-                    return n
-                }
             }
         }
     }
@@ -238,7 +237,7 @@ class ScriptParser {
             if !RegExMatch(Text, SPP_REPLACEMENT, &Match, Pos) {
                 break
             }
-            rc := RemovedCollection.Get(this.NameCollection[Match['collection']])[Match['index']].Removed
+            rc := RemovedCollection.Get(this.NameCollection[Match['collection']])[Match['index']].__Removed
             Text := StrReplace(Text, rc.Replacement, rc.Text)
             Pos := Match.Pos + Match.Len
         }
@@ -248,7 +247,7 @@ class ScriptParser {
         Pos := 1
         loop {
             if RegExMatch(Text, Chr(Index) '(\d+)', &Match, Pos) {
-                rc := ShortCollection.Get(Chr(Index))[Match[1]].Removed
+                rc := ShortCollection.Get(Chr(Index))[Match[1]].__Removed
                 Text := StrReplace(Text, rc.Replacement, rc.Text)
                 Pos := Match.Pos + Match.Len
             } else {
@@ -261,31 +260,24 @@ class ScriptParser {
         return StrReplace(StrReplace(Text, Chr(this.__ConsecutiveDoubleReplacement) Chr(this.__ConsecutiveDoubleReplacement), '""')
         , Chr(this.__ConsecutiveSingleReplacement) Chr(this.__ConsecutiveSingleReplacement), "''")
     }
-    JsdocAssociate() {
+    AssociateComments() {
         listComponent := ScriptParser_QuickSort(this.ComponentList.ToArray(), (a, b) => a.LineStart - b.LineStart)
         i := 0
         loop  {
             if ++i > listComponent.Length {
                 break
             }
-            Component := listComponent[i]
-            if Component.IndexCollection == SPC_JSDOC {
-                loop {
-                    if ++i > listComponent.Length {
-                        break 2
-                    }
-                    if listComponent[i].Removed {
-                        if listComponent[i].IndexCollection == SPC_JSDOC {
-                            Component := listComponent[i]
-                        }
-                        continue
-                    }
+            switch listComponent[i].IndexCollection {
+                case SPC_JSDOC, SPC_COMMENTBLOCK, SPC_COMMENTMULTILINE, SPC_COMMENTSINGLELINE:
+                    Component := listComponent[i]
+                default:
                     if listComponent[i].LineStart - 1 == Component.LineEnd {
-                        listComponent[i].__Jsdoc := Component.idu
-                        Component.__ParentJsdoc := listComponent[i].idu
+                        Component.__CommentParent := listComponent[i].idu
+                        listComponent[i].__Comment := Component.idu
+                        if Component.IndexCollection = SPC_JSDOC {
+                            listComponent[i].HasJsdoc := true
+                        }
                     }
-                    break
-                }
             }
         }
     }
@@ -363,8 +355,10 @@ class ScriptParser {
                 Stack.PosEnd := Stack.ActiveClass.PosEnd
                 ; Parse the content
                 _Proc()
-                ; Exit the definition
-                Stack.Out()
+                ; Exit any remaining class definitions
+                while Stack.ClassList.Length {
+                    Stack.Out()
+                }
                 ; If there is more content in the global scope, parse it
                 if StrLen(RTrim(this.Content, '`r`n`s`t')) - Stack.PosEnd > 0 {
                     Stack.PosEnd := StrLen(this.Content)
@@ -534,7 +528,7 @@ class ScriptParser {
                 ; Get line count of the text that will be removed
                 StrReplace(Match['text'], eol, , , &linecount)
                 ; Calculate line end
-                LineEnd := nl += (linecount || 0)
+                LineEnd := nl += linecount
                 ; Calculate col end
                 if LineEnd == LineStart {
                     ColEnd := ColStart + Match.Len['text']
@@ -544,7 +538,7 @@ class ScriptParser {
                 ; Adjust pos
                 Pos := Match.Pos['text'] + Match.Len['text']
                 ; Get constructor. The `Mark` value is the symbol `SPC_<collection name>`.
-                Constructor := this.CollectionList[Index := %Match.Mark%].Constructor
+                Constructor := this.CollectionList[%Match.Mark%].Constructor
                 ; Call constructor. The constructor handles the rest.
                 Constructor(LineStart, ColStart, LineEnd, ColEnd, Match.Pos['text'], Match.Len['text'], , Match, , , , true)
             }
@@ -553,7 +547,7 @@ class ScriptParser {
     Process() {
         this.RemoveStringsAndComments()
         this.ParseClass()
-        this.JsdocAssociate()
+        this.AssociateComments()
         this.Cleanup()
     }
     __Delete() {

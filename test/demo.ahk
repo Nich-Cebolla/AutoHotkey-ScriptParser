@@ -3,6 +3,7 @@
 #include ..\src\VENV.ahk
 
 ; Paste your own script path in to the Demo() call, or leave it as the demo script path.
+; For long scripts, it will take a little bit to load.
 
 Demo('test-content\UIA.ahk')
 
@@ -14,25 +15,24 @@ class Demo {
         }
     }
     static Call(path, encoding?) {
-        options := { Path: path, Encoding: encoding ?? unset }
-        this.script := ScriptParser(options)
         ptm := PropsInfoTree_PropsTypeMap([
-                { Type: 'ScriptParser', List: '__ConsecutiveDoubleReplacement,__ConsecutiveSingleReplacement' }
+                { Type: 'ScriptParser', List: '__ConsecutiveDoubleReplacement,__ConsecutiveSingleReplacement,__LoneSemicolonReplacement', AddToDefault: true }
               , {
                     Type: [
                         'ScriptParser_Ahk.Component.CommentBlock',  'ScriptParser_Ahk.Component.CommentMultiline'
                       , 'ScriptParser_Ahk.Component.CommentSingleline',  'ScriptParser_Ahk.Component.Getter',  'ScriptParser_Ahk.Component.InstanceMethod'
                       , 'ScriptParser_Ahk.Component.InstanceProperty',  'ScriptParser_Ahk.Component.Jsdoc',  'ScriptParser_Ahk.Component.Setter'
                       , 'ScriptParser_Ahk.Component.StaticProperty',  'ScriptParser_Ahk.Component.String', 'ScriptParser_Ahk.Component.Class'
+                      , 'ScriptParser_Ahk.Component.StaticMethod', 'ScriptParser_Ahk.Component.Function'
                     ]
-                  , List:  'Collection,__Jsdoc,__JsdocParent'
+                  , List:  'Collection,__Comment,__CommentParent,__Removed'
                   , AddToDefault: true
                 }
               , { Type: 'ScriptParser_JsdocCollection', List: '__ComponentIndex,__MaxComponentIndex,ComponentBase,Constructor,Default', AddToDefault: true }
               , { Type: 'ScriptParser_RemovedCollection', List: '__Index,__MaxCode,Default', AddToDefault: true }
               , { Type: 'ScriptParser_ComponentCollection', List: '__ComponentIndex,__MaxComponentIndex,ComponentBase,Constructor,Default', AddToDefault: true }
             ]
-          , 'idc,idr,idu,Script,ParentIdu'
+          , 'idc,idr,idu,Script,ParentIdu,Stack,IdScriptParser,IndexCollection'
         )
         pitOpt := this.PropsInfoTreeOptions := {
             CallbackProcessProps: ptm
@@ -43,14 +43,217 @@ class Demo {
           , NormalizeKeyExtent: 2
           , ShowOwnerIndex: false
         }
-        tvexTabOptions := this.TvexTabOptions := {
-            CallbackDelete: Demo_CallbackDelete
-          , CallbackOnChangeAfter: Demo_CallbackOnChange
-          , DefaultPropsInfoTreeOptions: pitOpt
-          , opt: 'w1400 r20'
-          , Which: 'Tab2'
+        tvexTabOptions := this.TvexTabOptions := { Opt: 'w1400 r20' }
+        options := { Path: path, Encoding: encoding ?? unset }
+        this.byoo := BringYourOwnObject(, {
+            Name: 'ScriptParser'
+          , PropsInfoTreeOptions: pitOpt
+          , TvexTabOptions: tvexTabOptions
+          , CallbackGui: _CallbackGui
+          , DeferAddControl: true
+        })
+        this.script := ScriptParser(options)
+        ; this.Dotter.Stop := 1
+        ; this.Dotter.Ctrl.Text := ''
+        this.DeleteProp('Dotter')
+        this.byoo.Add(this.script)
+
+        return
+
+        _CallbackGui(g) {
+            btn := g.Add('Button', 'Section', 'Click to view information about this window')
+            btn.OnEvent('Click', HClickButtonViewInfo)
+            txt := g.Add('Text', 'ys', 'Loading.....')
+            ; Demo.Dotter := Dotter(txt.Hwnd)
+            btn.GetPos(&x, &y, &w, &h)
+            txt.GetPos(, , , &h2)
+            txt.Move(, y + (h - h2) / 2)
+            Demo.TvexTabOptions.Opt := 'x' x ' y' (y + h + g.MarginY) ' w1400 r19'
+
+            return
+
+            HClickButtonViewInfo(ctrl, *) {
+                local g := ctrl.Gui
+                if HasProp(g, 'InfoWindow') {
+                    g.InfoWindow.Show()
+                } else {
+                    iw := g.InfoWindow := Gui('+Resize')
+                    lf := TreeViewEx_Logfont(ctrl.Hwnd)
+                    iw.SetFont('s' lf.FontSize ' q' lf.Quality, lf.FaceName)
+                    local txt := iw.Add('Text', 'Section w700 vTxtInfo', 'The purpose of this demo'
+                    ' is to allow you to explore a ``ScriptParser`` object visually, so you can'
+                    ' learn about what it has to offer. The tree-view control is a custom class'
+                    ' which takes an object as input, and generates a tree-view from the object`'s'
+                    ' properties and items. As you explore, try right-clicking on a node to see what'
+                    ' the context menu has to offer.`r`n`r`n'
+                    ' Each node in the tree-view represents a value, either from a property or from'
+                    ' the object`'s enumerator. The object that is represented here is the'
+                    ' ``ScriptParser`` object created from the path passed to the ``Demo`` function.'
+                    ' This demo is intended to allow you to explore the object'
+                    ' and see the object`'s properties and values, so you can better make use of'
+                    ' ``ScriptParser``. Click one of the below buttons to view more information.')
+                    btn := iw.Add('Button', 'xs Section', 'ScriptParser')
+                    btn.OnEvent('Click', HClickButtonGeneral)
+                    btn.__Text := (
+                    'ScriptParser`r`n`r`n'
+                    '``ScriptParser`` produces a collection of objects representing the'
+                    ' classes, class methods, class properties, global functions, comments, jsdoc comments,'
+                    ' and strings in the script. It does not currently have a tokenizer, and so it is unable'
+                    ' to parse functions defined in an expression, and it does not currently generate an object'
+                    ' for functions nested within other functions.`r`n`r`n'
+                    )
+                    btn := iw.Add('Button', 'xs', 'The "Collection" property')
+                    btn.OnEvent('Click', HClickButtonGeneral)
+                    btn.__Text := (
+                    'The "Collection" property`r`n`r`n'
+                    'The main property of interest is going to be "Collection". Expand the node and you will'
+                    ' see the various collection objects. Expand a collection, then expand the "Enum" node.'
+                    ' You will see a list of nodes representing component objects. A "component" is'
+                    ' a part of your script. ``ScriptParser`` parses 13 types of components:`r`n`r`n'
+                    'Classes`r`n'
+                    'Global functions`r`n'
+                    'Static methods`r`n'
+                    'Instance methods`r`n'
+                    'Static properties`r`n'
+                    'Instance properties`r`n'
+                    'Property getters`r`n'
+                    'Property setters`r`n'
+                    'Comment blocks (multiple consecutive lines of `; notation comments)`r`n'
+                    'Multi-line comments (/* */ notation comments)`r`n'
+                    'Single line comments (`; notation comments)`r`n'
+                    'JSDoc comments (/** */ notation comments)`r`n'
+                    'Strings`r`n`r`n'
+                    'Expand a collection. If an item has a name (e.g. a function, method, or property),'
+                    ' the name will be listed in the label. Expand an item node and you can view the'
+                    ' various properties available from the component object.`r`n`r`n'
+                    )
+                    btn := iw.Add('Button', 'xs', 'The component object')
+                    btn.OnEvent('Click', HClickButtonGeneral)
+                    btn.__Text := (
+                    'The component object`r`n`r`n'
+                    'A component is a discrete part of your script. The following are properties'
+                    ' available from all component objects:`r`n`r`n'
+                    'AltName: If multiple components have the same name, all subsequent'
+                    ' component objects will have a number appended to the name, and "AltName" is set'
+                    ' with the original name.`r`n`r`n'
+                    'Children: If the component has child components, "Children" is a collection of'
+                    ' collection objects, and the child component objects are accessible from the'
+                    ' collections.`r`n`r`n'
+                    'ColEnd: The column index of the last character of the component`'s text.`r`n`r`n'
+                    'ColStart: The column index of the first character of the component`'s text.`r`n`r`n'
+                    'Comment: For component objects that are associated with a function, class, method,'
+                    ' or property, if there is a comment immediately above the component`'s text,'
+                    ' "Comment" returns the comment component object.`r`n`r`n'
+                    'CommentParent: This is the property analagous to "Comment" above, but for the'
+                    ' comment`'s object. Returns the associated function, class, method, or property'
+                    ' component object.`r`n`r`n'
+                    'HasJsdoc: If there is a JSDoc comment immediately above the component, "HasJsdoc"'
+                    ' returns 1. The "Comment" property returns the component object.`r`n`r`n'
+                    'LenBody: For components that have a body (code in-between curly braces or code'
+                    ' after an arrow operator), "LenBody" returns the string length in characters of'
+                    ' just the body.`r`n`r`n'
+                    'Length: Returns the string length in characters of the full text of the component.`r`n`r`n'
+                    'LineEnd: Returns the line number on which the component`'s text ends.`r`n`r`n'
+                    'LineStart: Returns the line number on which the component`'s text begins.`r`n`r`n'
+                    'Match: If the component is associated with a string or comment, the "Match"'
+                    ' property returns the ``RegExMatchInfo`` object created when parsing. There are'
+                    ' various subcapture groups which you can see by expanding the "Enum" node of the'
+                    ' "Match" property node.`r`n`r`n'
+                    'Name: Returns the name of the component. If the component doesn`'t have a name,'
+                    ' "Name" returns the component`'s unique identifier assigned by ``ScriptParser``.`r`n`r`n'
+                    'NameCollection: Returns the name of the collection of which the component is part.`r`n`r`n'
+                    'Parent: If the component is a child component, "Parent" returns the parent'
+                    ' component object.`r`n`r`n'
+                    'Pos: Returns the character position of the start of the component`'s text.`r`n`r`n'
+                    'PosEnd: Returns the character position of the end of the component`'s text.`r`n`r`n'
+                    'Text: Returns the component`'s text with strings and comments removed.`r`n`r`n'
+                    'TextComment: If the component object is associated with a commment, "TextComment"'
+                    ' returns the comment`'s original text with the comment operators and any leading'
+                    ' indentation removed. Each individual line of the comment is separated by crlf.`r`n`r`n'
+                    'TextFull: Returns the original text for the component.`r`n`r`n'
+                    'TextOwn: If the component has children, "TextOwn" returns only the text that is'
+                    ' directly associated with the component; child text is removed. Comments and'
+                    ' strings are also removed.`r`n`r`n'
+                    'TextOwnFull: If the component has children, "TextOwnFull" returns only the text'
+                    ' that is directly associated with the component; child text is removed. This'
+                    ' returns the original text including comments and strings.'
+                    )
+                    btn := iw.Add('Button', 'xs', 'Function parameters')
+                    btn.OnEvent('Click', HClickButtonGeneral)
+                    btn.__Text := (
+                    'Parameters`r`n`r`n'
+                    ' Regarding class methods, dynamic properties, and global functions, ScriptParser'
+                    ' creates an object for each parameter. Expand one'
+                    ' of either "Function", "InstanceMethod", or "StaticMethod". After expanding'
+                    ' the node, find a function that you know has parameters and expand the node.'
+                    ' Scroll down to the "Params" property and expand it. Parameter objects have'
+                    ' the following properties:`r`n`r`n'
+                    'Default: Returns 1 if there is a default value.`r`n'
+                    'DefaultValue: If "Default" is 1, returns the default value text.`r`n'
+                    'Optional: Returns 1 if the parameter has the ? operator, or a default value.`r`n'
+                    'Symbol: Returns the symbol of the parameter.`r`n'
+                    'Variadic: Returns 1 if the paremeter has the * operator.`r`n'
+                    'VarRef: Returns 1 if the parameter has the & operator.'
+                    )
+                    btn := iw.Add('Button', 'xs', 'Dynamic properties')
+                    btn.OnEvent('Click', HClickButtonGeneral)
+                    btn.__Text := (
+                    'Dynamic properties`r`n`r`n'
+                    'In addition to the properties common to all component objects, dynamic properties'
+                    ' will have one or both of "Getter" and "Setter" children. If the dynamic property'
+                    ' has a getter and/or setter, the "Get" and/or "Set" property will return 1,'
+                    ' respectively. The getter or setter component objects are accessible from'
+                    ' the "Children" property.'
+                    )
+                    btn := iw.Add('Button', 'xs', 'Strings')
+                    btn.OnEvent('Click', HClickButtonGeneral)
+                    btn.__Text := (
+                    'Strings`r`n`r`n'
+                    'All quoted strings are removed from the text before parsing, and they are replaced'
+                    ' by replacement strings. When you access one of the properties like "TextFull",'
+                    ' the original text is returned. In the gui window, you can see the difference'
+                    ' between properties "Text" and "TextFull".`r`n`r`n'
+                    'The string component objects will all have a property "Match", which returns'
+                    ' the ``RegExMatchInfo`` object produced when the string was parsed.'
+                    ' The "string" item of the match object returns the text without external quotation'
+                    ' characters.'
+                    )
+                    btn := iw.Add('Button', 'xs', 'Comments')
+                    btn.OnEvent('Click', HClickButtonGeneral)
+                    btn.__Text := (
+                    'Comments`r`n`r`n'
+                    'Comments are divided into four types, "CommentBlock", "CommentMultiLine",'
+                    ' "CommentSingleLine", and "Jsdoc". When the comment is parsed, the next line'
+                    ' underneath the comment is included in the match. ``ScriptParser`` uses this to'
+                    ' associate the comment with what is underneath it. If the line underneath it is'
+                    ' something that produced a component object (e.g. a function, method, property),'
+                    ' the comment object will have a property "CommentParent" which will return the'
+                    ' object for the line underneath the comment, and the object for the line'
+                    ' underneath the comment will have a property "Comment" which will return the'
+                    ' comment object. If the comment is a JSDoc comment, the object for the line'
+                    ' underneath the comment will also have a property "HasJsdoc" with a value of 1.'
+                    )
+                    local w := 0
+                    y := 2 ** 32 - 1
+                    for ctrl in iw {
+                        if ctrl.Type = 'Button' {
+                            ctrl.GetPos(, &_y, &_w)
+                            w := Max(w, _w)
+                            y := Min(y, _y)
+                        }
+                    }
+                    x := w + iw.MarginX * 2
+                    edt := iw.Add('Edit', 'x' x ' y' y ' w' (700 - x) ' r16 vEdtInfo')
+                    edt.Resizer := { W: 1, H: 1 }
+                    iw.Show()
+                    iw.Resizer := GuiResizer(iw)
+                }
+
+                HClickButtonGeneral(ctrl, *) {
+                    ctrl.Gui['EdtInfo'].Text := ctrl.__Text
+                }
+            }
         }
-        BringYourOwnObject(this.script, 'ScriptParser', pitOpt, tvexTabOptions)
     }
 }
 SciptParserDemo_CallbackProps(node) {
@@ -58,9 +261,34 @@ SciptParserDemo_CallbackProps(node) {
         case 'ScriptParser_ComponentList'
         , 'ScriptParser_GlobalCollection'
         , 'ScriptParser_ComponentList'
-        , 'ScriptParser_ComponentCollectionIndex':
+        , 'ScriptParser_ComponentCollectionIndex'
+        , 'ScriptParser_MapEx':
             return 1
     }
+}
+
+class Dotter {
+    __New(HwndCtrl, Period := -1000) {
+        this.HwndCtrl := HwndCtrl
+        ctrl := this.Ctrl
+        StrReplace(ctrl.Text, '.', , , &count)
+        this.N := count
+        this.Stop := 0
+        this.Period := Period
+        SetTimer(this, Period)
+    }
+    Call() {
+        if !this.Stop {
+            if ++this.N > 5 {
+                this.N := 1
+                this.Ctrl.Text := RegExReplace(this.Ctrl.Text, '\.+', '.')
+            } else {
+                this.Ctrl.Text .= '.'
+            }
+            SetTimer(this, this.Period)
+        }
+    }
+    Ctrl => GuiCtrlFromHwnd(this.HwndCtrl)
 }
 
 /***************************************************************************************************
@@ -3322,6 +3550,7 @@ class PathObj {
         this.Index := 1
     }
     Call(*) {
+        global PATHOBJ_INITIAL_BUFFER_SIZE
         if !this.HasOwnProp('__Path') {
             o := this
             buf := Buffer(PATHOBJ_INITIAL_BUFFER_SIZE)
@@ -3365,6 +3594,7 @@ class PathObj {
         return PathObj(this(), EscapePropNames, this.QuoteChar)
     }
     Unescaped(*) {
+        global PATHOBJ_INITIAL_BUFFER_SIZE
         if !this.HasOwnProp('__Path_U') {
             o := this
             buf := Buffer(PATHOBJ_INITIAL_BUFFER_SIZE)
@@ -3381,6 +3611,7 @@ class PathObj {
         return this.__Path_U
     }
     __GetPathSegmentItem_Number(buf, &offset) {
+        global PATHOBJ_INITIAL_BUFFER_SIZE
         bytes := StrPut(this.Name) + 2 ; -2 for null terminator, then +4 for the brackets
         if bytes > offset {
             count := buf.Size - offset
@@ -3408,6 +3639,7 @@ class PathObj {
         this.GetPathSegment(buf, &offset)
     }
     __GetPathSegmentItem_String2(buf, &offset) {
+        global PATHOBJ_INITIAL_BUFFER_SIZE
         bytes := StrPut(this.NameEscaped) + 6 ; -2 for null terminator, then +4 for the brackets and +4 for the quotes
         if bytes > offset {
             count := buf.Size - offset
@@ -3433,6 +3665,7 @@ class PathObj {
         this.GetPathSegment(buf, &offset)
     }
     __GetPathSegmentProp2(buf, &offset) {
+        global PATHOBJ_INITIAL_BUFFER_SIZE
         bytes := StrPut(this.NameEscaped) ; -2 for null terminator, then +2 for the period
         if bytes > offset {
             count := buf.Size - offset
@@ -3458,6 +3691,7 @@ class PathObj {
         return this.GetPathSegment(buf, &offset)
     }
     __GetPathSegmentRoot2(buf, &offset) {
+        global PATHOBJ_INITIAL_BUFFER_SIZE
         bytes := StrPut(this.NameEscaped) - 2 ; -2 for null terminator
         if bytes > offset {
             count := buf.Size - offset
@@ -3487,6 +3721,7 @@ class PathObj {
         this.GetPathSegment(buf, &offset)
     }
     __GetPathSegmentItem_String_U2(buf, &offset) {
+        global PATHOBJ_INITIAL_BUFFER_SIZE
         bytes := StrPut(this.__NamePartialEscaped) + 6 ; -2 for null terminator, then +4 for the brackets and +4 for the quotes
         if bytes > offset {
             count := buf.Size - offset
@@ -3507,6 +3742,7 @@ class PathObj {
         StrPut('[' this.QuoteChar this.__NamePartialEscaped this.QuoteChar ']', buf.Ptr + offset, bytes / 2)
     }
     __GetPathSegmentProp_U(buf, &offset) {
+        global PATHOBJ_INITIAL_BUFFER_SIZE
         bytes := StrPut(this.Name) ; -2 for null terminator, then +2 for the period
         if bytes > offset {
             count := buf.Size - offset
@@ -3527,6 +3763,7 @@ class PathObj {
         StrPut('.' this.Name, buf.Ptr + offset, bytes / 2)
     }
     __GetPathSegmentRoot_U(buf, &offset) {
+        global PATHOBJ_INITIAL_BUFFER_SIZE
         bytes := StrPut(this.Name) - 2 ; -2 for null terminator
         if bytes > offset {
             count := buf.Size - offset
@@ -5520,7 +5757,7 @@ class TreeViewEx_Tab {
             if options.PropsInfoTreeContextMenu {
                 this.SetPropsInfoTreeContextMenu(IsObject(options.PropsInfoTreeContextMenu) ? options.PropsInfoTreeContextMenu : unset)
             }
-            if HasProp(options, 'DefaultPropsInfoTreeOptions') {
+            if options.DefaultPropsInfoTreeOptions {
                 this.SetDefaultPropsInfoTreeOptions(options.DefaultPropsInfoTreeOptions, options.SetPropsInfoTreeNodeConstructor)
             } else if options.SetPropsInfoTreeNodeConstructor {
                 this.SetDefaultPropsInfoTreeOptions()
@@ -16942,6 +17179,7 @@ TreeViewEx_SetConstants(force := false, font := true, customDraw := false) {
     g_gdi32_GetObjectW :=
     g_gdi32_GetTextExtentExPointW :=
     g_gdi32_GetTextExtentPoint32W :=
+    g_msvcrt__wcsrev :=
     g_msvcrt_memmove :=
     g_user32_CreateWindowExW :=
     g_user32_DestroyWindow :=
@@ -16958,7 +17196,7 @@ TreeViewEx_SetConstants(force := false, font := true, customDraw := false) {
 
     TreeViewEx.LibToken := LibraryManager(Map(
         'comctl32', [ 'DefSubclassProc', 'RemoveWindowSubclass', 'SetWindowSubclass' ]
-      , 'msvcrt', [ 'memmove' ]
+      , 'msvcrt', [ 'memmove', '_wcsrev' ]
       , 'user32', [ 'CreateWindowExW', 'DestroyWindow', 'EnableWindow', 'GetDlgCtrlID'
                   , 'GetDpiForWindow', 'IsWindowEnabled', 'IsWindowVisible', 'RedrawWindow'
                   , 'SetWindowLongPtrW', 'SetWindowPos', 'ShowWindow' ]
@@ -17954,6 +18192,40 @@ TreeViewEx_GetSpaceExtentList(Context, ContextIsHwnd := true, UniqueWidth := tru
                 throw OSError()
             }
         }
+    }
+    str := '...'
+    sz := TreeViewEx_Size()
+    if DllCall(
+        g_gdi32_GetTextExtentPoint32W
+        , 'Ptr', hdc
+        , 'Ptr', StrPtr(str)
+        , 'Int', StrLen(str)
+        , 'Ptr', sz
+        , 'Int'
+    ) {
+        c.Ellipses := sz
+    } else {
+        if ContextIsHwnd {
+            context()
+        }
+        throw OSError()
+    }
+    str := '"'
+    sz := TreeViewEx_Size()
+    if DllCall(
+        g_gdi32_GetTextExtentPoint32W
+        , 'Ptr', hdc
+        , 'Ptr', StrPtr(str)
+        , 'Int', StrLen(str)
+        , 'Ptr', sz
+        , 'Int'
+    ) {
+        c.Quote := sz
+    } else {
+        if ContextIsHwnd {
+            context()
+        }
+        throw OSError()
     }
     if ContextIsHwnd {
         context()
@@ -26124,8 +26396,8 @@ PropsInfoTree_SetConstants(force := false) {
     PropsInfoTree_constants_set := 1
 }
 
-PropsInfoTree_StrEscape(Str, MaxChars) {
-    if StrLen(Str) > MaxChars {
+PropsInfoTree_StrEscape(Str, MaxChars?) {
+    if IsSet(MaxChars) && StrLen(Str) > MaxChars {
         return SubStr(StrReplace(StrReplace(StrReplace(StrReplace(Str, '``', '````'), '`n', '``n'), '`r', '``r'), '"', '``"'), 1, MaxChars) '...'
     } else {
         return StrReplace(StrReplace(StrReplace(StrReplace(Str, '``', '````'), '`n', '``n'), '`r', '``r'), '"', '``"')
@@ -26629,10 +26901,49 @@ class PropsInfoTree_Node extends TreeViewEx_Node {
             , 'Ptr', this.__size
             , 'Int'
         ) {
-            context()
             s := ''
             spaceList := this.PropsInfoTreeOptions.SpaceExtentList
-            if (diff := info.max - this.__size.W) && diff >= spaceList[1].W {
+            diff := info.max - this.__size.W
+            if !IsNumber(str) {
+                diff -= spaceList.Quote.W * 2
+            }
+            if diff < 0 {
+                len := StrLen(str)
+                str := DllCall(g_msvcrt__wcsrev, 'ptr', StrPtr(str), 'ptr')
+                sz := TreeViewEx_Size()
+                lpnFit := Buffer(4)
+                if DllCall(
+                    g_gdi32_GetTextExtentExPointW
+                    , 'ptr', context.hdc
+                    , 'ptr', str                                            ; String to measure
+                    , 'int', len                                            ; String length in WORDs
+                    , 'int', info.max - spaceList.Ellipses.W - (IsNumber(path.Name) ? 0 : spaceList.Quote.W * 2)    ; Maximum extent
+                    , 'ptr', lpnFit                                         ; To receive number of characters that can fit
+                    , 'ptr', 0                                              ; lpnDx
+                    , 'ptr', sz                                             ; To receive the dimensions of the string.
+                    , 'ptr'
+                ) {
+                    str := SubStr(StrGet(str), 1, NumGet(lpnFit, 'int'))
+                    if DllCall(
+                        g_gdi32_GetTextExtentPoint32W
+                        , 'Ptr', context.hdc
+                        , 'Ptr', StrPtr(Str)
+                        , 'Int', StrLen(Str)
+                        , 'Ptr', sz
+                        , 'Int'
+                    ) {
+                        diff := info.max - sz.W - spaceList.Ellipses.W - (IsNumber(path.Name) ? 0 : spaceList.Quote.W * 2)
+                        str := '...' StrGet(DllCall(g_msvcrt__wcsrev, 'ptr', StrPtr(str), 'ptr'))
+                    } else {
+                        context()
+                        throw OSError()
+                    }
+                } else {
+                    context()
+                    throw OSError()
+                }
+            }
+            if diff >= spaceList[1].W {
                 i := 0
                 for sz in spaceList {
                     ++i
@@ -26667,14 +26978,15 @@ class PropsInfoTree_Node extends TreeViewEx_Node {
                     }
                 }
             }
+            context()
         } else {
             context()
             throw OSError()
         }
         if IsNumber(path.Name) {
-            return s path.Name
+            return s str
         } else {
-            return s '"' PropsInfoTree_StrEscape(path.Name, this.PropsInfoTreeOptions.__PreviewItemMaxChars) '"'
+            return s '"' PropsInfoTree_StrEscape(str) '"'
         }
     }
     HasObjectValue => IsObject(this.Value)
@@ -26979,10 +27291,25 @@ class PropsInfoTree_Node_Object extends PropsInfoTree_Node {
             if enumList.Length {
                 switch options.__NormalizeKeyExtent, 0 {
                     case 1:
-                        this.DefineProp('KeyWidthChar', { Value: { count: this.EnumCount, max: greatest, min: least, sum: _sum } })
+                        this.DefineProp('KeyWidthChar', {
+                            Value: {
+                                count: this.EnumCount
+                              , max: Min(options.__MaxKeyWidthChar, greatest)
+                              , min: least
+                              , sum: _sum
+                            }
+                        })
                         this.DefineProp('GetChildLabelKey', PropsInfoTree_Node.Prototype.GetOwnPropDesc('__GetChildLabelKeyChar'))
                     case 2, 3:
-                        this.DefineProp('KeyWidthExtent', { Value: { count: this.EnumCount, extent: extent ?? '', max: greatest, min: least, sum: _sum } })
+                        this.DefineProp('KeyWidthExtent', {
+                            Value: {
+                                count: this.EnumCount
+                              , extent: extent ?? ''
+                              , max: Min(options.__MaxKeyWidthExtent, greatest + options.SpaceExtentList.Quote.W * 2)
+                              , min: least
+                              , sum: _sum
+                            }
+                        })
                         this.DefineProp('GetChildLabelKey', PropsInfoTree_Node.Prototype.GetOwnPropDesc('__GetChildLabelKeyExtent'))
                 }
                 this.EnumList := enumList
@@ -29346,6 +29673,10 @@ class PropsInfoTree extends TreeViewEx {
             proto.__LabelMaxChars := 300
             proto.__NodeClass := PropsInfoTree_Node
             proto.__NormalizeKeyExtent := false
+            ; Max pixels for a key when Options.NormalizeKeyExtent is 2.
+            proto.__MaxKeyWidthExtent := 350
+            ; Max chars for key. Ignored when MaxKeyWidthExtent is applied.
+            proto.__PreviewItemMaxChars := 70
             proto.__PreviewItemMaxChars := 50
             proto.__PreviewMaxChars := 200
             proto.__PropertyErrors := false
@@ -29476,6 +29807,11 @@ class PropsInfoTree extends TreeViewEx {
 }
 
 class BringYourOwnObject {
+    static __New() {
+        this.DeleteProp('__New')
+        if PropsInfoTree {
+        }
+    }
     /**
      * @description -
      * This demo enables you to pass any object to the demo constructor to see how PropsInfoTree works.
@@ -29503,70 +29839,195 @@ class BringYourOwnObject {
      * {@link https://github.com/Nich-Cebolla/AutoHotkey-TreeViewEx?tab=readme-ov-file#getting-started TreeViewEx}
      * and its dependencies to ensure your copies stay up-to-date.
      *
-     * @param {*} Obj - The object to explore visually using a tree-view control.
+     * @param {*} [Obj] - The object to explore visually using a tree-view control. You can omit
+     * this parameter if you set `Options.DeferAddControl := true`.
+     *
+     * @param {Object|BringYourOwnObject.Options} - An object with options as property : value pairs,
+     * or an {@link BringYourOwnObject.Options} object.
+     *
+     * @param {Object} [Options.AddOptions = { TreeViewClass: PropsInfoTree }] - An object with
+     * {@link TreeViewEx_Tab.Prototype.Add} options as property : value pairs. If you set
+     * `Options.AddOptions`, this will overwrite "TreeViewClass".
+     *
+     * @param {*} [Options.CallbackGui] - A `Func` or callable object. The function will receive the
+     * gui object as a parameter, and the return value is ignored. This is called before
+     * {@link BringYourOwnObject} adds anything to the gui. If you add controls to the window, you
+     * should modify `Options.TvexTabOptions.Opt` to specify where the tab control should be placed,
+     * e.g. `Options.TvexTabOptions.Opt := "x10 y200 w1100 r15"`. You should only place controls
+     * above the tab control. If you place anything below the tab control, when the window is
+     * resized to be larger vertically, your controls will be overlapped by the tab control.
+     *
+     * @param {Boolean} [Options.DeferAddControl = false] - If true, the {@link TreeViewEx} control
+     * is not added to the window. Your code must call {@link BringYourOwnObject.Prototype.Add}
+     * to add the control. If `Options.DeferAddControl` is nonzero, `Obj` is ignored. Calling
+     * {@link BringYourOwnObject.Prototype.Add} automatically shows the window if it is hidden.
+     *
+     * @param {String} [Options.FaceName = "Segoe Ui"] - The font name to pass to `Gui.Prototype.SetFont`.
+     *
+     * @param {String} [Options.FontOpt = "s11 q5"] - The options to pass to `Gui.Prototype.SetFont`.
+     *
+     * @param {String} [Options.GuiOpt = "+Resize"] - The options to pass to `Gui`.
+     *
+     * @param {String} [Options.Name = "BringYourOwnObject"] - The name to display in the tab control's tab.
+     *
+     * @param {Object} [Options.PropsInfoTreeOptions] - An object with PropsInfoTree options as property : value pairs.
+     *
+     * @param {Boolean} [Options.Show = true] - If nonzero, the gui window is shown. If false, your
+     * code must call {@link BringYourOwnObject#Gui.Show}.
+     *
+     * @param {Object} [Options.TvexOptions = { TreeViewClass: PropsInfoTree }] - An object with
+     * {@link TreeViewEx} options as property : value pairs. If you set `Options.TvexOptions`, this will
+     * overwrite "TreeViewClass".
+     *
+     * @param {Object} [Options.TvexTabOptions] - An object with TreeViewEx_Tab options as property : value pairs.
+     * The default options are:
+     * ```
+     * {
+     *     opt: 'w1000 r25'
+     *   , CallbackDelete: Demo_CallbackDelete
+     *   , CallbackOnChangeAfter: Demo_CallbackOnChange
+     *   , Which: 'Tab2'
+     *   , DefaultPropsInfoTreeOptions: pitOpt
+     * }
+     * ```
+     *
+     * If you set `Options.TvexTabOptions`, this will overwrite "CallbackDelete", "CallbackOnChangeAfter",
+     * and "Which", and "DefaultPropsInfoTreeOptions" (if present) with the above values, as they
+     * are required for functioning. "DefaultPropsInfoTreeOptions" is set with the value passed to
+     * `Options.PropsInfoTreeOptions`, if set.
      */
-    static Call(Obj, Name := 'BringYourOwnObject', PropsInfoTreeOptions?, TvexTabOptions?, TvexOptions?, AddOptions?) {
-        if PropsInfoTree {
-        }
-        g := this.g := Gui('+Resize')
-        g.SetFont('s11 q5', 'Segoe Ui')
-        if IsSet(PropsInfoTreeOptions) {
-            pitOpt := this.PropsInfoTreeOptions := PropsInfoTreeOptions
+    __New(Obj?, Options?) {
+        options := this.Options := BringYourOwnObject.Options(Options ?? unset)
+        g := Gui(options.GuiOpt)
+        this.HwndGui := g.Hwnd
+        g.SetFont(options.FontOpt, options.FaceName)
+        if options.PropsInfoTreeOptions {
+            pitOpt := options.PropsInfoTreeOptions
         } else {
-            pitOpt := this.PropsInfoTreeOptions := {
+            pitOpt := options.PropsInfoTreeOptions := {
                 NormalizeKeyExtent: 2
               , ShowOwnerIndex: false
             }
         }
-        if IsSet(TvexTabOptions) {
-            tvexTabOpt := this.TvexTabOptions := TvexTabOptions
+        if options.TvexTabOptions {
+            tvexTabOpt := options.TvexTabOptions
+            tvexTabOpt.CallbackDelete := Demo_CallbackDelete
+            tvexTabOpt.CallbackOnChangeAfter := Demo_CallbackOnChange
+            tvexTabOpt.Which := 'Tab2'
+            tvexTabOpt.DefaultPropsInfoTreeOptions := pitOpt
         } else {
-            tvexTabOpt := this.TvexTabOptions := {
-                opt: 'w1000 r25'
-              , name: 'tab'
+            tvexTabOpt := options.TvexTabOptions := {
+                Opt: 'w1000 r25'
               , CallbackDelete: Demo_CallbackDelete
               , CallbackOnChangeAfter: Demo_CallbackOnChange
               , Which: 'Tab2'
               , DefaultPropsInfoTreeOptions: pitOpt
             }
         }
-        if IsSet(TvexOptions) {
-            tvexOpt := this.TvexOptions := TvexOptions
+        if options.TvexOptions {
+            tvexOpt := options.TvexOptions
         } else {
-            tvexOpt := this.TvexOptions := { AddStyle: TVS_NOTOOLTIPS }
+            tvexOpt := options.TvexOptions := { AddStyle: TVS_NOTOOLTIPS }
         }
-        if IsSet(AddOptions) {
-            addOpt := this.AddOptions := AddOptions
+        if options.AddOptions {
+            addOpt := options.AddOptions
+            addOpt.TreeViewClass := PropsInfoTree
         } else {
-            addOpt := this.AddOptions := { TreeViewClass: PropsInfoTree }
+            addOpt := options.AddOptions := { TreeViewClass: PropsInfoTree }
         }
         ; Limit the recursion depth when seleceting "Expand all recursive" from the context menu.
         global TVEX_MAX_RECURSION := 4
+        if options.CallbackGui {
+            options.CallbackGui.Call(g)
+        }
         tvexTab := this.TvexTab := TreeViewEx_Tab(g, tvexTabOpt, addOpt, tvexOpt)
         rc := tvexTab.Tab.GetClientWindowRect()
-        g.Add('Button', 'x' g.MarginX ' y' (rc.B + g.MarginY) ' Section', 'Exit').OnEvent('Click', (*) => ExitApp())
-        g.Add('Button', 'ys', 'Reload').OnEvent('Click', (*) => Reload())
-        tvexTab.Tab.Resizer := { W: 1, H: 1 }
+        btn := g.Add('Button', 'x' g.MarginX ' y' (rc.B + g.MarginY) ' Section', 'Exit')
+        btn.OnEvent('Click', (*) => ExitApp())
         resizerObj := { Y: 1 }
-        for ctrl in g {
-            switch Ctrl.Type, 0 {
-                case 'Button', 'Edit': ctrl.Resizer := resizerObj
-            }
+        btn.Resizer := resizerObj
+        btn := g.Add('Button', 'ys', 'Reload')
+        btn.OnEvent('Click', (*) => Reload())
+        btn.Resizer := resizerObj
+        tvexTab.Tab.Resizer := { W: 1, H: 1 }
+        if options.Show {
+            g.Show()
         }
-        g.Show()
-
-        item := tvexTab.Add(Name)
+        this.Added := false
+        if !options.DeferAddControl {
+            this.Add(Obj)
+        }
+    }
+    /**
+     * @description - Creates a new tab, adds a {@link PropsInfoTree} control, and shows the window.
+     * @param {*} Obj - The object to associate with a {@link PropsInfoTree} control.
+     */
+    Add(Obj) {
+        tvexTab := this.TvexTab
+        options := this.Options
+        item := tvexTab.Add(options.Name)
         pit := item.tvex
         tvexTab.PropsInfoTreeContextMenu.RegisterTreeViewExTab(pit.Hwnd, tvexTab, Demo_ContextMenu_AddAsNewTab, Demo_ContextMenu_DeleteTab)
-        lf := pit.GetFont()
-        lf.FontSize := 11
-        lf.FaceName := 'Segoe Ui'
-        lf.Apply()
-        pit.AddRootNode(Obj, Name)
+        pit.AddRootNode(Obj, options.Name)
         pit.Resizer := { W: 1, H: 1 }
-        this.controls := [ item.tvex ]
-        g.resizer := GuiResizer(g, { NoDeferAll: true }, this.controls)
+        if this.Added {
+            this.controls.Push(pit)
+            this.Gui.resizer.Activate(this.controls)
+        } else {
+            lf := pit.GetFont()
+            if RegExMatch(options.FontOpt, 's(\d+)', &m) {
+                lf.FontSize := m[1]
+            } else {
+                lf.FontSize := 11
+            }
+            if RegExMatch(options.FontOpt, 'q(\d+)', &m) {
+                lf.Quality := m[1]
+            } else {
+                lf.Quality := 5
+            }
+            lf.FaceName := options.FaceName || 'Segoe Ui'
+            lf.Apply()
+            this.controls := [ pit ]
+            if !DllCall('IsWindowVisible', 'ptr', this.HwndGui, 'int') {
+                this.Gui.Show()
+            }
+            this.Gui.resizer := GuiResizer(this.Gui, { NoDeferAll: true }, this.controls)
+            this.Added := true
+        }
     }
+    Gui => GuiFromHwnd(this.HwndGui)
+
+    class Options {
+        static __New() {
+            this.DeleteProp('__New')
+            proto := this.Prototype
+            proto.Name := 'BringYourOwnObject'
+            proto.PropsInfoTreeOptions := ''
+            proto.TvexTabOptions := ''
+            proto.TvexOptions := ''
+            proto.AddOptions := ''
+            proto.CallbackGui := ''
+            proto.GuiOpt := '+Resize'
+            proto.FontOpt := 's11 q5'
+            proto.FaceName := 'Segoe Ui'
+            proto.DeferAddControl := false
+            proto.Show := true
+        }
+
+        __New(options?) {
+            if IsSet(options) {
+                for prop in BringYourOwnObject.Options.Prototype.OwnProps() {
+                    if HasProp(options, prop) {
+                        this.%prop% := options.%prop%
+                    }
+                }
+                if this.HasOwnProp('__Class') {
+                    this.DeleteProp('__Class')
+                }
+            }
+        }
+    }
+
 }
 
 
