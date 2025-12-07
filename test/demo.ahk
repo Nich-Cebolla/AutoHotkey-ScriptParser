@@ -53,8 +53,8 @@ class Demo {
           , DeferAddControl: true
         })
         this.script := ScriptParser(options)
-        ; this.Dotter.Stop := 1
-        ; this.Dotter.Ctrl.Text := ''
+        this.Dotter.Stop := 1
+        this.Dotter.Ctrl.Text := ''
         this.DeleteProp('Dotter')
         this.byoo.Add(this.script)
 
@@ -64,7 +64,7 @@ class Demo {
             btn := g.Add('Button', 'Section', 'Click to view information about this window')
             btn.OnEvent('Click', HClickButtonViewInfo)
             txt := g.Add('Text', 'ys', 'Loading.....')
-            ; Demo.Dotter := Dotter(txt.Hwnd)
+            Demo.Dotter := Dotter(txt.Hwnd)
             btn.GetPos(&x, &y, &w, &h)
             txt.GetPos(, , , &h2)
             txt.Move(, y + (h - h2) / 2)
@@ -82,11 +82,13 @@ class Demo {
                     iw.SetFont('s' lf.FontSize ' q' lf.Quality, lf.FaceName)
                     local txt := iw.Add('Text', 'Section w700 vTxtInfo', 'The purpose of this demo'
                     ' is to allow you to explore a ``ScriptParser`` object visually, so you can'
-                    ' learn about what it has to offer. The tree-view control is a custom class'
-                    ' which takes an object as input, and generates a tree-view from the object`'s'
-                    ' properties and items. As you explore, try right-clicking on a node to see what'
-                    ' the context menu has to offer.`r`n`r`n'
-                    ' Each node in the tree-view represents a value, either from a property or from'
+                    ' learn about what it has to offer. The gui and tree-view seen in this demo are'
+                    ' a separate project unrelated to ``ScriptParser``, but I packaged the project'
+                    ' with ``ScriptParser`` for the purpose of this demo. The tree-view control is a'
+                    ' custom class which takes an object as input, and generates a tree-view from the'
+                    ' object`'s properties and items. As you explore, try right-clicking on a node to'
+                    ' see what the context menu has to offer.`r`n`r`n'
+                    'Each node in the tree-view represents a value, either from a property or from'
                     ' the object`'s enumerator. The object that is represented here is the'
                     ' ``ScriptParser`` object created from the path passed to the ``Demo`` function.'
                     ' This demo is intended to allow you to explore the object'
@@ -100,7 +102,7 @@ class Demo {
                     ' classes, class methods, class properties, global functions, comments, jsdoc comments,'
                     ' and strings in the script. It does not currently have a tokenizer, and so it is unable'
                     ' to parse functions defined in an expression, and it does not currently generate an object'
-                    ' for functions nested within other functions.`r`n`r`n'
+                    ' for functions nested within other functions.'
                     )
                     btn := iw.Add('Button', 'xs', 'The "Collection" property')
                     btn.OnEvent('Click', HClickButtonGeneral)
@@ -125,7 +127,7 @@ class Demo {
                     'Strings`r`n`r`n'
                     'Expand a collection. If an item has a name (e.g. a function, method, or property),'
                     ' the name will be listed in the label. Expand an item node and you can view the'
-                    ' various properties available from the component object.`r`n`r`n'
+                    ' various properties available from the component object.'
                     )
                     btn := iw.Add('Button', 'xs', 'The component object')
                     btn.OnEvent('Click', HClickButtonGeneral)
