@@ -152,14 +152,14 @@ and run the script.
 The root node represents the `ScriptParser` object. Expanding the node reveals the primary
 properties of the object.
 
-<img src="images\scriptparser-1-gui.png" style="width:50%;">
+<img src="images\scriptparser-1-gui.png" style="width:100%;">
 
 ### The collection object
 
 The `ScriptParser_Collection` object set to property "Collection" will be your primary entrypoint
 to the class' functionality. There are 14 collections.
 
-<img src="images\scriptparser-2-collection.png" style="width:50%;">
+<img src="images\scriptparser-2-collection.png" style="width:100%;">
 
 ### Nodes
 
@@ -168,30 +168,30 @@ Each node represents a property, or an item returned by the enumerator. Since co
 and dynamic; nodes are generated when you expand the parent node, and all object values are expandable
 (unless an object has no properties or items).
 
-<img src="images\scriptparser-3-nodes.png" style="width:50%;">
+<img src="images\scriptparser-3-nodes.png" style="width:100%;">
 
 ### Component objects
 
 Here is a look at the component object for the [UIA](https://github.com/Descolada/UIA-v2) class.
 
-<img src="images\scriptparser-4-component.png" style="width:50%;">
+<img src="images\scriptparser-4-component.png" style="width:100%;">
 
 ### Children
 
 If we expand the "Children" node, we can see what kinds of children `UIA` has.
 
-<img src="images\scriptparser-5-children.png" style="width:50%;">
+<img src="images\scriptparser-5-children.png" style="width:100%;">
 
 For example, expanding "StaticMethod" reveals a list of component objects for each static method
 of the `UIA` class.
 
-<img src="images\scriptparser-6-staticmethod.png" style="width:50%;">
+<img src="images\scriptparser-6-staticmethod.png" style="width:100%;">
 
 ### Context menu
 
 Don't forget to check out the context menu, which has many useful actions:
 
-<img src="images\scriptparser-7-contextmenu.png" style="width:50%;">
+<img src="images\scriptparser-7-contextmenu.png" style="width:100%;">
 
 # Community tools
 
