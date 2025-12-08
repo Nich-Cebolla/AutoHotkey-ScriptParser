@@ -12,63 +12,8 @@ SPR_QUOTE_CONSECUTIVESINGLE := Chr(0x2001) Chr(0x2001)
 SPP_QUOTE_CONSECUTIVE_DOUBLE := '(?<=^|[\s=(:[!&%,*])""'
 SPP_QUOTE_CONSECUTIVE_SINGLE := '(?<=^|[\s=(:[!&%,*])`'`''
 
-SPP_AHK_VALID_CHARS := '(?:[\p{L}_]|[^\x00-\x7F\x80-\x9F])'
-SPP_AHK_VALID_CHARS_NODIGITS := '(?:[\p{L}_]|[^\x00-\x7F\x80-\x9F0-9])'
-
-SPP_AHK_OBJECT := (
-    '\s*'
-    '(?<property>' SPP_AHK_VALID_CHARS_NODIGITS SPP_AHK_VALID_CHARS '*?)'
-    '\s*:\s*'
-    '(?<value>'
-        '(?:'
-            '(?:'
-                '".*?(?<!``)(?:````)*+"'
-            '|'
-                '(?<bracket1>\((?:[^)(]++|(?&bracket1))*\))'
-            '|'
-                '(?<bracket2>\[(?:[^\][]++|(?&bracket2))*\])'
-            '|'
-                '(?<bracket3>\{(?:[^}{]++|(?&bracket3))*\})'
-            ')?'
-            '[^,]*?'
-        ')+?'
-    ')'
-    '\s*(?:,|$)'
-)
-
-/** @var - Parses code that assigns a value to a symbol. */
-SPP_ASSIGN := (
-    'im)'
-    '^(?<indent>[ \t]*+)'
-    '(?<text>'
-        '(?:'
-            '(?<keyword>static|global|local)'
-            '\s++'
-        ')?'
-        '(?<name>[a-zA-Z0-9_]++)'
-        '\s*+'
-        '(?<assign>[:+\-*/.|&^><?]{1,2}=)'
-        '\s*+'
-        '(?<body>.+)'
-    ')'
-)
-
-/** @var - Parses code that assigns a value to an object property within a class definition. */
-SPP_ASSIGN_PROPERTY := (
-    'im)'
-    '^(<indent>[ \t]*+)'
-    '(?<text>'
-        '(?:'
-            '(?<static>static)'
-            '\s+'
-        ')?'
-        '(?<name>[a-zA-Z0-9_]++)'
-        '\s*+'
-        '(?<assign>:=)'
-        '\s*+'
-        '(?<body>.+)'
-    ')'
-)
+SPP_AHK_VALID_CHARS := '(?:[\p{L}_0-9]|[^\x00-\x7F\x80-\x9F])'
+SPP_AHK_VALID_CHARS_NODIGITS := '(?:[\p{L}_]|[^\x00-\x7F\x80-\x9F])'
 
 /** @var - Parses code that is a class definition. */
 SPP_CLASS := (
@@ -100,56 +45,6 @@ SPP_DEFINE_QUOTE := (
             '(?<!``)'
             '(?:````)*+'
             '\g{-2}'
-        ')'
-    ')'
-)
-
-/**
- * @var -
- * The `SPP_Class` pattern above essentially matches with the bracketed text following a class
- * definition statement. If the code within the brackets contains a quoted string that contains a
- * curly brace, the match may be disrupted.
- * Generally I recommend removing strings from the code prior to parsing; the cleaned code
- * can be saved to a separate file and reused to significantly improve load times, and so it
- * is a good way to handle this.
- *
- * In case removing the strings from the code isn't viable or ideal, `SPP_CLASS_INCLQUOTE`
- * addresses the aforementioned problem. It utilizes the subpattern `SPP_DEFINE_QUOTE`. The
- * modifications included in this pattern cause the PCRE engine to skip over any brackets contained
- * within quoted strings, so they don't disrupt the match. However, this does not handle continuation
- * sections as described here:
- * {@link https://www.autohotkey.com/docs/v2/Scripts.htm#continuation-section}.
- * These must still be removed or handled in some other way.
- * This also does not handle comments, which should be removed or handled in some other way.
- */
-SPP_CLASS_INCLQUOTE := (
-    'im)'
-    SPP_DEFINE_QUOTE ; Include the definition
-    '^(?<indent>[ \t]*)'
-    '(?<text>'
-        'class\s+'
-        '(?<name>[a-zA-Z0-9_]+)'
-        '(?:'
-            '\s+extends\s+'
-            '(?<super>[a-zA-Z0-9_.]+)'
-        ')?'
-        '\s*'
-        '(?<body>\{((?&quote)|[^"`'{}]++|(?&body))*\})' ; Note the modifications to this line
-    ')'
-)
-
-SPP_FUNCTION := (
-    'J)'
-    '(?<=[\r\n]|^)[ \t]*?'
-    '(?<text>'
-        '(?<name>[a-zA-Z0-9_]+)'
-        '(?<params>\((?<inner>([^()]++|(?&params))*)\))'
-        '\s*'
-        '(?:'
-            '(?<body>\{([^\{\}]++|(?&body))*\})'
-        '|'
-            '(?<arrow>=>)'
-            '(?<body>.+)'
         ')'
     ')'
 )
