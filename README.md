@@ -8,6 +8,8 @@ A class that parses AutoHotkey (AHK) code into usable data objects.
   <li><a href="#introduction">Introduction</a></li>
   <li><a href="#use-cases">Use cases</a></li>
   <li><a href="#quick-start">Quick start</a></li>
+  <li><a href="#autohotkeycom-post">AutoHotkey.com post</a></li>
+  <li><a href="#redditcom-post">Reddit.com post</a></li>
   <li><a href="#demo">Demo</a></li>
   <ol type="A">
     <li><a href="#the-demo-gui">The demo gui</a></li>
