@@ -1,18 +1,17 @@
 ﻿
 #Include ..\src\ScriptParser_ContinuationSection.ahk
 
-PathOut := A_MyDocuments '\test-content-ContinuationSection.json'
 Text := FileRead('test-content\test-content-ContinuationSection.ahk')
 
 Process()
 
 Test() {
-    PatternStatement := (
+    SPP_PROPERTY := (
         'iJm)'
         '^(?<indent>[ \t]*)'
         '(?<text>'
             '(?<static>static\s+)?'
-            '(?<name>[a-zA-Z0-9_]+)'
+            '(?<name>(?:[\p{L}_]|[^\x00-\x7F\x80-\x9F])(?:[\p{L}_0-9]|[^\x00-\x7F\x80-\x9F])*+)'
             '(?:'
                 '(?<params>\((?<inner>([^()]++|(?&params))*)\))'
                 '(*MARK:func)'
@@ -33,7 +32,8 @@ Test() {
         ')'
     )
     List := []
-    while RegExMatch(Text, PatternStatement, &Match, Pos ?? 1) {
+    pos := 1
+    while RegExMatch(Text, SPP_PROPERTY, &Match, Pos) {
         List.Push(ScriptParser_ContinuationSection(StrPtr(Text), Match.Pos['indent'], Match['arrow'] ? '=>' : ':='))
         Pos := Match.Pos + Match.Len
     }
@@ -55,19 +55,10 @@ Process() {
                 '`nExpected len: ' StrLen(V[A_Index]) '; Result len: ' cs.Len['Text']
                 '`nDiff: ' (StrLen(V[A_Index]) - cs.Len['Text'])
             )
-            OutputDebug(Problems[-1])
-        } else {
-            OutputDebug('`nExpected----------------------`n' V[A_Index] '`nResult========================`n' cs.Text)
+            OutputDebug(Problems[-1] '`n')
         }
     }
-    OutputDebug('`n`nDone. Problems: ' Problems.Length)
-    s := ''
-    for P in Problems {
-        s .= P '`n`n'
-    }
-    f := FileOpen(PathOut, 'w')
-    f.Write(s)
-    f.Close()
+    OutputDebug('Done. Problems: ' Problems.Length '`n')
 }
 
 Validation() => [
