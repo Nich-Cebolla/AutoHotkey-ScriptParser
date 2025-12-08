@@ -239,8 +239,8 @@ with your code, you will just need to change the root symbol from "ScriptParser"
 the `ScriptParser` object is assigned to. Here is an example from a relatively deep nested object:
 `ScriptParser.Collection.Class["UIA"].Children["StaticMethod"]["UIA.AddNotificationEventHandler"].Params[1].Symbol`
 
-Selecting "Copy object property list with values" add to the clipboard a list of property names and
-for the object that was right-clicked on.
+Selecting "Copy object property list with values" will add to the clipboard a list of property names
+and their values for the object that was right-clicked on.
 
 
 <img src="images/scriptparser-7-contextmenu.png" style="width:30%;">
