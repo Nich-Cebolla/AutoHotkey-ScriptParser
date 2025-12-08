@@ -48,9 +48,9 @@ A class that parses AutoHotkey (AHK) code into usable data objects.
 - Instance properties
 - Property getters
 - Property setters
-- Comment blocks (multiple consecutive lines of `; notation comments)
+- Comment blocks (multiple consecutive lines of ; notation comments)
 - Multi-line comments (/* */ notation comments)
-- Single line comments (`; notation comments)
+- Single line comments (; notation comments)
 - JSDoc comments (/** */ notation comments)
 - Strings
 
@@ -173,6 +173,14 @@ from `ScriptParser` objects.
   sp := ScriptParser({ Path: "MyScript.ahk" })
   ```
 
+# AutoHotkey.com post
+
+Join the conversation on [AutoHotkey.com](https://www.autohotkey.com/boards/viewtopic.php?f=83&t=139709).
+
+# Reddit.com post
+
+Join the conversation on [Reddit.com](https://www.reddit.com/r/AutoHotkey/comments/1ph7eiq/scriptparser_a_class_that_parses_ahk_code_into/).
+
 # Demo
 
 The demo script launches a gui window with a tree-view control that displays the properties and items
@@ -186,14 +194,14 @@ and run the script.
 The root node represents the `ScriptParser` object. Expanding the node reveals the primary
 properties of the object.
 
-<img src="images\scriptparser-1-gui.png" style="width:100%;">
+<img src="images/scriptparser-1-gui.png" style="width:100%;">
 
 ### The collection object
 
 The `ScriptParser_Collection` object set to property "Collection" will be your primary entrypoint
 to the class' functionality. There are 14 collections.
 
-<img src="images\scriptparser-2-collection.png" style="width:100%;">
+<img src="images/scriptparser-2-collection.png" style="width:100%;">
 
 ### Nodes
 
@@ -202,30 +210,38 @@ Each node represents a property, or an item returned by the enumerator. Since co
 and dynamic; nodes are generated when you expand the parent node, and all object values are expandable
 (unless an object has no properties or items).
 
-<img src="images\scriptparser-3-nodes.png" style="width:100%;">
+<img src="images/scriptparser-3-nodes.png" style="width:100%;">
 
 ### Component objects
 
 Here is a look at the component object for the [UIA](https://github.com/Descolada/UIA-v2) class.
 
-<img src="images\scriptparser-4-component.png" style="width:100%;">
+<img src="images/scriptparser-4-component.png" style="width:100%;">
 
 ### Children
 
 If we expand the "Children" node, we can see what kinds of children `UIA` has.
 
-<img src="images\scriptparser-5-children.png" style="width:100%;">
+<img src="images/scriptparser-5-children.png" style="width:100%;">
 
 For example, expanding "StaticMethod" reveals a list of component objects for each static method
 of the `UIA` class.
 
-<img src="images\scriptparser-6-staticmethod.png" style="width:100%;">
+<img src="images/scriptparser-6-staticmethod.png" style="width:100%;">
 
 ### Context menu
 
-Don't forget to check out the context menu, which has many useful actions:
+Don't forget to check out the context menu, which has many useful actions.
+For example, selecting "Copy object path" will copy the actual object path to that value. To use it
+with your code, you will just need to change the root symbol from "ScriptParser" to whatever symbol
+the `ScriptParser` object is assigned to. Here is an example from a relatively deep nested object:
+`ScriptParser.Collection.Class["UIA"].Children["StaticMethod"]["UIA.AddNotificationEventHandler"].Params[1].Symbol`
 
-<img src="images\scriptparser-7-contextmenu.png" style="width:30%;">
+Selecting "Copy object property list with values" add to the clipboard a list of property names and
+for the object that was right-clicked on.
+
+
+<img src="images/scriptparser-7-contextmenu.png" style="width:30%;">
 
 # Community tools
 
@@ -238,19 +254,19 @@ This is a list and description of the available options to pass to `ScriptParser
 Only one of `Options.Content` or `Options.Path` need to be set. If `Options.Path` is set, `Options.Content`
 is ignored.
 
-- **{ String }** [ `Options.Content` ] - The script's code as string.
-- **{ Boolean }** [ `Options.DeferProcess = false` ] - If true, `ScriptParser.Prototype.Process`
+- **{String}** [ `Options.Content` ] - The script's code as string.
+- **{Boolean}** [ `Options.DeferProcess = false` ] - If true, `ScriptParser.Prototype.Process`
   is not called; your code must call it to begin the parsing process.
-- **{ String }** [ `Options.Encoding` ] - The encoding of the file at `Options.Path`.
-- **{ String }** [ `Options.EndOfLine` ] - The end of line character(s) used in the script. If unset,
+- **{String}** [ `Options.Encoding` ] - The encoding of the file at `Options.Path`.
+- **{String}** [ `Options.EndOfLine` ] - The end of line character(s) used in the script. If unset,
   `ScriptParser` will detect the correct character(s) to use. If unset and if there are mixed line
   endings, `ScriptParser` throws an error. You can use
   `` FileAppend(RegExReplace(FileRead(path), "\R", "`n"), "temp-path.ahk") `` to standardize line endings.
-- **{ ScriptParser_GetIncluded }** [ `Options.Included` ] - If you would like `ScriptParser` to recursively
+- **{ScriptParser_GetIncluded}** [ `Options.Included` ] - If you would like `ScriptParser` to recursively
   process the scripts associated with the `#include` statements in the script, set `Options.Included`
   with an instance of [ScriptParser_GetIncluded](#scriptparser_getincluded). The `ScriptParser` objects
   for each script will be accessible from a map object set to property "IncludedCollection".
-- **{ String }** [ `Options.Path` ] - The path to the script.
+- **{String}** [ `Options.Path` ] - The path to the script.
 
 # The ScriptParser object
 
@@ -294,40 +310,40 @@ object. There are 14 collections, each representing a type of component that `Sc
 # The component object
 
 A component is a discrete part of your script. The following are the properties of component objects.
-The **{ Component }** type seen below is a general indicate for a component object. The actuall class
+The **{Component}** type seen below is a general indicate for a component object. The actuall class
 types are `ScriptParser_Ahk.Component.Class`, `ScriptParser_Ahk.Component.Function`, etc.
 
 |Property name|Accessible from|Type|What the property value represents|
 |-|-|-|-|
-|AltName|All|**{ String }**|If multiple components have the same name, all subsequent component objects will have a number appended to the name, and "AltName" is set with the original name.|
-|Arrow|Function, Getter, InstanceMethod, InstanceProperty, Setter, StaticMethod, StaticProperty|**{ Boolean }**|Returns 1 if the definition uses the arrow ( => ) operator.|
-|Children|All|**{ Map }**|If the component has child components, "Children" is a collection of collection objects, and the child component objects are accessible from the collections.|
-|ColEnd|All|**{ Integer }**|The column index of the last character of the component's text.|
-|ColStart|All|**{ Integer }**|The column index of the first character of the component's text.|
-|Comment|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ Component }**|For component objects that are associated with a function, class, method, or property, if there is a comment immediately above the component's text, "Comment" returns the comment component object.|
-|CommentParent|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{ Component }**|This is the property analagous to "Comment" above, but for the comment's object. Returns the associated function, class, method, or property component object.|
-|Extends|Class|**{ String }**|If the class definition uses the `extends` keyword, "Extends" returns the superclass.|
-|Get|InstanceProperty, StaticProperty|**{ Boolean }**|Returns 1 if the property has a getter.|
-|HasJsdoc|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ Boolean }**|If there is a JSDoc comment immediately above the component, "HasJsdoc" returns 1. The "Comment" property returns the component object.|
-|LenBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ Integer }**|For components that have a body (code in-between curly braces or code after an arrow operator), "LenBody" returns the string length in characters of just the body.|
-|Length|All|**{ Integer }**|Returns the string length in characters of the full text of the component.|
-|LineEnd|All|**{ Integer }**|Returns the line number on which the component's text ends.|
-|LineStart|All|**{ Integer }**|Returns the line number on which the component's text begins.|
-|Match|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{ RegExMatchInfo }**|If the component is associated with a string or comment, the "Match" property returns the `RegExMatchInfo` object created when parsing. There are various subcapture groups which you can see by expanding the "Enum" node of the "Match" property node.|
-|Name|All|**{ String }**|Returns the name of the component.|
-|NameCollection|All|**{ String }**|Returns the name of the collection of which the component is part.|
-|Params|Function, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty|**{ Array }**| If the function, property, or method has parameters, "Params" returns a list of parameter objects.
-|Parent|All|**{ Component }**|If the component is a child component, "Parent" returns the parent component object.|
-|Path|All|**{ String }**|Returns the object path for the component.|
-|Pos|All|**{ Integer }**|Returns the character position of the start of the component's text.|
-|PosBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ Integer }**|For components that have a body (code in-between curly braces or code after an arrow operator), "PosBody" returns returns the character position of the start of the component's text body.|
-|PosEnd|All|**{ Integer }**|Returns the character position of the end of the component's text.|
-|Set|InstanceProperty, StaticProperty|**{ Boolean }**|Returns 1 if the property has a setter.|
-|Static|InstanceMethod, InstanceProperty, StaticMethod, StaticProperty|**{ Boolean }**|Returns 1 if the method or property has the `Static` keyword.|
-|Text|All|**{ String }**|Returns the original text for the component.|
-|TextBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ String }**|For components that have a body (code in-between curly braces or code after an arrow operator), "TextBody" returns returns the text between the curly braces.|
-|TextComment|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{ String }**|If the component object is associated with a commment, "TextComment" returns the comment's original text with the comment operators and any leading indentation removed. Each individual line of the comment is separated by crlf.|
-|TextOwn|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ String }**|If the component has children, "TextOwn" returns only the text that is directly associated with the component; child text is removed.|
+|AltName|All|**{String}**|If multiple components have the same name, all subsequent component objects will have a number appended to the name, and "AltName" is set with the original name.|
+|Arrow|Function, Getter, InstanceMethod, InstanceProperty, Setter, StaticMethod, StaticProperty|**{Boolean}**|Returns 1 if the definition uses the arrow ( => ) operator.|
+|Children|All|**{Map}**|If the component has child components, "Children" is a collection of collection objects, and the child component objects are accessible from the collections.|
+|ColEnd|All|**{Integer}**|The column index of the last character of the component's text.|
+|ColStart|All|**{Integer}**|The column index of the first character of the component's text.|
+|Comment|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{Component}**|For component objects that are associated with a function, class, method, or property, if there is a comment immediately above the component's text, "Comment" returns the comment component object.|
+|CommentParent|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{Component}**|This is the property analagous to "Comment" above, but for the comment's object. Returns the associated function, class, method, or property component object.|
+|Extends|Class|**{String}**|If the class definition uses the `extends` keyword, "Extends" returns the superclass.|
+|Get|InstanceProperty, StaticProperty|**{Boolean}**|Returns 1 if the property has a getter.|
+|HasJsdoc|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{Boolean}**|If there is a JSDoc comment immediately above the component, "HasJsdoc" returns 1. The "Comment" property returns the component object.|
+|LenBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{Integer}**|For components that have a body (code in-between curly braces or code after an arrow operator), "LenBody" returns the string length in characters of just the body.|
+|Length|All|**{Integer}**|Returns the string length in characters of the full text of the component.|
+|LineEnd|All|**{Integer}**|Returns the line number on which the component's text ends.|
+|LineStart|All|**{Integer}**|Returns the line number on which the component's text begins.|
+|Match|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{RegExMatchInfo}**|If the component is associated with a string or comment, the "Match" property returns the `RegExMatchInfo` object created when parsing. There are various subcapture groups which you can see by expanding the "Enum" node of the "Match" property node.|
+|Name|All|**{String}**|Returns the name of the component.|
+|NameCollection|All|**{String}**|Returns the name of the collection of which the component is part.|
+|Params|Function, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty|**{Array}**| If the function, property, or method has parameters, "Params" returns a list of parameter objects.
+|Parent|All|**{Component}**|If the component is a child component, "Parent" returns the parent component object.|
+|Path|All|**{String}**|Returns the object path for the component.|
+|Pos|All|**{Integer}**|Returns the character position of the start of the component's text.|
+|PosBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{Integer}**|For components that have a body (code in-between curly braces or code after an arrow operator), "PosBody" returns returns the character position of the start of the component's text body.|
+|PosEnd|All|**{Integer}**|Returns the character position of the end of the component's text.|
+|Set|InstanceProperty, StaticProperty|**{Boolean}**|Returns 1 if the property has a setter.|
+|Static|InstanceMethod, InstanceProperty, StaticMethod, StaticProperty|**{Boolean}**|Returns 1 if the method or property has the `Static` keyword.|
+|Text|All|**{String}**|Returns the original text for the component.|
+|TextBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{String}**|For components that have a body (code in-between curly braces or code after an arrow operator), "TextBody" returns returns the text between the curly braces.|
+|TextComment|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{String}**|If the component object is associated with a commment, "TextComment" returns the comment's original text with the comment operators and any leading indentation removed. Each individual line of the comment is separated by crlf.|
+|TextOwn|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{String}**|If the component has children, "TextOwn" returns only the text that is directly associated with the component; child text is removed.|
 
 # Parameters
 
@@ -387,22 +403,22 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
 
 ## Parameters
 
-- **{ String }** `Path` - The path to the file to analyze. If a relative path is provided, it
+- **{String}** `Path` - The path to the file to analyze. If a relative path is provided, it
   is assumed to be relative to the current working directory.
-- **{ Boolean }** [ `Recursive = true` ] - If true, recursively processes all included files.
+- **{Boolean}** [ `Recursive = true` ] - If true, recursively processes all included files.
   If a file is encountered more than once, a `ScriptParser_GetIncluded.File` object is generated
   for that encounter but the file does not get processed again.
-- **{ String }**  [ `ScriptDir = ""` ] - The path to the local library as described in the
+- **{String}**  [ `ScriptDir = ""` ] - The path to the local library as described in the
   [documentation](https://www.autohotkey.com/docs/v2/Scripts.htm#lib). This would be
   the equivalent of `A_ScriptDir "\lib"` when the script is actually running. Since this function
   is likely to be used outside of the script's context, the local library must be provided if it
   is to be included in the search.
-- **{ String }**  [ `AhkExeDir = ""` ] - The path to the standard library as described in the
+- **{String}**  [ `AhkExeDir = ""` ] - The path to the standard library as described in the
   [documentation](https://www.autohotkey.com/docs/v2/Scripts.htm#lib). This would be the
   equivalent of `A_AhkPath "\lib"` when the script is actually running. Since this function is
   likely to be used outside of the script's context, the standard library must be provided if it
   is to be included in the search.
-- **{ String }**  [ `Encoding` ] - The file encoding to use when reading the files.
+- **{String}**  [ `Encoding` ] - The file encoding to use when reading the files.
 
 # Changelog
 
