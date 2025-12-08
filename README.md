@@ -89,7 +89,7 @@ I wrote `ScriptParser` as the foundation of another tool that will build documen
 by parsing the code and comments. That is in the works, but `ScriptParser` itself is complete and
 functional.
 
-Some other ideas might be:
+Here are some other possible uses for `ScriptParser`:
 - Reflective processing, code that evaluates conditions as a function of the code itself
 - A tool that replaces function calls with the function code itself (to avoid the high overhead cost
   of function calls in AHK)
@@ -201,12 +201,6 @@ Be the first to submit a tool!
 
 This is a list and description of the available options to pass to `ScriptParser.Prototype.__New`.
 
-If there is a default value, the format for the option is:
-- **{ Type }** [ `Options.<Name> = <default value>` ] - *description*
-
-If there is not a default value, the format for the option is:
-- **{ Type }** [ `Options.<Name>` ] - *description*
-
 Only one of `Options.Content` or `Options.Path` need to be set. If `Options.Path` is set, `Options.Content`
 is ignored.
 
@@ -265,9 +259,9 @@ object. There are 14 collections, each representing a type of component that `Sc
 
 # The component object
 
-A component is a discrete part of your script. The following are properties component objects. If a
-property does not have a value, it returns an empty string, so you do not need to use `HasProp` to
-test for the presence of a property prior to accessing the property.
+A component is a discrete part of your script. The following are the properties of component objects.
+The **{ Component }** type seen below is a general indicate for a component object. The actuall class
+types are `ScriptParser_Ahk.Component.Class`, `ScriptParser_Ahk.Component.Function`, etc.
 
 |Property name|Accessible from|Type|What the property value represents|
 |-|-|-|-|
@@ -276,9 +270,9 @@ test for the presence of a property prior to accessing the property.
 |Children|All|**{ Map }**|If the component has child components, "Children" is a collection of collection objects, and the child component objects are accessible from the collections.|
 |ColEnd|All|**{ Integer }**|The column index of the last character of the component's text.|
 |ColStart|All|**{ Integer }**|The column index of the first character of the component's text.|
-|Comment|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ ScriptParser_Ahk.Component }**|For component objects that are associated with a function, class, method, or property, if there is a comment immediately above the component's text, "Comment" returns the comment component object.|
-|CommentParent|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{ ScriptParser_Ahk.Component }**|This is the property analagous to "Comment" above, but for the comment's object. Returns the associated function, class, method, or property component object.|
-|Extends|Class|**{ String }**|Returns the string length in characters of the full text of the component.|
+|Comment|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ Component }**|For component objects that are associated with a function, class, method, or property, if there is a comment immediately above the component's text, "Comment" returns the comment component object.|
+|CommentParent|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{ Component }**|This is the property analagous to "Comment" above, but for the comment's object. Returns the associated function, class, method, or property component object.|
+|Extends|Class|**{ String }**|If the class definition uses the `extends` keyword, "Extends" returns the superclass.|
 |Get|InstanceProperty, StaticProperty|**{ Boolean }**|Returns 1 if the property has a getter.|
 |HasJsdoc|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ Boolean }**|If there is a JSDoc comment immediately above the component, "HasJsdoc" returns 1. The "Comment" property returns the component object.|
 |LenBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ Integer }**|For components that have a body (code in-between curly braces or code after an arrow operator), "LenBody" returns the string length in characters of just the body.|
@@ -289,7 +283,7 @@ test for the presence of a property prior to accessing the property.
 |Name|All|**{ String }**|Returns the name of the component.|
 |NameCollection|All|**{ String }**|Returns the name of the collection of which the component is part.|
 |Params|Function, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty|**{ Array }**| If the function, property, or method has parameters, "Params" returns a list of parameter objects.
-|Parent|All|**{ ScriptParser_Ahk.Component }**|If the component is a child component, "Parent" returns the parent component object.|
+|Parent|All|**{ Component }**|If the component is a child component, "Parent" returns the parent component object.|
 |Path|All|**{ String }**|Returns the object path for the component.|
 |Pos|All|**{ Integer }**|Returns the character position of the start of the component's text.|
 |PosBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{ Integer }**|For components that have a body (code in-between curly braces or code after an arrow operator), "PosBody" returns returns the character position of the start of the component's text body.|
