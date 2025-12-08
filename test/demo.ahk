@@ -3,6 +3,9 @@
 #include ..\src\VENV.ahk
 
 ; Paste your own script path in to the Demo() call, or leave it as the demo script path.
+; If you want `ScriptParser` to recursively process #included scripts, pass a
+; `ScriptParser_GetIncluded` object to the second parameter of `Demo`. See src\ScriptParser_GetIncluded.ahk
+; for details.
 ; For long scripts, it will take a little bit to load.
 
 Demo('test-content\UIA.ahk')
@@ -14,9 +17,9 @@ class Demo {
             TreeViewEx_ContextMenu.Prototype.DefaultItems.Remove(item)
         }
     }
-    static Call(path, encoding?) {
+    static Call(Path, GetIncludedObj?, Encoding?) {
         ptm := PropsInfoTree_PropsTypeMap([
-                { Type: 'ScriptParser', List: '__ConsecutiveDoubleReplacement,__ConsecutiveSingleReplacement,__LoneSemicolonReplacement', AddToDefault: true }
+                { Type: 'ScriptParser', List: '__ConsecutiveDoubleReplacement,__ConsecutiveSingleReplacement,__LoneSemicolonReplacement,__CollectionList,__CollectionIndex,EndOfLine,__Content,Options,__Text', AddToDefault: true }
               , {
                     Type: [
                         'ScriptParser_Ahk.Component.CommentBlock',  'ScriptParser_Ahk.Component.CommentMultiline'
@@ -28,11 +31,10 @@ class Demo {
                   , List:  'Collection,__Comment,__CommentParent,__Removed'
                   , AddToDefault: true
                 }
-              , { Type: 'ScriptParser_JsdocCollection', List: '__ComponentIndex,__MaxComponentIndex,ComponentBase,Constructor,Default', AddToDefault: true }
-              , { Type: 'ScriptParser_RemovedCollection', List: '__Index,__MaxCode,Default', AddToDefault: true }
-              , { Type: 'ScriptParser_ComponentCollection', List: '__ComponentIndex,__MaxComponentIndex,ComponentBase,Constructor,Default', AddToDefault: true }
+              , { Type: [ 'ScriptParser_JsdocCollection', 'ScriptParser_ComponentCollection' ], List: '__ComponentIndex,__MaxComponentIndex,__ComponentBase,__Constructor,Default', AddToDefault: true }
+              , { Type: 'ScriptParser_RemovedCollection', List: '__Index,__MaxCode,__CharCode,__CharMaxCode,__CharStartCode,Default', AddToDefault: true }
             ]
-          , 'idc,idr,idu,Script,ParentIdu,Stack,IdScriptParser,IndexCollection'
+          , '__idc,__idr,__idu,Script,__ParentIdu,__Stack,IdScriptParser,IndexCollection,__Text,__ComponentIdu,__TextBody,__TextOwn'
         )
         pitOpt := this.PropsInfoTreeOptions := {
             CallbackProcessProps: ptm
@@ -43,7 +45,7 @@ class Demo {
           , NormalizeKeyExtent: 2
           , ShowOwnerIndex: false
         }
-        tvexTabOptions := this.TvexTabOptions := { Opt: 'w1400 r20' }
+        tvexTabOptions := this.TvexTabOptions := { Opt: '' }
         options := { Path: path, Encoding: encoding ?? unset }
         this.byoo := BringYourOwnObject(, {
             Name: 'ScriptParser'
@@ -51,10 +53,19 @@ class Demo {
           , TvexTabOptions: tvexTabOptions
           , CallbackGui: _CallbackGui
           , DeferAddControl: true
+          , GuiShowOpt: 'x10 y200'
         })
+        if IsSet(GetIncludedObj) {
+            options.Included := GetIncludedObj
+        }
         this.script := ScriptParser(options)
         this.Dotter.Stop := 1
-        this.Dotter.Ctrl.Text := ''
+        ctrl := this.Dotter.Ctrl
+        ctrl.Text := ''
+        ctrl.Enabled := ctrl.Visible := 0
+        ctrl.GetPos(&x, &y)
+        g := ctrl.Gui
+        g.Add('Link', 'x' x ' y' y ' vLink', '<a href="https://github.com/Nich-Cebolla/AutoHotkey-ScriptParser">Click to open the readme</a>')
         this.DeleteProp('Dotter')
         this.byoo.Add(this.script)
 
@@ -68,7 +79,7 @@ class Demo {
             btn.GetPos(&x, &y, &w, &h)
             txt.GetPos(, , , &h2)
             txt.Move(, y + (h - h2) / 2)
-            Demo.TvexTabOptions.Opt := 'x' x ' y' (y + h + g.MarginY) ' w1400 r19'
+            Demo.TvexTabOptions.Opt := 'x' x ' y' (y + h + g.MarginY) ' w1150 r19'
 
             return
 
@@ -135,56 +146,41 @@ class Demo {
                     'The component object`r`n`r`n'
                     'A component is a discrete part of your script. The following are properties'
                     ' available from all component objects:`r`n`r`n'
-                    'AltName: If multiple components have the same name, all subsequent'
-                    ' component objects will have a number appended to the name, and "AltName" is set'
-                    ' with the original name.`r`n`r`n'
-                    'Children: If the component has child components, "Children" is a collection of'
-                    ' collection objects, and the child component objects are accessible from the'
-                    ' collections.`r`n`r`n'
+                    'AltName: If multiple components have the same name, all subsequent component objects will have a number appended to the name, and "AltName" is set with the original name.`r`n`r`n'
+                    'Arrow: Returns 1 if the definition uses the arrow ( => ) operator.`r`n`r`n'
+                    'Children: If the component has child components, "Children" is a collection of collection objects, and the child component objects are accessible from the collections.`r`n`r`n'
                     'ColEnd: The column index of the last character of the component`'s text.`r`n`r`n'
                     'ColStart: The column index of the first character of the component`'s text.`r`n`r`n'
-                    'Comment: For component objects that are associated with a function, class, method,'
-                    ' or property, if there is a comment immediately above the component`'s text,'
-                    ' "Comment" returns the comment component object.`r`n`r`n'
-                    'CommentParent: This is the property analagous to "Comment" above, but for the'
-                    ' comment`'s object. Returns the associated function, class, method, or property'
-                    ' component object.`r`n`r`n'
-                    'HasJsdoc: If there is a JSDoc comment immediately above the component, "HasJsdoc"'
-                    ' returns 1. The "Comment" property returns the component object.`r`n`r`n'
-                    'LenBody: For components that have a body (code in-between curly braces or code'
-                    ' after an arrow operator), "LenBody" returns the string length in characters of'
-                    ' just the body.`r`n`r`n'
+                    'Comment: For component objects that are associated with a function, class, method, or property, if there is a comment immediately above the component`'s text, "Comment" returns the comment component object.`r`n`r`n'
+                    'CommentParent: This is the property analagous to "Comment" above, but for the comment`'s object. Returns the associated function, class, method, or property component object.`r`n`r`n'
+                    'Extends: Returns the string length in characters of the full text of the component.`r`n`r`n'
+                    'Get: Returns 1 if the property has a getter.`r`n`r`n'
+                    'HasJsdoc: If there is a JSDoc comment immediately above the component, "HasJsdoc" returns 1. The "Comment" property returns the component object.`r`n`r`n'
+                    'LenBody: For components that have a body (code in-between curly braces or code after an arrow operator), "LenBody" returns the string length in characters of just the body.`r`n`r`n'
                     'Length: Returns the string length in characters of the full text of the component.`r`n`r`n'
                     'LineEnd: Returns the line number on which the component`'s text ends.`r`n`r`n'
                     'LineStart: Returns the line number on which the component`'s text begins.`r`n`r`n'
-                    'Match: If the component is associated with a string or comment, the "Match"'
-                    ' property returns the ``RegExMatchInfo`` object created when parsing. There are'
-                    ' various subcapture groups which you can see by expanding the "Enum" node of the'
-                    ' "Match" property node.`r`n`r`n'
-                    'Name: Returns the name of the component. If the component doesn`'t have a name,'
-                    ' "Name" returns the component`'s unique identifier assigned by ``ScriptParser``.`r`n`r`n'
+                    'Match: If the component is associated with a string or comment, the "Match" property returns the RegExMatchInfo object created when parsing. There are various subcapture groups which you can see by expanding the "Enum" node of the "Match" property node.`r`n`r`n'
+                    'Name: Returns the name of the component.`r`n`r`n'
                     'NameCollection: Returns the name of the collection of which the component is part.`r`n`r`n'
-                    'Parent: If the component is a child component, "Parent" returns the parent'
-                    ' component object.`r`n`r`n'
+                    'Params: If the function, property, or method has parameters, "Params" returns a list of parameter objects.`r`n`r`n'
+                    'Parent: If the component is a child component, "Parent" returns the parent component object.`r`n`r`n'
+                    'Path: Returns the object path for the component.`r`n`r`n'
                     'Pos: Returns the character position of the start of the component`'s text.`r`n`r`n'
+                    'PosBody: For components that have a body (code in-between curly braces or code after an arrow operator), "PosBody" returns returns the character position of the start of the component`'s text body.`r`n`r`n'
                     'PosEnd: Returns the character position of the end of the component`'s text.`r`n`r`n'
-                    'Text: Returns the component`'s text with strings and comments removed.`r`n`r`n'
-                    'TextComment: If the component object is associated with a commment, "TextComment"'
-                    ' returns the comment`'s original text with the comment operators and any leading'
-                    ' indentation removed. Each individual line of the comment is separated by crlf.`r`n`r`n'
-                    'TextFull: Returns the original text for the component.`r`n`r`n'
-                    'TextOwn: If the component has children, "TextOwn" returns only the text that is'
-                    ' directly associated with the component; child text is removed. Comments and'
-                    ' strings are also removed.`r`n`r`n'
-                    'TextOwnFull: If the component has children, "TextOwnFull" returns only the text'
-                    ' that is directly associated with the component; child text is removed. This'
-                    ' returns the original text including comments and strings.'
+                    'Set: Returns 1 if the property has a setter.`r`n`r`n'
+                    'Static: Returns 1 if the method or property has the Static keyword.`r`n`r`n'
+                    'Text: Returns the original text for the component.`r`n`r`n'
+                    'TextBody: For components that have a body (code in-between curly braces or code after an arrow operator), "TextBody" returns returns the text between the curly braces.`r`n`r`n'
+                    'TextComment: If the component object is associated with a commment, "TextComment" returns the comment`'s original text with the comment operators and any leading indentation removed. Each individual line of the comment is separated by crlf.`r`n`r`n'
+                    'TextOwn: If the component has children, "TextOwn" returns only the text that is directly associated with the component; child text is removed.`r`n`r`n'
                     )
                     btn := iw.Add('Button', 'xs', 'Function parameters')
                     btn.OnEvent('Click', HClickButtonGeneral)
                     btn.__Text := (
                     'Parameters`r`n`r`n'
-                    ' Regarding class methods, dynamic properties, and global functions, ScriptParser'
+                    ' Regarding class methods, dynamic properties, and global functions, ``ScriptParser``'
                     ' creates an object for each parameter. Expand one'
                     ' of either "Function", "InstanceMethod", or "StaticMethod". After expanding'
                     ' the node, find a function that you know has parameters and expand the node.'
@@ -192,7 +188,7 @@ class Demo {
                     ' the following properties:`r`n`r`n'
                     'Default: Returns 1 if there is a default value.`r`n'
                     'DefaultValue: If "Default" is 1, returns the default value text.`r`n'
-                    'Optional: Returns 1 if the parameter has the ? operator, or a default value.`r`n'
+                    'Optional: Returns 1 if the parameter has the ? operator or a default value.`r`n'
                     'Symbol: Returns the symbol of the parameter.`r`n'
                     'Variadic: Returns 1 if the paremeter has the * operator.`r`n'
                     'VarRef: Returns 1 if the parameter has the & operator.'
@@ -211,29 +207,28 @@ class Demo {
                     btn.OnEvent('Click', HClickButtonGeneral)
                     btn.__Text := (
                     'Strings`r`n`r`n'
-                    'All quoted strings are removed from the text before parsing, and they are replaced'
-                    ' by replacement strings. When you access one of the properties like "TextFull",'
-                    ' the original text is returned. In the gui window, you can see the difference'
-                    ' between properties "Text" and "TextFull".`r`n`r`n'
-                    'The string component objects will all have a property "Match", which returns'
-                    ' the ``RegExMatchInfo`` object produced when the string was parsed.'
-                    ' The "string" item of the match object returns the text without external quotation'
-                    ' characters.'
+                    'All quoted strings are removed from the text before parsing, and they are replaced by replacement'
+                    'identifiers. When you access a "Text" property, the identifiers are swapped with the actual text,'
+                    'so the original text is returned.`r`n`r`n'
+
+                    'The string component objects will all have a property "Match" which returns'
+                    'the ``RegExMatchInfo`` object produced when the string was parsed.'
+                    'The "string" item of the match object returns the text without external quotation'
+                    'characters.'
                     )
                     btn := iw.Add('Button', 'xs', 'Comments')
                     btn.OnEvent('Click', HClickButtonGeneral)
                     btn.__Text := (
                     'Comments`r`n`r`n'
                     'Comments are divided into four types, "CommentBlock", "CommentMultiLine",'
-                    ' "CommentSingleLine", and "Jsdoc". When the comment is parsed, the next line'
-                    ' underneath the comment is included in the match. ``ScriptParser`` uses this to'
-                    ' associate the comment with what is underneath it. If the line underneath it is'
-                    ' something that produced a component object (e.g. a function, method, property),'
-                    ' the comment object will have a property "CommentParent" which will return the'
-                    ' object for the line underneath the comment, and the object for the line'
-                    ' underneath the comment will have a property "Comment" which will return the'
-                    ' comment object. If the comment is a JSDoc comment, the object for the line'
-                    ' underneath the comment will also have a property "HasJsdoc" with a value of 1.'
+                    '"CommentSingleLine", and "Jsdoc". When the comment is parsed, the next line'
+                    'underneath the comment is included in the match. ``ScriptParser`` uses this to'
+                    'associate the comment with what is underneath it. If the line underneath it is'
+                    'associated with a component object, and if the component is a function, method, property, or class,'
+                    'the comment object will have a property "CommentParent" which will return the object for the line'
+                    'underneath the comment, and the object for the line underneath the comment will have a property'
+                    '"Comment" which will return the comment object. If the comment is a JSDoc comment, the object for'
+                    'the line underneath the comment will also have a property "HasJsdoc" with a value of 1.'
                     )
                     local w := 0
                     y := 2 ** 32 - 1
@@ -247,7 +242,8 @@ class Demo {
                     x := w + iw.MarginX * 2
                     edt := iw.Add('Edit', 'x' x ' y' y ' w' (700 - x) ' r16 vEdtInfo')
                     edt.Resizer := { W: 1, H: 1 }
-                    iw.Show()
+                    MonitorGet(1, , , &r)
+                    iw.Show('x' (r - 740) ' y200')
                     iw.Resizer := GuiResizer(iw)
                 }
 
@@ -264,7 +260,11 @@ SciptParserDemo_CallbackProps(node) {
         , 'ScriptParser_GlobalCollection'
         , 'ScriptParser_ComponentList'
         , 'ScriptParser_ComponentCollectionIndex'
-        , 'ScriptParser_MapEx':
+        , 'ScriptParser_MapEx'
+        , 'ScriptParser_ComponentCollection'
+        , 'ScriptParser_RemovedCollection.ShortCollection'
+        , 'ScriptParser_ChildCollection'
+        , 'ScriptParser_IncludedCollection':
             return 1
     }
 }
@@ -26893,7 +26893,7 @@ class PropsInfoTree_Node extends TreeViewEx_Node {
     __GetChildLabelKeyExtent(childNode) {
         info := this.KeyWidthExtent
         path := childNode.Path
-        str := String(path.Name)
+        str := PropsInfoTree_StrEscape(path.Name)
         context := TreeViewEx_SelectFontIntoDc(this.HwndCtrl)
         if DllCall(
             g_gdi32_GetTextExtentPoint32W
@@ -26988,7 +26988,7 @@ class PropsInfoTree_Node extends TreeViewEx_Node {
         if IsNumber(path.Name) {
             return s str
         } else {
-            return s '"' PropsInfoTree_StrEscape(str) '"'
+            return s '"' str '"'
         }
     }
     HasObjectValue => IsObject(this.Value)
@@ -29953,7 +29953,7 @@ class BringYourOwnObject {
         btn.Resizer := resizerObj
         tvexTab.Tab.Resizer := { W: 1, H: 1 }
         if options.Show {
-            g.Show()
+            g.Show(options.GuiShowOpt || unset)
         }
         this.Added := false
         if !options.DeferAddControl {
@@ -30010,6 +30010,7 @@ class BringYourOwnObject {
             proto.AddOptions := ''
             proto.CallbackGui := ''
             proto.GuiOpt := '+Resize'
+            proto.GuiShowOpt := ''
             proto.FontOpt := 's11 q5'
             proto.FaceName := 'Segoe Ui'
             proto.DeferAddControl := false

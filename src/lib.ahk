@@ -94,3 +94,11 @@ ScriptParser_QuickSort(Arr, CompareFn := (a, b) => a - b, ArrSizeThreshold := 17
         }
     }
 }
+
+ScriptParser_GetJsdocName(Component) {
+    if Component.CommentParent {
+        return Component.CommentParent.Name '.Jsdoc'
+    } else {
+        return Component.TextComment ' - ' Component.__idu
+    }
+}

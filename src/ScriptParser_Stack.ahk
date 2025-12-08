@@ -8,7 +8,7 @@ class ScriptParser_Stack extends Array {
         this.PosEnd := this.Pos := this.Line := 1
     }
     Add(Name, Pos, PosEnd, ParentContext) {
-        Constructor := this.Constructor
+        Constructor := this.__Constructor
         return Constructor(Name, Pos, PosEnd, ParentContext)
     }
     BuildScopeMap() {
@@ -39,7 +39,7 @@ class ScriptParser_Stack extends Array {
             Line := this.Line
         }
         ; Get line count between the current position and the beginning of the definition
-        StrReplace(SubStr(Script.Content, Pos, CS.Pos['text'] - Pos), Script.EndOfLine, , , &linecount)
+        StrReplace(SubStr(Script.__Content, Pos, CS.Pos['text'] - Pos), Script.EndOfLine, , , &linecount)
         ; Calculate start line for the definition statement
         LineStart := Line + linecount
         ; Calculate start column for the definition statement
@@ -55,7 +55,7 @@ class ScriptParser_Stack extends Array {
             ColEnd := CS.Len['text'] - InStr(CS['text'], Script.EndOfLine, , , -1)
         }
         ; Create the context object
-        this.Active := this.Constructor.Call(Name, CS.Pos['text'], CS.Pos['text'] + CS.Len['text'], this[-1])
+        this.Active := this.__Constructor.Call(Name, CS.Pos['text'], CS.Pos['text'] + CS.Len['text'], this[-1])
         ; Create the component object
         Component := ComponentConstructor(
             LineStart
@@ -71,7 +71,7 @@ class ScriptParser_Stack extends Array {
           , CS.Len['body']
         )
         ; Set the component to the context. We use the `idu` to prevent a reference cycle.
-        this.Active.ComponentIdu := Component.idu
+        this.Active.__ComponentIdu := Component.__idu
         ; Add the component as a child to its parent
         if this.Depth > 1 {
             this[-1].Component.AddChild(Component)
@@ -101,7 +101,7 @@ class ScriptParser_Stack extends Array {
     }
     SetComponent(Component) {
         this.Active.__Component := Component
-        this.Active.ComponentIdu := Component.idu
+        this.Active.__ComponentIdu := Component.__idu
         if this.Depth > 1 {
             this[-1].__Component.AddChild(Component)
         }
@@ -150,7 +150,7 @@ class ScriptParser_Stack extends Array {
             return s
         }
 
-        Component => this.Script.ComponentList.Get(this.ComponentIdu)
+        Component => this.Script.ComponentList.Get(this.__ComponentIdu)
         Length => this.PosEnd - this.Pos
         Path => this.GetPath()
         Script => ScriptParser.Collection.Get(this.IdScriptParser)

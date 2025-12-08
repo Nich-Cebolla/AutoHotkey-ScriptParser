@@ -7,6 +7,7 @@ class ScriptParser {
         this.DeleteProp('__New')
         this.Collection := Map()
         this.Collection.CaseSense := false
+        this.Prototype.IncludedCollection := ''
     }
     static __Add(obj) {
         this.Collection.Set(obj.IdScriptParser, obj)
@@ -32,33 +33,36 @@ class ScriptParser {
         ScriptParser.__Add(this)
         Options := this.Options := ScriptParser.Options(Options ?? {})
         this.Collection := ScriptParser_Collection(this)
-        if IsSet(Path) {
-            this.Content := FileRead(Path, this.Encoding || unset)
-        } else if IsSet(Content) {
-            this.Content := Content
-        } else if Options.Path {
-            this.Content := FileRead(this.Path, this.Encoding || unset)
+        if Options.Path {
+            if Options.EndOfLine {
+                this.__Content := RegExReplace(FileRead(Options.Path, Options.Encoding || unset), '\R', Options.EndOfLine)
+            } else {
+                this.__Content := FileRead(Options.Path, Options.Encoding || unset)
+            }
         } else if Options.Content {
-            this.Content := Options.Content
+            if Options.EndOfLine {
+                this.__Content := RegExReplace(Options.Content, '\R', Options.EndOfLine)
+            } else {
+                this.__Content := Options.Content
+            }
         } else {
-            throw Error('``ScriptParser`` requires either a content string or file path.')
+            throw Error('``ScriptParser`` requires either ``Options.Content`` or ``Options.Path`` to be set.')
         }
         n := 0x2000
         this.__FillerReplacement := ScriptParser_FillStr(Chr(_GetOrd()))
         this.__LoneSemicolonReplacement := _GetOrd()
+        ++n
         this.__ConsecutiveDoubleReplacement := _GetOrd()
+        ++n
         this.__ConsecutiveSingleReplacement := _GetOrd()
-        if Options.EndOfLine {
-            this.Content := RegExReplace(this.Content, '\R', Options.EndOfLine)
-            this.EndOfLine := Options.EndOfLine
-        } else {
+        if !Options.EndOfLine {
             ; Get line endings.
-            StrReplace(this.Content, '`n', , , &countlf)
-            StrReplace(this.Content, '`r', , , &countcr)
+            StrReplace(this.__Content, '`n', , , &countlf)
+            StrReplace(this.__Content, '`r', , , &countcr)
             if countcr {
                 if countlf {
                     if countcr == countlf {
-                        RegExMatch(this.Content, '\R', &mEndOfLine)
+                        RegExMatch(this.__Content, '\R', &mEndOfLine)
                         this.EndOfLine := mEndOfLine[0]
                     } else {
                         throw Error('The script content has mixed line endings.')
@@ -72,17 +76,14 @@ class ScriptParser {
                 this.EndOfLine := ''
             }
         }
-        ; `Script.CollectionIndex` is a map with name : index pairs. The indices are associated
-        ; with `Script.CollectionList` items. To get an item by name: `Script.CollectionList[Script.CollectionIndex.Get(Name)]`.
-        CollectionIndex := this.CollectionIndex := ScriptParser_ComponentCollectionIndex(ObjOwnPropCount(ScriptParser_Ahk.Component))
-        CollectionList := this.CollectionList := ScriptParser_ComponentCollectionList(ObjOwnPropCount(ScriptParser_Ahk.Component))
+        CollectionIndex := this.__CollectionIndex := ScriptParser_ComponentCollectionIndex(ObjOwnPropCount(ScriptParser_Ahk.Component))
+        CollectionList := this.__CollectionList := ScriptParser_ComponentCollectionList(ObjOwnPropCount(ScriptParser_Ahk.Component))
         Component := ScriptParser_Ahk.Component
-        ; `ScriptParser_ComponentBaseBase` is the base for component objects.
-        ScriptParser_ComponentBaseBase := this.__ScriptParser_ComponentBaseBase := { IdScriptParser: this.IdScriptParser }
-        ObjSetBase(ScriptParser_ComponentBaseBase, ScriptParser_ComponentBase.Prototype)
+        ComponentBaseBase := { IdScriptParser: this.IdScriptParser }
+        ObjSetBase(ComponentBaseBase, ScriptParser_ComponentBase.Prototype)
         BaseObjects := Map()
         BaseObjects.CaseSense := false
-        BaseObjects.Set('ScriptParser_ComponentBase', ScriptParser_ComponentBaseBase)
+        BaseObjects.Set('ScriptParser_ComponentBase', ComponentBaseBase)
         LangContent := FileRead(ScriptParser_Ahk.__GetPath())
         Pending := []
         ToCollectionsObj := ['Class', 'CommentBlock', 'CommentMultiline', 'CommentSingleline'
@@ -110,10 +111,7 @@ class ScriptParser {
             }
         }
         i := 0
-        loop 100 { ; 100 is arbitrary
-            if !Pending.Length {
-                break
-            }
+        while Pending.Length {
             if ++i > Pending.Length {
                 i := 1
             }
@@ -138,19 +136,19 @@ class ScriptParser {
         this.ComponentList := ScriptParser_ComponentList()
         this.RemovedCollection := ScriptParser_RemovedCollection(this)
         ; `StackContextBase` is the base for `ScriptParser_Stack.Context` objects.
-        this.__StackContextBase := {
+        StackContextBase := {
             Bounds: [ { Start: 1 } ]
           , Depth: 0
           , IsClass: false
           , Name: ''
           , Pos: 1
-          , PosEnd: StrLen(this.Content)
+          , PosEnd: StrLen(this.__Content)
           , IdScriptParser: this.IdScriptParser
         }
-        ObjSetBase(this.__StackContextBase, ScriptParser_Stack.Context.Prototype)
-        this.Stack := ScriptParser_Stack(this.__StackContextBase)
-        this.Stack.Constructor := ScriptParser_ClassFactory(this.__StackContextBase)
-        this.Length := StrLen(this.Content)
+        ObjSetBase(StackContextBase, ScriptParser_Stack.Context.Prototype)
+        this.__Stack := ScriptParser_Stack(StackContextBase)
+        this.__Stack.__Constructor := ScriptParser_ClassFactory(StackContextBase)
+        this.Length := StrLen(this.__Content)
         this.GlobalCollection := ScriptParser_GlobalCollection()
         if !Options.DeferProcess {
             this.Process()
@@ -160,7 +158,7 @@ class ScriptParser {
 
         _GetOrd() {
             loop {
-                if InStr(this.Content, Chr(n)) {
+                if InStr(this.__Content, Chr(n)) {
                     ++n
                 } else {
                     return n
@@ -190,16 +188,62 @@ class ScriptParser {
                     CollectionList[index] := ScriptParser_ComponentCollection(B)
                 }
                 CollectionIndex.Set(Prop, index)
-                CollectionList[index].Constructor := ScriptParser_ClassFactory(B, Prop)
+                CollectionList[index].__Constructor := ScriptParser_ClassFactory(B, Prop)
+            }
+        }
+    }
+    AssociateComments() {
+        listComponent := ScriptParser_QuickSort(this.ComponentList.ToArray(), (a, b) => a.LineStart - b.LineStart)
+        i := 0
+        Component := { LineEnd: -100 }
+        loop  {
+            if ++i > listComponent.Length {
+                break
+            }
+            switch listComponent[i].IndexCollection {
+                case SPC_JSDOC, SPC_COMMENTBLOCK, SPC_COMMENTMULTILINE, SPC_COMMENTSINGLELINE:
+                    if InStr(listComponent[i].Match['line'], 'WalkCachedTree') {
+                        sleep 1
+                    }
+                    if listComponent[i].IndexCollection == SPC_JSDOC
+                    || listComponent[i].IndexCollection == SPC_COMMENTBLOCK
+                    || listComponent[i].IndexCollection == SPC_COMMENTMULTILINE
+                    || !listComponent[i].__Removed.Match['lead'] {
+                        Component := listComponent[i]
+                    }
+                case SPC_CLASS
+                , SPC_FUNCTION
+                , SPC_GETTER
+                , SPC_INSTANCEMETHOD
+                , SPC_INSTANCEPROPERTY
+                , SPC_SETTER
+                , SPC_STATICMETHOD
+                , SPC_STATICPROPERTY:
+                    if listComponent[i].LineStart - 1 == Component.LineEnd {
+                        Component.__CommentParent := listComponent[i].__idu
+                        listComponent[i].__Comment := Component.__idu
+                        if Component.IndexCollection = SPC_JSDOC {
+                            listComponent[i].HasJsdoc := true
+                        }
+                    }
             }
         }
     }
     Cleanup() {
-        for prop in [ '__FillerReplacement', '__ScriptParser_ComponentBaseBase', '__StackContextBase'
-        , 'Stack' ] {
+        for prop in [ '__FillerReplacement', '__Stack' ] {
             if this.HasOwnProp(prop) {
                 this.DeleteProp(prop)
             }
+        }
+        for index in [ SPC_CLASS, SPC_FUNCTION, SPC_GETTER, SPC_INSTANCEMETHOD, SPC_INSTANCEPROPERTY
+        , SPC_SETTER, SPC_STATICMETHOD, SPC_STATICPROPERTY ] {
+            for name, component in this.__CollectionList[index] {
+                component.DeleteProp('__Stack')
+            }
+            this.__CollectionList[index].DeleteProp('__Constructor')
+        }
+        for index in [ SPC_COMMENTBLOCK, SPC_COMMENTMULTILINE, SPC_COMMENTSINGLELINE, SPC_JSDOC, SPC_STRING ] {
+            this.__CollectionList[index].DeleteProp('__Constructor')
         }
     }
     /**
@@ -211,7 +255,10 @@ class ScriptParser {
      * are map objects with additional properties and methods.
      */
     GetCollection(Name) {
-        return this.CollectionList[this.CollectionIndex.Get(Name)]
+        return this.__CollectionList[this.__CollectionIndex.Get(Name)]
+    }
+    GetCollectionName(Index) {
+        return this.__CollectionList[Index].NameCollection
     }
     /**
      * @description - Returns text from the script, with strings and comments still removed from
@@ -221,7 +268,7 @@ class ScriptParser {
      * @returns {String}
      */
     GetText(PosStart := 1, Len?) {
-        return SubStr(this.Content, PosStart, Len ?? unset)
+        return SubStr(this.__Content, PosStart, Len ?? unset)
     }
     /**
      * @description - Returns the original, unmodified text from the script.
@@ -230,14 +277,14 @@ class ScriptParser {
      * @returns {String}
      */
     GetTextFull(PosStart := 1, Len?) {
-        Text := SubStr(this.Content, PosStart, Len ?? unset)
+        Text := SubStr(this.__Content, PosStart, Len ?? unset)
         Pos := 1
         RemovedCollection := this.RemovedCollection
         loop {
             if !RegExMatch(Text, SPP_REPLACEMENT, &Match, Pos) {
                 break
             }
-            rc := RemovedCollection.Get(this.NameCollection[Match['collection']])[Match['index']].__Removed
+            rc := RemovedCollection.Get(this.GetCollectionName(Match['collection']))[Match['index']].__Removed
             Text := StrReplace(Text, rc.Replacement, rc.Text)
             Pos := Match.Pos + Match.Len
         }
@@ -260,41 +307,20 @@ class ScriptParser {
         return StrReplace(StrReplace(Text, Chr(this.__ConsecutiveDoubleReplacement) Chr(this.__ConsecutiveDoubleReplacement), '""')
         , Chr(this.__ConsecutiveSingleReplacement) Chr(this.__ConsecutiveSingleReplacement), "''")
     }
-    AssociateComments() {
-        listComponent := ScriptParser_QuickSort(this.ComponentList.ToArray(), (a, b) => a.LineStart - b.LineStart)
-        i := 0
-        loop  {
-            if ++i > listComponent.Length {
-                break
-            }
-            switch listComponent[i].IndexCollection {
-                case SPC_JSDOC, SPC_COMMENTBLOCK, SPC_COMMENTMULTILINE, SPC_COMMENTSINGLELINE:
-                    Component := listComponent[i]
-                default:
-                    if IsSet(Component) && listComponent[i].LineStart - 1 == Component.LineEnd {
-                        Component.__CommentParent := listComponent[i].idu
-                        listComponent[i].__Comment := Component.idu
-                        if Component.IndexCollection = SPC_JSDOC {
-                            listComponent[i].HasJsdoc := true
-                        }
-                    }
-            }
-        }
-    }
     /**
      * @description - The primary parsing function. For most scripts, this must be called after
      * `ScriptParser.Prototype.RemoveStringsAndComments` to work correctly.
      */
     ParseClass() {
         eol := this.EndOfLine
-        Stack := this.Stack
+        Stack := this.__Stack
         Stack.Line := Stack.Pos := 1
-        ClassConstructor := this.CollectionList[SPC_CLASS].Constructor
-        StaticMethodConstructor := this.CollectionList[SPC_STATICMETHOD].Constructor
-        InstanceMethodConstructor := this.CollectionList[SPC_INSTANCEMETHOD].Constructor
-        StaticPropertyConstructor := this.CollectionList[SPC_STATICPROPERTY].Constructor
-        InstancePropertyConstructor := this.CollectionList[SPC_INSTANCEPROPERTY].Constructor
-        FunctionConstructor := this.CollectionList[SPC_FUNCTION].Constructor
+        ClassConstructor := this.__CollectionList[SPC_CLASS].__Constructor
+        StaticMethodConstructor := this.__CollectionList[SPC_STATICMETHOD].__Constructor
+        InstanceMethodConstructor := this.__CollectionList[SPC_INSTANCEMETHOD].__Constructor
+        StaticPropertyConstructor := this.__CollectionList[SPC_STATICPROPERTY].__Constructor
+        InstancePropertyConstructor := this.__CollectionList[SPC_INSTANCEPROPERTY].__Constructor
+        FunctionConstructor := this.__CollectionList[SPC_FUNCTION].__Constructor
         ; Save the method if it already exists.
         if RegExMatchInfo.Prototype.HasMethod('__Get') {
             TempGetter := RegExMatchInfo.Prototype.__Get
@@ -302,8 +328,8 @@ class ScriptParser {
         ; To prevent an error when attempting to check if there was a specific subcapture group.
         RegExMatchInfo.Prototype.DefineProp('__Get', { Call: _REMIGetHelper })
         ; If there are no class definitions in the content, parse functions in the global scope
-        if !RegExMatch(this.Content, SPP_CLASS, &Match) {
-            Stack.PosEnd := StrLen(this.Content)
+        if !RegExMatch(this.__Content, SPP_CLASS, &Match) {
+            Stack.PosEnd := StrLen(this.__Content)
             _Proc()
             return
         }
@@ -336,7 +362,7 @@ class ScriptParser {
             ; Adjust the line count as well
             Stack.Line := Stack.ActiveClass.LineStart
             ; Find next class definition
-            if RegExMatch(this.Content, SPP_CLASS, &Match, Stack.Pos) {
+            if RegExMatch(this.__Content, SPP_CLASS, &Match, Stack.Pos) {
                 ; Set next class definition
                 Stack.NextClass := Match
                 ; If the next class definition occurs outside of the current class definition
@@ -360,8 +386,8 @@ class ScriptParser {
                     Stack.Out()
                 }
                 ; If there is more content in the global scope, parse it
-                if StrLen(RTrim(this.Content, '`r`n`s`t')) - Stack.PosEnd > 0 {
-                    Stack.PosEnd := StrLen(this.Content)
+                if StrLen(RTrim(this.__Content, '`r`n`s`t')) - Stack.PosEnd > 0 {
+                    Stack.PosEnd := StrLen(this.__Content)
                     _Proc()
                 }
                 break
@@ -382,7 +408,7 @@ class ScriptParser {
             ; How the constructor is identified varies depending on the scope
             Callback := Stack.Active.IsClass ? _GetConstructorClassActive : _GetConstructorGlobal
             ; Only check the text up to `Stack.PosEnd`
-            Text := SubStr(this.Content, 1, Stack.PosEnd)
+            Text := SubStr(this.__Content, 1, Stack.PosEnd)
             loop {
                 ; If there's no more function / property definitions
                 if !RegExMatch(Text, SPP_PROPERTY, &_Match, Stack.Pos) {
@@ -392,7 +418,7 @@ class ScriptParser {
                 ; `ScriptParser_ContinuationSection` will identify and concatenate a continuation section.
                 if _Match['arrow'] || _Match.assign {
                     CS := ScriptParser_ContinuationSection(
-                        StrPtr(this.Content)
+                        StrPtr(this.__Content)
                       , _Match.Pos['text']
                       , _Match['arrow'] ? '=>' : ':='
                     )
@@ -442,7 +468,7 @@ class ScriptParser {
         }
     }
     /**
-     * @description - `ScriptParser.Prototype.RemoveStringsAndComments` removes quoted strings and
+     * @description - {@link ScriptParser.Prototype.RemoveStringsAndComments} removes quoted strings and
      * comments from the content. A component is created for each item that is removed from the text.
      * The components are not associated with a context initially.
      *
@@ -491,21 +517,21 @@ class ScriptParser {
      *       character following the property name.
      */
     RemoveStringsAndComments() {
-        global SPP_REMOVE_CONTINUATION, SPP_REMOVE_LOOP, SPP_REMOVE_COMMENT_BLOCK, SPP_REMOVE_COMMENT_SINGLE
+        global SPP_REMOVE_CONTINUATION, SPP_REMOVE_LOOP, SPP_REMOVE_COMMENT_BLOCK
+        , SPP_REMOVE_COMMENT_JSDOC, SPP_REMOVE_COMMENT_MULTI, SPP_REMOVE_STRING
+        , SPP_REMOVE_COMMENT_SINGLE
         eol := this.EndOfLine
         ; Remove consecutive quotes
-        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVE_DOUBLE, Chr(this.__ConsecutiveDoubleReplacement) Chr(this.__ConsecutiveDoubleReplacement), &DoubleCount)
-        this.Content := RegExReplace(this.Content, SPP_QUOTE_CONSECUTIVE_SINGLE, Chr(this.__ConsecutiveSingleReplacement) Chr(this.__ConsecutiveSingleReplacement), &SingleCount)
+        this.__Content := RegExReplace(this.__Content, SPP_QUOTE_CONSECUTIVE_DOUBLE, Chr(this.__ConsecutiveDoubleReplacement) Chr(this.__ConsecutiveDoubleReplacement), &DoubleCount)
+        this.__Content := RegExReplace(this.__Content, SPP_QUOTE_CONSECUTIVE_SINGLE, Chr(this.__ConsecutiveSingleReplacement) Chr(this.__ConsecutiveSingleReplacement), &SingleCount)
         this.RemovedCollection.ConsecutiveDoubleQuotes := DoubleCount
         this.RemovedCollection.ConsecutiveSingleQuotes := SingleCount
-        ; Remove continuation sections.
         _Process(&SPP_REMOVE_CONTINUATION)
-        ; Remove comment blocks
+        _Process(&SPP_REMOVE_COMMENT_JSDOC)
+        _Process(&SPP_REMOVE_COMMENT_MULTI)
         _Process(&SPP_REMOVE_COMMENT_BLOCK)
-        ; Remove single line comments
         _Process(&SPP_REMOVE_COMMENT_SINGLE)
-        ; Remove other quoted strings and comments
-        _Process(&SPP_REMOVE_LOOP)
+        _Process(&SPP_REMOVE_STRING)
 
         return
 
@@ -516,11 +542,11 @@ class ScriptParser {
             ActiveComment := ''
             ; This is the procedure flow for removing content and adding a value to a collection
             loop {
-                if !RegExMatch(this.Content, 'JS)' Pattern, &Match, Pos) {
+                if !RegExMatch(this.__Content, 'JS)' Pattern, &Match, Pos) {
                     break
                 }
                 ; Get line count of the segment leading up to the match
-                StrReplace(SubStr(this.Content, Pos, Match.Pos - Pos), eol, , , &linecount)
+                StrReplace(SubStr(this.__Content, Pos, Match.Pos - Pos), eol, , , &linecount)
                 ; Calculate line start
                 LineStart := nl += linecount
                 ; Calculate col start
@@ -538,7 +564,7 @@ class ScriptParser {
                 ; Adjust pos
                 Pos := Match.Pos['text'] + Match.Len['text']
                 ; Get constructor. The `Mark` value is the symbol `SPC_<collection name>`.
-                Constructor := this.CollectionList[%Match.Mark%].Constructor
+                Constructor := this.__CollectionList[%Match.Mark%].__Constructor
                 ; Call constructor. The constructor handles the rest.
                 Constructor(LineStart, ColStart, LineEnd, ColEnd, Match.Pos['text'], Match.Len['text'], , Match, , , , true)
             }
@@ -548,7 +574,29 @@ class ScriptParser {
         this.RemoveStringsAndComments()
         this.ParseClass()
         this.AssociateComments()
+        this.__CollectionList[SPC_JSDOC].__Process()
         this.Cleanup()
+        if this.Options.Included {
+            this.ProcessIncluded()
+        }
+    }
+    ProcessIncluded() {
+        unique := this.Options.Included.GetUnique()
+        collection := this.IncludedCollection := ScriptParser_IncludedCollection()
+        options := this.Options.Clone()
+        options.Included := options.DeferProcess := ''
+        SplitPath(this.Options.Path, , , , , &drive)
+        if !drive {
+            path := this.Options.Path
+            ScriptParser_GetIncluded.ResolveRelativePathRef(&path)
+        }
+        collection.Set(path ?? this.Options.Path, this)
+        for path in unique {
+            if !collection.Has(path) {
+                options.Path := path
+                collection.Set(path, ScriptParser(options))
+            }
+        }
     }
     __Delete() {
         ObjPtrAddRef(this)
@@ -557,32 +605,28 @@ class ScriptParser {
         }
     }
 
-    Encoding {
-        Get => this.Options.Encoding
-        Set => this.Options.Encoding := Value
-    }
-    NameCollection[IndexCollection] => this.CollectionList[IndexCollection].NameCollection
     Path {
         Get => this.Options.Path
         Set => this.Options.Path := Value
     }
-    Text[PosStart := 1, Len?] => SubStr(this.Content, PosStart, Len ?? unset)
-    TextFull[PosStart := 1, Len?] => this.GetTextFull(PosStart, Len ?? unset)
+    __Text[PosStart := 1, Len?] => SubStr(this.__Content, PosStart, Len ?? unset)
+    Text[PosStart := 1, Len?] => this.GetTextFull(PosStart, Len ?? unset)
 
     class Options {
         static __New() {
             this.DeleteProp('__New')
             proto := this.Prototype
-            proto.Content := ''
+            proto.__Content := ''
             proto.DeferProcess := false
             proto.Encoding := ''
             proto.EndOfLine := ''
+            proto.Included := ''
             proto.Path := ''
         }
 
         __New(options?) {
             if IsSet(options) {
-                for prop in ScriptParser.Options.Prototype.OwnProps() {
+                for prop, val in ScriptParser.Options.Prototype.OwnProps() {
                     if HasProp(options, prop) {
                         this.%prop% := options.%prop%
                     }

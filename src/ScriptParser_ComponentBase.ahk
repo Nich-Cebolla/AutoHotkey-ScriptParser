@@ -10,18 +10,25 @@ class ScriptParser_ComponentBase {
         this.DefineProp('PosEnd', { Value: Pos + Len })
         this.Script.ComponentList.Add(this)
         if Isset(Stack) {
-            this.Stack := Stack.Active
+            this.__Stack := Stack.Active
             if this.IndexCollection == SPC_INSTANCEMETHOD {
-                Path := this.Stack.Path
+                Path := this.__Stack.Path
                 this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.', , , -1)) 'Prototype.' SubStr(Path, InStr(Path, '.', , , -1) + 1) })
             } else {
-                this.DefineProp('Name', { Get: (Self) => Self.Stack.Path })
+                this.DefineProp('Name', { Get: (Self) => Self.__Stack.Path })
             }
-            this.Stack.ComponentIdu := this.idu
+            this.__Stack.__ComponentIdu := this.__idu
+            this.Path := Stack.Active.Path
         } else if IsSet(NameComponent) {
             this.Name := NameComponent
         } else {
-            this.DefineProp('Name', { Get: (Self) => Self.idu })
+            switch this.IndexCollection {
+                case SPC_JSDOC: this.DefineProp('Name', { Get: ScriptParser_GetJsdocName })
+                case SPC_COMMENTBLOCK
+                , SPC_COMMENTSINGLELINE
+                , SPC_COMMENTMULTILINE: this.DefineProp('Name', { Get: (Self) => Self.TextComment ' - ' Self.__idu })
+                default: this.DefineProp('Name', { Get: (Self) => Self.Text ' - ' Self.__idu })
+            }
         }
         if IsSet(PosBody) {
             this.PosBody := PosBody
@@ -43,12 +50,12 @@ class ScriptParser_ComponentBase {
         ; only needs to be checked once, we can check the condition, override the method with a
         ; function that does not check the condition, then call the method.
         if !this.HasOwnProp('Children') {
-            this.Children := ScriptParser_ChildNodeCollection(false)
+            this.Children := ScriptParser_ChildCollection(false)
         }
         this.DefineProp('AddChild', { Call: _AddChild })
         this.AddChild(Component)
         _AddChild(Self, Component) {
-            Component.ParentIdu := this.idu
+            Component.__ParentIdu := this.__idu
             if this.Children.AddToCategoryEx(Component.NameCollection, &(Name := Component.Name), Component) {
                 Component.DefineProp('AltName', { Value: Name })
             }
@@ -56,6 +63,18 @@ class ScriptParser_ComponentBase {
     }
 
     GetOwnText() {
+        Text := this.__Text
+        if this.HasOwnProp('Children') {
+            for Child in this.Children.ToArray2() {
+                if Child.PosBody {
+                    Text := StrReplace(Text, Child.____TextBody, '')
+                }
+            }
+        }
+        return Text
+    }
+
+    GetOwnTextFull() {
         Text := this.Text
         if this.HasOwnProp('Children') {
             for Child in this.Children.ToArray2() {
@@ -67,30 +86,18 @@ class ScriptParser_ComponentBase {
         return Text
     }
 
-    GetOwnTextFull() {
-        Text := this.TextFull
-        if this.HasOwnProp('Children') {
-            for Child in this.Children.ToArray2() {
-                if Child.PosBody {
-                    Text := StrReplace(Text, Child.TextBodyFull, '')
-                }
-            }
-        }
-        return Text
-    }
-
     /**
      * @description - This is only intended to be used for components that are not class components.
      */
     __AssociateRemovedComponents() {
-        Text := this.Text
+        Text := this.__Text
         RemovedCollection := this.Script.RemovedCollection
         Pos := 1
         loop {
             if !RegExMatch(Text, SPP_REPLACEMENT, &Match, Pos) {
                 break
             }
-            this.AddChild(RemovedCollection.Get(this.Script.NameCollection[Match['collection']])[Match['index']])
+            this.AddChild(RemovedCollection.Get(this.Script.GetCollectionName(Match['collection']))[Match['index']])
             Pos := Match.Pos + Match.Len
         }
         ShortCollection := RemovedCollection.ShortCollection
@@ -110,31 +117,12 @@ class ScriptParser_ComponentBase {
         }
     }
 
-    ; 'AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', 'Removed', 'Stack' are defined on the base as empty string values.
-    ; `AltName` is overridden in cases where multiple components share the same name and are
-    ; in the same collection.
-    ; `Params` is overridden if the component represents a function or property that has parameters.
-    ; `ParentIdu` is overridden if the component is a child of another.
-    ; `Removed` is overridden if the component's text is removed from the content.
-    ; `IndexCollection`, `NameCollection`, and `Script` are defined on the base with significant values.
-    ; The following are defined elsewhere:
-    ; `Children`, `ColEnd`, `ColStart`, `LenBody`, `Length`, `LineEnd`, `LineStart`, `Pos`, `PosBody`,
-    ; `PosEnd`, `Name`, `Stack`.
-    ; `idc`, `idr`, and `idu` are identifiers defined when the component is added to a collection:
-    ; `idc` - The identifier that is specific to the collection object.
-    ; `idr` - The identifier that is used for removed components.
-    ; `idu` - A general identifier used by all components.
-    ; Components that are comments have additional property `TextComment` which returns the text
-    ; without any comment operators and joined by a substring.
-    ; Components that are paired with a jsdoc comment using `ScriptParser.Prototype.AssociateComments`
-    ; have a property `Jsdoc` which is the component object for the jsdoc comment.
-
-    Collection => this.Script.CollectionList[this.IndexCollection]
+    Collection => this.Script.__CollectionList[this.IndexCollection]
     Comment {
         Get => this.__Comment ? this.Script.ComponentList.Get(this.__Comment) : ''
         Set {
             if IsObject(Value) {
-                this.__Comment := Value.idu
+                this.__Comment := Value.__idu
             } else {
                 this.__Comment := Value
             }
@@ -144,31 +132,29 @@ class ScriptParser_ComponentBase {
         Get => this.__CommentParent ? this.Script.ComponentList.Get(this.__CommentParent) : ''
         Set {
             if IsObject(Value) {
-                this.__CommentParent := Value.idu
+                this.__CommentParent := Value.__idu
             } else {
                 this.__CommentParent := Value
             }
         }
     }
     Match => this.__Removed ? this.__Removed.Match : ''
-    Parent => this.ParentIdu ? this.Script.ComponentList.Get(this.ParentIdu) : ''
-    Path => this.Stack.Path
+    Parent => this.__ParentIdu ? this.Script.ComponentList.Get(this.__ParentIdu) : ''
     PosEnd => this.Pos + this.Length
     Script => ScriptParser.Collection.Get(this.IdScriptParser)
-
     Text => this.Script.Text[this.Pos, this.Length]
-    TextBody => this.PosBody ? this.Script.Text[this.PosBody, this.LenBody] : ''
-    TextBodyFull => this.PosBody ? this.Script.TextFull[this.PosBody, this.Lenbody] : ''
-    TextFull => this.Script.TextFull[this.Pos, this.Length]
-    TextOwn => this.GetOwnText()
-    TextOwnFull => this.GetOwnTextFull()
+    TextBody => this.PosBody ? this.Script.Text[this.PosBody, this.Lenbody] : ''
+    TextOwn => this.GetOwnTextFull()
+    __Text => this.Script.__Text[this.Pos, this.Length]
+    __TextBody => this.PosBody ? this.Script.__Text[this.PosBody, this.LenBody] : ''
+    __TextOwn => this.GetOwnText()
 
 
     static __New() {
         this.DeleteProp('__New')
         Proto := this.Prototype
-        for Prop in ['AltName', 'Children', 'LenBody',  'ParentIdu', 'Name', '__Removed', 'Stack'
-        , 'HasJsdoc', '__Comment', '__CommentParent'] {
+        for Prop in ['AltName', 'Children', 'LenBody',  '__ParentIdu', 'Name', '__Removed', '__Stack'
+        , 'HasJsdoc', '__Comment', '__CommentParent', 'PosBody', 'Path'] {
             Proto.DefineProp(Prop, { Value: '' })
         }
     }
@@ -179,7 +165,7 @@ ScriptParser_GetRemovedComponent(Component, Match) {
     rc := {
         IndexRemoved: Script.RemovedCollection.AddToCategory(Component)
       , Match: Match
-      , ComponentIdu: Component.idu
+      , __ComponentIdu: Component.__idu
     }
     if StrLen(Component.IndexCollection rc.IndexRemoved) + 2 <= Match.Len['text'] {
         ObjSetBase(rc, ScriptParser_RemovedComponent.Prototype)
@@ -194,25 +180,25 @@ ScriptParser_GetRemovedComponent(Component, Match) {
         rc.ShortChar := Char
         rc.SetReplacement(Script, Component.IndexCollection)
     }
-    Script.Content := StrReplace(Script.Content, Match['text'], rc.Replacement, true, , 1)
+    Script.__Content := StrReplace(Script.__Content, Match['text'], rc.Replacement, true, , 1)
     return rc
 }
 
-class ScriptParser_RemovedShortComponent extends ScriptParser_RemovedScriptParser_ComponentBase {
+class ScriptParser_RemovedShortComponent extends ScriptParser_RemovedComponentBase {
     SetReplacement(Script, *) {
         this.Replacement := this.ShortChar this.IndexRemovedShort
         this.__SetReplacementShared(Script)
     }
 }
 
-class ScriptParser_RemovedComponent extends ScriptParser_RemovedScriptParser_ComponentBase {
+class ScriptParser_RemovedComponent extends ScriptParser_RemovedComponentBase {
     SetReplacement(Script, IndexCollection) {
         this.Replacement := Chr(0xFFFC) IndexCollection Chr(0xFFFC) this.IndexRemoved
         this.__SetReplacementShared(Script)
     }
 }
 
-class ScriptParser_RemovedScriptParser_ComponentBase {
+class ScriptParser_RemovedComponentBase {
     __SetReplacementShared(Script) {
         over := StrLen(this.Replacement)
         eol := Script.EndOfLine

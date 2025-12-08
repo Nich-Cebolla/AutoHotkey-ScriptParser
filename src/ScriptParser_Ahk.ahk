@@ -9,14 +9,6 @@ class ScriptParser_Ahk {
                 this.Indent := Match.Len['indent']
                 this.Extends := Match['super']
             }
-
-            static __New() {
-                this.DeleteProp('__New')
-                Proto := this.Prototype
-                for Prop in ['InstanceMethods', 'InstanceProperties', 'StaticMethods', 'StaticProperties'] {
-                    Proto.DefineProp(Prop, { Value: '' })
-                }
-            }
         }
 
         class StaticMethod extends ScriptParser_Ahk.Component.Method {
@@ -58,10 +50,10 @@ class ScriptParser_Ahk {
                 if Match['arrow'] {
                     this.Arrow := true
                     this.Get := true
-                    this.Script.Stack.In(this.Script, 'Get', Match, this.Script.CollectionList[SPC_GETTER].Constructor, Match)
-                    this.Script.Stack.Out()
+                    this.Script.__Stack.In(this.Script, 'Get', Match, this.Script.__CollectionList[SPC_GETTER].__Constructor, Match)
+                    this.Script.__Stack.Out()
                 } else if !Match['assign'] {
-                    if RegExMatch(s := SubStr(this.Script.Text, 1, this.PosEnd), SPP_ACCESSOR_GET, &Match, this.Pos) {
+                    if RegExMatch(s := SubStr(this.Script.__Text, 1, this.PosEnd), SPP_ACCESSOR_GET, &Match, this.Pos) {
                         _Proc('Get')
                     }
                     if RegExMatch(s, SPP_ACCESSOR_SET, &Match, this.Pos) {
@@ -80,7 +72,7 @@ class ScriptParser_Ahk {
                 _Proc(Name) {
                     if Match['arrow'] {
                         CS := ScriptParser_ContinuationSection(
-                            StrPtr(this.Script.Content)
+                            StrPtr(this.Script.__Content)
                           , Match.Pos['text']
                           , Match['arrow'] ? '=>' : ':='
                         )
@@ -89,12 +81,12 @@ class ScriptParser_Ahk {
                     }
                     if Name == 'Get' {
                         this.Get := true
-                        this.Script.Stack.In(this.Script, Name, CS, this.Script.CollectionList[SPC_GETTER].Constructor, Match)
+                        this.Script.__Stack.In(this.Script, Name, CS, this.Script.__CollectionList[SPC_GETTER].__Constructor, Match)
                     } else {
                         this.Set := true
-                        this.Script.Stack.In(this.Script, Name, CS, this.Script.CollectionList[SPC_SETTER].Constructor, Match)
+                        this.Script.__Stack.In(this.Script, Name, CS, this.Script.__CollectionList[SPC_SETTER].__Constructor, Match)
                     }
-                    this.Script.Stack.Out()
+                    this.Script.__Stack.Out()
                 }
             }
         }
@@ -131,10 +123,10 @@ class ScriptParser_Ahk {
             GetParams(Match) {
                 if Match.inner {
                     if InStr(this.__Class, 'Property') {
-                        if !RegExMatch(this.TextFull, SPP_BRACKET_SQUARE, &MatchBracket) {
+                        if !RegExMatch(this.Text, SPP_BRACKET_SQUARE, &MatchBracket) {
                             throw Error('Failed to match with bracket pattern.')
                         }
-                    } else if !RegExMatch(this.TextFull, SPP_BRACKET_ROUND, &MatchBracket) {
+                    } else if !RegExMatch(this.Text, SPP_BRACKET_ROUND, &MatchBracket) {
                         throw Error('Failed to match with bracket pattern.')
                     }
                     this.Params := ScriptParser_ParamsList(SubStr(MatchBracket[0], 2, -1))
@@ -147,22 +139,12 @@ class ScriptParser_Ahk {
             GetCommentText(JoinChar := '`r`n') {
                 return Trim(RegExReplace(this.Match['comment'], '\R?[ \t]*?\* ?', JoinChar), '`r`n')
             }
-            Parse(EndOfLine := '`r`n') {
-                if this.HasOwnProp('Tags') {
-                    return this.Tags.ToString(EndOfLine)
-                } else {
-                    tags := this.Tags := ScriptParser_JsdocTagsCollection()
-                    lines := StrSplit(RegExReplace(this.TextOwnFull, '\R', '`n'), '`n', '`s`t')
-                    i := 1
-
-                }
-            }
         }
 
         class CommentSingleLine extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText() {
-                return Trim(this.Match['comment'], '`r`n')
+                return this.Match['comment']
             }
             TextComment => this.GetCommentText()
         }
@@ -170,14 +152,14 @@ class ScriptParser_Ahk {
         class CommentBlock extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
-                return Trim(RegExReplace(RegExReplace(this.TextFull, '^[ \t]*;[ \t]*', ''), '\R[ \t]*;[ \t]*', '`r`n'), '`r`n')
+                return Trim(RegExReplace(RegExReplace(this.Text, '^[ \t]*;[ \t]*', ''), '\R[ \t]*;[ \t]*', JoinChar), '`r`n')
             }
         }
 
         class CommentMultiLine extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
-                return Trim(RegExReplace(this.Match['comment'], '\R?[ \t]*', JoinChar), '`r`n')
+                return Trim(RegExReplace(this.Match['comment'], '\R[ \t]*', JoinChar), '`r`n')
             }
         }
 

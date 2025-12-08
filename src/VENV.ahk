@@ -7,6 +7,7 @@
 #include ScriptParser_ComponentCollection.ahk
 #include ScriptParser_ContinuationSection.ahk
 #include ScriptParser_FillStr.ahk
+#include ScriptParser_GetIncluded.ahk
 #include ScriptParser_MapEx.ahk
 #include ScriptParser_ParamsList.ahk
 #include ScriptParser_Stack.ahk

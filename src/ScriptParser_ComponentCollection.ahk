@@ -14,16 +14,20 @@ class ScriptParser_ComponentCollectionList extends Array {
 }
 
 class ScriptParser_ComponentCollection extends ScriptParser_MapEx {
-    __New(ScriptParser_ComponentBase) {
+    static __New() {
+        this.DeleteProp('__New')
+        this.Prototype.__ComponentBase := ''
+    }
+    __New(ComponentBase) {
         this.CaseSense := false
         this.Default := ''
-        this.ComponentBase := ScriptParser_ComponentBase
-        this.__ComponentIndex := Number(ScriptParser_ComponentBase.IndexCollection '000000') - 1
-        this.__MaxComponentIndex := Number((ScriptParser_ComponentBase.IndexCollection + 1) '000000')
+        this.__ComponentBase := ComponentBase
+        this.__ComponentIndex := Number(ComponentBase.IndexCollection '000000') - 1
+        this.__MaxComponentIndex := Number((ComponentBase.IndexCollection + 1) '000000')
     }
     Add(Component) {
         this.Set(Component.Name, Component)
-        Component.idc := this.GetIndex()
+        Component.__idc := this.GetIndex()
     }
     GetIndex() {
         if ++this.__ComponentIndex >= this.__MaxComponentIndex {
@@ -32,8 +36,8 @@ class ScriptParser_ComponentCollection extends ScriptParser_MapEx {
         return this.__ComponentIndex
     }
 
-    NameCollection => this.ComponentBase.NameCollection
-    IndexCollection => this.ComponentBase.IndexCollection
+    NameCollection => this.__ComponentBase ? this.__ComponentBase.NameCollection : ''
+    IndexCollection => this.__ComponentBase ? this.__ComponentBase.IndexCollection : ''
 }
 
 class ScriptParser_ComponentList extends ScriptParser_MapEx {
@@ -41,8 +45,8 @@ class ScriptParser_ComponentList extends ScriptParser_MapEx {
         this.__ComponentIndex := 100000000 - 1
     }
     Add(Component) {
-        Component.idu := this.GetIndex()
-        this.Set(Component.idu, Component)
+        Component.__idu := this.GetIndex()
+        this.Set(Component.__idu, Component)
     }
     GetIndex() {
         return ++this.__ComponentIndex
@@ -71,7 +75,7 @@ class ScriptParser_RemovedCollection extends ScriptParser_MapEx {
         if !this.Has(Component.NameCollection) {
             this.Set(Component.NameCollection, [])
         }
-        Component.idr := this.GetIndex()
+        Component.__idr := this.GetIndex()
         Arr := this.Get(Component.NameCollection)
         Arr.Push(Component)
         return Arr.Length
@@ -118,7 +122,7 @@ class ScriptParser_RemovedCollection extends ScriptParser_MapEx {
             return Arr.Length
         }
         __AdjustCharCode(Script) {
-            while InStr(Script.Content, Chr(this.__CharCode)) {
+            while InStr(Script.__Content, Chr(this.__CharCode)) {
                 this.__CharCode++
                 if this.__CharCode > this.__CharMaxCode {
                     throw Error('``ScriptParser`` ran out of characters used to identify short removed strings.')
@@ -136,7 +140,7 @@ class ScriptParser_GlobalCollection extends ScriptParser_MapEx {
     }
 }
 
-class ScriptParser_ChildNodeCollection extends ScriptParser_MapEx {
+class ScriptParser_ChildCollection extends ScriptParser_MapEx {
     ToArray(Include?, Exclude?) {
         Result := []
         if IsSet(Include) {
@@ -187,31 +191,56 @@ class ScriptParser_ChildNodeCollection extends ScriptParser_MapEx {
         }
         return Result
     }
-
-    static __New() {
-        this.DeleteProp('__New')
-        Proto := this.Prototype
-        Proto.DefineProp('ConsecutiveDoubleQuotes', { Value: 0 })
-        Proto.DefineProp('ConsecutiveSingleQuotes', { Value: 0 })
-    }
 }
 
 class ScriptParser_JsdocCollection extends ScriptParser_ComponentCollection {
+    static __New() {
+        this.DeleteProp('__New')
+        this.Prototype.General := ''
+    }
+    __New(ComponentBase) {
+        super.__New(ComponentBase)
+        this.__TempList := []
+        this.General := []
+    }
     Add(Component) {
-        Component.idc := this.GetIndex()
-        this.Set(Component.Name, Component)
-        Match := Component.__Removed.Match
-        if Match['class'] {
-            Name := Match['class']
-            if this.AddToCategoryEx('Class', &Name, Component) {
-                Component.DefineProp('AltName', { Value: Name })
-            }
-        } else if Match['name'] {
-            Name := Match['name']
-            if this.AddToCategoryEx((Match['static'] ? 'Static_' : '') (Match['func'] ? 'Func' : 'Property'), &Name, Component) {
-                Component.DefineProp('AltName', { Value: Name })
+        this.__TempList.Push(Component)
+    }
+    __Process() {
+        for component in this.__TempList {
+            Component.__idc := this.GetIndex()
+            this.Set(Component.Name, Component)
+            Match := Component.__Removed.Match
+            if Match['class'] {
+                Name := Match['class']
+                if this.AddToCategoryEx('Class', &Name, Component) {
+                    Component.DefineProp('AltName', { Value: Name })
+                }
+            } else if Match['name'] && Component.CommentParent {
+                switch Component.CommentParent.IndexCollection {
+                    case SPC_INSTANCEMETHOD: category := 'InstanceMethod'
+                    case SPC_INSTANCEPROPERTY: category := 'InstanceProperty'
+                    case SPC_SETTER, SPC_GETTER:
+                        switch Component.CommentParent.Parent.IndexCollection {
+                            case SPC_INSTANCEPROPERTY: category := 'InstanceProperty'
+                            case SPC_STATICPROPERTY: category := 'StaticProperty'
+                        }
+                    case SPC_STATICMETHOD: category := 'StaticMethod'
+                    case SPC_STATICPROPERTY: category := 'StaticProperty'
+                    case SPC_FUNCTION: category := 'Function'
+                }
+                Name := Component.CommentParent.Path '.Jsdoc'
+                if this.AddToCategoryEx(category, &Name, Component) {
+                    Component.DefineProp('AltName', { Value: Name })
+                }
+            } else {
+                this.General.Push(Component)
             }
         }
+        if !this.General.Length {
+            this.DeleteProp('General')
+        }
+        this.DeleteProp('__TempList')
     }
 
     AddToCategoryEx(Key, &Name, Value) {
@@ -234,8 +263,8 @@ class ScriptParser_JsdocCollection extends ScriptParser_ComponentCollection {
     }
 }
 
-class ScriptParser_JsdocTagsCollection extends ScriptParser_MapEx {
-    ToString(EndOfLine := '`r`n') {
-
+class ScriptParser_IncludedCollection extends Map {
+    __New() {
+        this.CaseSense := false
     }
 }

@@ -282,6 +282,7 @@ SPP_REMOVE_COMMENT_MULTI := (
         '(?<comment>[\w\W]+?)'
         '\R[ \t]*\*/'
     ')'
+    SPP_NEXT_LINE
 )
 
 SPP_REMOVE_COMMENT_SINGLE := (
@@ -314,6 +315,7 @@ SPP_REMOVE_COMMENT_JSDOC := (
         '(?<comment>[\w\W]+?)'
         '\*/'
     ')'
+    SPP_NEXT_LINE
 )
 
 SPP_REMOVE_STRING := (
@@ -325,14 +327,6 @@ SPP_REMOVE_STRING := (
         '(?<!``)'
         '(?:````)*'
         '\g{-2}'
-    ')'
-)
-
-SPP_REMOVE_LOOP := (
-    '(?:'
-        SPP_REMOVE_STRING
-        '|' SPP_REMOVE_COMMENT_JSDOC
-        '|' SPP_REMOVE_COMMENT_MULTI
     ')'
     SPP_NEXT_LINE
 )

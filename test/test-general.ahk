@@ -37,7 +37,7 @@ class test {
         this.GetContent(&Content)
         (Controls := this.Controls := []).Capacity := 20
         Controls.Push(
-            { Name: 'GetPropsInfo param hint', Collection: 'Jsdoc', Item: 1, Control: _Get('/\*\*[\w\W]+?\*/'), NoBody: true }
+            { Name: 'GetPropsInfo param hint', Collection: 'Jsdoc', Item: 'GetPropsInfo.Jsdoc', Control: _Get('/\*\*[\w\W]+?\*/'), NoBody: true }
           , { Name: 'GetPropsInfo function', Collection: 'Function', Item: 'GetPropsInfo', Control: _Get('GetPropsInfo\(.+(?<body>\{[\w\W]+?\R\})') }
           , { Name: 'PropsInfo class', Collection: 'Class', Item: 'PropsInfo', Control: _Get('class PropsInfo (?<body>\{[\w\W]+?\R\})') }
           , {
@@ -140,6 +140,8 @@ class test {
     static Position() {
         this.EstablishControls()
         Script := this.GetScript()
+        Script.AssociateComments()
+        Script.__CollectionList[SPC_JSDOC].__Process()
         Controls := this.Controls
         for obj in Controls {
             if obj.HasOwnProp('Special') {
@@ -162,17 +164,17 @@ class test {
                 Component := Collection.Get(obj.Item)
             }
             if Component.Pos !== obj.Control.Pos {
-                this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Pos (' Component.Pos ') !== obj.Control.Pos (' obj.Control.Pos ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Pos (' Component.Pos ') !== obj.Control.Pos (' obj.Control.Pos ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
             }
             if Component.Length !== obj.Control.Len {
-                this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Length (' Component.Length ') !== obj.Control.Len (' obj.Control.Len ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Length (' Component.Length ') !== obj.Control.Len (' obj.Control.Len ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
             }
             if !obj.HasOwnProp('NoBody') {
                 if Component.PosBody !== obj.Control.Pos['body'] {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.PosBody (' Component.PosBody ') !== obj.Control.Pos[`'body`'] (' obj.Control.Pos['body'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.PosBody (' Component.PosBody ') !== obj.Control.Pos[`'body`'] (' obj.Control.Pos['body'] ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
                 if Component.LenBody !== obj.Control.Len['body'] {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.LenBody (' Component.LenBody ') !== obj.Control.Len[`'body`'] (' obj.Control.Len['body'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.LenBody (' Component.LenBody ') !== obj.Control.Len[`'body`'] (' obj.Control.Len['body'] ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
             }
             OutputDebug('Position is done. Problems: ' this.Problems.Length '`n')
@@ -184,38 +186,38 @@ class test {
                 Setter := Component.Children['Setter'][obj.Item '.Set']
                 Getter := Component.Children['Getter'][obj.Item '.Get']
                 if Getter.Pos !== obj.Control.Pos['get'] {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Getter.Pos (' Getter.Pos ') !== obj.Control.Pos[`'get`'] (' obj.Control.Pos['get'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Getter.Pos (' Getter.Pos ') !== obj.Control.Pos[`'get`'] (' obj.Control.Pos['get'] ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
                 if Getter.PosEnd !== obj.Control.Pos['get'] + obj.Control.Len['get'] {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Getter.PosEnd (' Getter.PosEnd ') !== obj.Control.Pos[`'get`'] + obj.Control.Len[`'get`'] (' obj.Control.Pos['get'] + obj.Control.Len['get'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Getter.PosEnd (' Getter.PosEnd ') !== obj.Control.Pos[`'get`'] + obj.Control.Len[`'get`'] (' obj.Control.Pos['get'] + obj.Control.Len['get'] ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
                 if Setter.Pos !== obj.Control.Pos['set'] {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Setter.Pos (' Setter.Pos ') !== obj.Control.Pos[`'set`'] (' obj.Control.Pos['set'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Setter.Pos (' Setter.Pos ') !== obj.Control.Pos[`'set`'] (' obj.Control.Pos['set'] ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
                 if Setter.PosBody !== obj.Control.Pos['setbody'] {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Setter.PosBody (' Setter.PosBody ') !== obj.Control.Pos[`'setbody`'] (' obj.Control.Pos['setbody'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Setter.PosBody (' Setter.PosBody ') !== obj.Control.Pos[`'setbody`'] (' obj.Control.Pos['setbody'] ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
                 if Setter.PosEnd !== obj.Control.Pos['set'] + obj.Control.Len['set'] {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Setter.PosEnd (' Setter.PosEnd ') !== obj.Control.Pos + obj.Control.Len (' obj.Control.Pos + obj.Control.Len ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Setter.PosEnd (' Setter.PosEnd ') !== obj.Control.Pos + obj.Control.Len (' obj.Control.Pos + obj.Control.Len ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
             }
 
             _Special2(obj) {
                 Component := Script.GetCollection(obj.Collection).Get(obj.Item)
                 if Component.Pos !== obj.Control.Pos {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Pos (' Component.Pos ') !== obj.Control.Pos (' obj.Control.Pos ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Pos (' Component.Pos ') !== obj.Control.Pos (' obj.Control.Pos ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
                 if Component.Length !== obj.Control.Len {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Length (' Component.Length ') !== obj.Control.Len (' obj.Control.Len ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Length (' Component.Length ') !== obj.Control.Len (' obj.Control.Len ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
                 if Component.PosBody !== obj.Control.Pos['body'] {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.PosBody (' Component.PosBody ') !== obj.Control.Pos[`'body`'] (' obj.Control.Pos['body'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.PosBody (' Component.PosBody ') !== obj.Control.Pos[`'body`'] (' obj.Control.Pos['body'] ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
                 if Component.LenBody !== obj.Control.Len['body'] {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.LenBody (' Component.LenBody ') !== obj.Control.Len[`'body`'] (' obj.Control.Len['body'] ')', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.LenBody (' Component.LenBody ') !== obj.Control.Len[`'body`'] (' obj.Control.Len['body'] ')', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
                 if Component.Extends !== 'Map' {
-                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Extends (' Component.Extends ') !== "Map"', { Text: Component.TextFull, Control: obj.Control[0], Obj: obj })
+                    this.AddProblem(A_ThisFunc, A_LineNumber, 'Component.Extends (' Component.Extends ') !== "Map"', { Text: Component.Text, Control: obj.Control[0], Obj: obj })
                 }
             }
         }
@@ -223,14 +225,14 @@ class test {
     static TextFull(WriteProblems := false) {
         Script := this.GetScript()
         this.GetContent(&Content)
-        if (txt := Script.TextFull) !== Content {
+        if (txt := Script.Text) !== Content {
             if WriteProblems {
                 f := FileOpen(this.PathOut, 'w')
                 f.Write(txt '`n`n`n')
                 f.Close()
             }
-            this.AddProblem(A_ThisFunc, A_LineNumber, 'Script.TextFull !== Content', { LenTextFull: StrLen(txt), LenContent: StrLen(Content), Diffs: this.GetDiffs(&Content, &txt, Script) })
-            OutputDebug('TextFull is done. Problem: Script.TextFull !== Content`n')
+            this.AddProblem(A_ThisFunc, A_LineNumber, 'Script.Text !== Content', { LenTextFull: StrLen(txt), LenContent: StrLen(Content), Diffs: this.GetDiffs(&Content, &txt, Script) })
+            OutputDebug('TextFull is done. Problem: Script.Text !== Content`n')
             return 1
         } else {
             OutputDebug('TextFull is done. Problems: 0`n')
