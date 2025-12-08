@@ -244,7 +244,7 @@ class Demo {
                     edt := iw.Add('Edit', 'x' x ' y' y ' w' (700 - x) ' r16 vEdtInfo')
                     edt.Resizer := { W: 1, H: 1 }
                     MonitorGet(1, , , &r)
-                    iw.Show('x' (r - 740) ' y200')
+                    iw.Show('x' (r - 740) ' y100')
                     iw.Resizer := GuiResizer(iw)
                 }
 
