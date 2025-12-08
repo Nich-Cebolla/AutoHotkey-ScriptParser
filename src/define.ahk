@@ -214,12 +214,8 @@ SPP_ACCESSOR_SET := (
     ')'
 )
 
-SPP_BRACKET_CURLY := '(\{(?:[^}{]++|(?-1))*\})'
-SPP_BRACKET_CURLYC := '(\{(?COnOpen)(?:[^}{]++|(?-1))*\}(?COnClose))'
-SPP_BRACKET_ROUND := '(\((?:[^)(]++|(?-1))*\))'
-SPP_BRACKET_ROUNDC := '(\((?COnOpen)(?:[^)(]++|(?-1))*\)(?COnClose))'
-SPP_BRACKET_SQUARE := '(\[(?:[^\][]++|(?-1))*\])'
-SPP_BRACKET_SQUAREC := '(\[(?COnOpen)(?:[^\][]++|(?-1))*\](?COnClose))'
+SPP_BRACKET_SQUARE := '(?(DEFINE)(?<quote>(?<!\\)(?:\\\\)*+(?<skip>["`']).*?(?<!\\)(?:\\\\)*+\g{skip}))(?<body>\[((?&quote)|[^[\]"`']++|(?&body))*\])'
+SPP_BRACKET_ROUND := '(?(DEFINE)(?<quote>(?<!\\)(?:\\\\)*+(?<skip>["`']).*?(?<!\\)(?:\\\\)*+\g{skip}))(?<body>\(((?&quote)|[^()"`']++|(?&body))*\))'
 
 SPP_QUOTE := (
     's)'

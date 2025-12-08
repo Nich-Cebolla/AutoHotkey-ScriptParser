@@ -138,9 +138,6 @@ class ScriptParser_Stack extends Array {
         }
 
         GetPath() {
-            if this.Pos == 1 {
-                return ''
-            }
             s := this.Name
             b := this
             loop {

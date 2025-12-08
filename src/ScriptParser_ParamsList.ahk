@@ -7,7 +7,7 @@ class ScriptParser_ParamsList extends Array {
      * { Optional, Default, Symbol, Variadic, VarRef }.
      */
     __New(Str) {
-        static Brackets := ['{', '}', '[', ']', '(', ')']
+        Brackets := ['{', '}', '[', ']', '(', ')']
         , Replacement := Chr(0xFFFD)
         Index := 0
         Replaced := []
@@ -30,8 +30,8 @@ class ScriptParser_ParamsList extends Array {
         this.Capacity := Split.Length
         for P in Split {
             this.Push(ScriptParser_ParamsList.Param(P))
-            if this[-1].Default && RegExMatch(this[-1].Default, Replacement '(\d+)' Replacement, &Match) {
-                this[-1].Default := Trim(Replaced[Match[1]][0], '`s`t`r`n')
+            if this[-1].DefaultValue && RegExMatch(this[-1].DefaultValue, Replacement '(\d+)' Replacement, &Match) {
+                this[-1].DefaultValue := Trim(Replaced[Match[1]][0], '`s`t`r`n')
             }
             if this[-1].Symbol && RegExMatch(this[-1].Symbol, Replacement '(\d+)' Replacement, &Match) {
                 this[-1].Symbol := Trim(Replaced[Match[1]][0], '`s`r`r`n')

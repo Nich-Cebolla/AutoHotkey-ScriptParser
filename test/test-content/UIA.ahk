@@ -7947,5 +7947,3 @@ class Viewer {
 }
 
 }
-
-UIA_GetPath() => A_LineFile

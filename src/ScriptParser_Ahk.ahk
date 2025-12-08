@@ -123,16 +123,21 @@ class ScriptParser_Ahk {
                 this.Prototype.DefineProp('Params', { Value: '' })
             }
             Init(Match) {
-                if Match['inner'] {
-                    this.Params := ScriptParser_ParamsList(Match['inner'])
-                }
+                this.GetParams(Match)
                 if Match['arrow'] {
                     this.Arrow := true
                 }
             }
             GetParams(Match) {
                 if Match.inner {
-                    this.Params := ScriptParser_ParamsList(Match['inner'])
+                    if InStr(this.__Class, 'Property') {
+                        if !RegExMatch(this.TextFull, SPP_BRACKET_SQUARE, &MatchBracket) {
+                            throw Error('Failed to match with bracket pattern.')
+                        }
+                    } else if !RegExMatch(this.TextFull, SPP_BRACKET_ROUND, &MatchBracket) {
+                        throw Error('Failed to match with bracket pattern.')
+                    }
+                    this.Params := ScriptParser_ParamsList(SubStr(MatchBracket[0], 2, -1))
                 }
             }
         }
@@ -140,7 +145,7 @@ class ScriptParser_Ahk {
         class Jsdoc extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
-                return RegExReplace(this.Match['comment'], '\R?[ \t]*?\* ?', JoinChar)
+                return Trim(RegExReplace(this.Match['comment'], '\R?[ \t]*?\* ?', JoinChar), '`r`n')
             }
             Parse(EndOfLine := '`r`n') {
                 if this.HasOwnProp('Tags') {
@@ -157,7 +162,7 @@ class ScriptParser_Ahk {
         class CommentSingleLine extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText() {
-                return this.Match['comment']
+                return Trim(this.Match['comment'], '`r`n')
             }
             TextComment => this.GetCommentText()
         }
@@ -165,14 +170,14 @@ class ScriptParser_Ahk {
         class CommentBlock extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
-                return RegExReplace(RegExReplace(this.TextFull, '^[ \t]*;[ \t]*', ''), '\R[ \t]*;[ \t]*', '`r`n')
+                return Trim(RegExReplace(RegExReplace(this.TextFull, '^[ \t]*;[ \t]*', ''), '\R[ \t]*;[ \t]*', '`r`n'), '`r`n')
             }
         }
 
         class CommentMultiLine extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
-                return RegExReplace(this.Match['comment'], '\R?[ \t]*', JoinChar)
+                return Trim(RegExReplace(this.Match['comment'], '\R?[ \t]*', JoinChar), '`r`n')
             }
         }
 

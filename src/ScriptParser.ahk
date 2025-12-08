@@ -271,7 +271,7 @@ class ScriptParser {
                 case SPC_JSDOC, SPC_COMMENTBLOCK, SPC_COMMENTMULTILINE, SPC_COMMENTSINGLELINE:
                     Component := listComponent[i]
                 default:
-                    if listComponent[i].LineStart - 1 == Component.LineEnd {
+                    if IsSet(Component) && listComponent[i].LineStart - 1 == Component.LineEnd {
                         Component.__CommentParent := listComponent[i].idu
                         listComponent[i].__Comment := Component.idu
                         if Component.IndexCollection = SPC_JSDOC {
