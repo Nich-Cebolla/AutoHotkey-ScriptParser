@@ -53,7 +53,8 @@ class Demo {
           , TvexTabOptions: tvexTabOptions
           , CallbackGui: _CallbackGui
           , DeferAddControl: true
-          , GuiShowOpt: 'x10 y200'
+          , GuiShowOpt: 'x10 y100'
+          , FontOpt: 's13 q5'
         })
         if IsSet(GetIncludedObj) {
             options.Included := GetIncludedObj

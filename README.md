@@ -191,7 +191,7 @@ of the `UIA` class.
 
 Don't forget to check out the context menu, which has many useful actions:
 
-<img src="images\scriptparser-7-contextmenu.png" style="width:100%;">
+<img src="images\scriptparser-7-contextmenu.png" style="width:50%;">
 
 # Community tools
 
