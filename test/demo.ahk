@@ -19,7 +19,7 @@ class Demo {
     }
     static Call(Path, GetIncludedObj?, Encoding?) {
         ptm := PropsInfoTree_PropsTypeMap([
-                { Type: 'ScriptParser', List: '__ConsecutiveDoubleReplacement,__ConsecutiveSingleReplacement,__LoneSemicolonReplacement,__CollectionList,__CollectionIndex,EndOfLine,__Content,Options,__Text', AddToDefault: true }
+                { Type: 'ScriptParser', List: '__ReplacementChar,__ReplacementPattern,__ConsecutiveDoubleReplacement,__ConsecutiveSingleReplacement,__LoneSemicolonReplacement,__CollectionList,__CollectionIndex,EndOfLine,__Content,Options,__Text', AddToDefault: true }
               , {
                     Type: [
                         'ScriptParser_Ahk.Component.CommentBlock',  'ScriptParser_Ahk.Component.CommentMultiline'

@@ -5,6 +5,7 @@
 class ScriptParser {
     static __New() {
         this.DeleteProp('__New')
+        ScriptParser_SetConstants()
         this.Collection := Map()
         this.Collection.CaseSense := false
         this.Prototype.IncludedCollection := ''
@@ -49,6 +50,8 @@ class ScriptParser {
             throw Error('``ScriptParser`` requires either ``Options.Content`` or ``Options.Path`` to be set.')
         }
         n := 0x2000
+        this.__ReplacementChar := Chr(_GetOrd())
+        this.__ReplacementPattern := Format(SPP_REPLACEMENT, this.__ReplacementChar)
         this.__FillerReplacement := ScriptParser_FillStr(Chr(_GetOrd()))
         this.__LoneSemicolonReplacement := _GetOrd()
         ++n
@@ -281,7 +284,7 @@ class ScriptParser {
         Pos := 1
         RemovedCollection := this.RemovedCollection
         loop {
-            if !RegExMatch(Text, SPP_REPLACEMENT, &Match, Pos) {
+            if !RegExMatch(Text, this.__ReplacementPattern, &Match, Pos) {
                 break
             }
             rc := RemovedCollection.Get(this.GetCollectionName(Match['collection']))[Match['index']].__Removed

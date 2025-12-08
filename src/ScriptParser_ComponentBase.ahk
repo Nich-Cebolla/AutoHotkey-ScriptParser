@@ -94,7 +94,7 @@ class ScriptParser_ComponentBase {
         RemovedCollection := this.Script.RemovedCollection
         Pos := 1
         loop {
-            if !RegExMatch(Text, SPP_REPLACEMENT, &Match, Pos) {
+            if !RegExMatch(Text, this.Script.__ReplacementPattern, &Match, Pos) {
                 break
             }
             this.AddChild(RemovedCollection.Get(this.Script.GetCollectionName(Match['collection']))[Match['index']])
@@ -193,7 +193,7 @@ class ScriptParser_RemovedShortComponent extends ScriptParser_RemovedComponentBa
 
 class ScriptParser_RemovedComponent extends ScriptParser_RemovedComponentBase {
     SetReplacement(Script, IndexCollection) {
-        this.Replacement := Chr(0xFFFC) IndexCollection Chr(0xFFFC) this.IndexRemoved
+        this.Replacement := Script.__ReplacementChar IndexCollection Script.__ReplacementChar this.IndexRemoved
         this.__SetReplacementShared(Script)
     }
 }
