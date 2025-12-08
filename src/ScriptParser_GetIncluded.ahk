@@ -198,12 +198,8 @@ class ScriptParser_GetIncluded {
                             if RegExMatch(_path, '[ \t]+;.*', &match_comment) {
                                 _path := StrReplace(_path, match_comment[0], '')
                             }
-                            while RegExMatch(_path, 'iS)%(A_(?:AhkPath|AppData|AppDataCommon|'
-                            'ComputerName|ComSpec|Desktop|DesktopCommon|IsCompiled|LineFile|MyDocuments|'
-                            'ProgramFiles|Programs|ProgramsCommon|ScriptDir|ScriptFullPath|ScriptName|'
-                            'Space|StartMenu|StartMenuCommon|Startup|StartupCommon|Tab|Temp|UserName|'
-                            'WinDir))%', &match_a) {
-                                _path := StrReplace(match_a[0], %match_a[1]%)
+                            while RegExMatch(_path, 'iS)%(A_\w+)%', &match_a) {
+                                _path := StrReplace(_path, match_a[0], %match_a[1]%)
                             }
                             SplitPath(_path, , , &ext, , &drive)
                             if !drive {
