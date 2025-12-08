@@ -312,7 +312,7 @@ object. There are 14 collections, each representing a type of component that `Sc
 # The component object
 
 A component is a discrete part of your script. The following are the properties of component objects.
-The **{Component}** type seen below is a general indicate for a component object. The actuall class
+The **{Component}** type seen below is a general indicator for a component object. The actuall class
 types are `ScriptParser_Ahk.Component.Class`, `ScriptParser_Ahk.Component.Function`, etc.
 
 |Property name|Accessible from|Type|What the property value represents|
@@ -331,7 +331,7 @@ types are `ScriptParser_Ahk.Component.Class`, `ScriptParser_Ahk.Component.Functi
 |Length|All|**{Integer}**|Returns the string length in characters of the full text of the component.|
 |LineEnd|All|**{Integer}**|Returns the line number on which the component's text ends.|
 |LineStart|All|**{Integer}**|Returns the line number on which the component's text begins.|
-|Match|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{RegExMatchInfo}**|If the component is associated with a string or comment, the "Match" property returns the `RegExMatchInfo` object created when parsing. There are various subcapture groups which you can see by expanding the "Enum" node of the "Match" property node.|
+|Match|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc, String|**{RegExMatchInfo}**|If the component is associated with a string or comment, the "Match" property returns the `RegExMatchInfo` object created when parsing. There are various subcapture groups which you can see by expanding the "Enum" node of the "Match" property node.|
 |Name|All|**{String}**|Returns the name of the component.|
 |NameCollection|All|**{String}**|Returns the name of the collection of which the component is part.|
 |Params|Function, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty|**{Array}**| If the function, property, or method has parameters, "Params" returns a list of parameter objects.
