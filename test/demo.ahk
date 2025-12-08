@@ -2,13 +2,9 @@
 #SingleInstance force
 #include ..\src\VENV.ahk
 
-; Paste your own script path in to the Demo() call, or leave it as the demo script path.
-; If you want `ScriptParser` to recursively process #included scripts, pass a
-; `ScriptParser_GetIncluded` object to the second parameter of `Demo`. See src\ScriptParser_GetIncluded.ahk
-; for details.
-; For long scripts, it will take a little bit to load.
+; Launch this script as-is, and you can input the script path in the gui window.
 
-Demo('test-content\UIA.ahk')
+Demo()
 
 class Demo {
     static __New() {
@@ -17,7 +13,7 @@ class Demo {
             TreeViewEx_ContextMenu.Prototype.DefaultItems.Remove(item)
         }
     }
-    static Call(Path, GetIncludedObj?, Encoding?) {
+    static Call(Path?, GetIncludedObj?, Encoding?) {
         ptm := PropsInfoTree_PropsTypeMap([
                 { Type: 'ScriptParser', List: '__ReplacementChar,__ReplacementPattern,__ConsecutiveDoubleReplacement,__ConsecutiveSingleReplacement,__LoneSemicolonReplacement,__CollectionList,__CollectionIndex,EndOfLine,__Content,Options,__Text', AddToDefault: true }
               , {
@@ -45,45 +41,163 @@ class Demo {
           , NormalizeKeyExtent: 2
           , ShowOwnerIndex: false
         }
+        this.scripts := []
         tvexTabOptions := this.TvexTabOptions := { Opt: '' }
-        options := { Path: path, Encoding: encoding ?? unset }
-        this.byoo := BringYourOwnObject(, {
-            Name: 'ScriptParser'
-          , PropsInfoTreeOptions: pitOpt
-          , TvexTabOptions: tvexTabOptions
-          , CallbackGui: _CallbackGui
-          , DeferAddControl: true
-          , GuiShowOpt: 'x10 y100'
-          , FontOpt: 's13 q5'
-        })
-        if IsSet(GetIncludedObj) {
-            options.Included := GetIncludedObj
+        if IsSet(Path) {
+            SplitPath(path, &name)
+            options := { Path: path, Encoding: encoding ?? unset }
+            if IsSet(GetIncludedObj) {
+                options.Included := GetIncludedObj
+            }
+            this.scripts.Push(ScriptParser(options))
+            this.byoo := BringYourOwnObject(, {
+                Name: name
+              , PropsInfoTreeOptions: pitOpt
+              , TvexTabOptions: tvexTabOptions
+              , CallbackGui: _CallbackGui
+              , DeferAddControl: true
+              , GuiShowOpt: 'x10 y100'
+              , FontOpt: 's13 q5'
+            })
+        } else {
+            this.byoo := BringYourOwnObject(, {
+                PropsInfoTreeOptions: pitOpt
+              , TvexTabOptions: tvexTabOptions
+              , CallbackGui: _CallbackGui
+              , DeferAddControl: true
+              , GuiShowOpt: 'x10 y100'
+              , FontOpt: 's13 q5'
+            })
         }
-        this.script := ScriptParser(options)
         this.Dotter.Stop := 1
-        ctrl := this.Dotter.Ctrl
-        ctrl.Text := ''
-        ctrl.Enabled := ctrl.Visible := 0
-        ctrl.GetPos(&x, &y)
-        g := ctrl.Gui
-        g.Add('Link', 'x' x ' y' y ' vLink', '<a href="https://github.com/Nich-Cebolla/AutoHotkey-ScriptParser">Click to open the readme</a>')
-        this.DeleteProp('Dotter')
-        this.byoo.Add(this.script)
+        if IsSet(Path) {
+            this.byoo.Add(this.scripts[1])
+        }
 
         return
 
         _CallbackGui(g) {
-            btn := g.Add('Button', 'Section', 'Click to view information about this window')
+            Demo.gui := g
+            local btn := g.Add('Button', 'Section', 'Click to view information about this window')
             btn.OnEvent('Click', HClickButtonViewInfo)
+            g.Add('Link', 'ys vLink', '<a href="https://github.com/Nich-Cebolla/AutoHotkey-ScriptParser">Click to open the readme</a>')
             txt := g.Add('Text', 'ys', 'Loading.....')
             Demo.Dotter := Dotter(txt.Hwnd)
             btn.GetPos(&x, &y, &w, &h)
             txt.GetPos(, , , &h2)
             txt.Move(, y + (h - h2) / 2)
-            Demo.TvexTabOptions.Opt := 'x' x ' y' (y + h + g.MarginY) ' w1150 r19'
+            g.Add('Button', 'xs Section', 'Add script').OnEvent('Click', HClickButtonAddScript)
+            g.Add('Text', 'ys', 'Path to script:')
+            g.Add('Edit', 'ys w600 vEdtPath')
+            btn := g.Add('Button', 'ys', 'Browse')
+            btn.edit := g['EdtPath']
+            btn.options := '1'
+            btn.filter := '*.ahk'
+            btn.OnEvent('Click', HClickButtonBrowse)
+            g.Add('Text', 'ys', 'Encoding:')
+            g.Add('Edit', 'ys w150 vEdtEncoding')
+            g.Add('Checkbox', 'xs vChkIncluded', 'Process #included scripts')
+            g.Add('Checkbox', 'xs vChkIncluded2', 'Set #include ')
+            g['ChkIncluded2'].GetPos(&x, &y, &w)
+            g.Add('Link', 'x' (x + w) ' y' y, '<a href="https://www.autohotkey.com/docs/v2/Scripts.htm#lib">lib dirs</a>')
+            Demo.TvexTabOptions.Opt := 'x' x ' y' (y + h + g.MarginY) ' w1170 r15'
+            g['ChkIncluded'].GetPos(&x, &y, &w)
+            x += w
+            g.Add('Text', 'x' (x + 25) ' y' y ' w' (1100 - x), 'Input a script path and click "Add Script".'
+            ' If you want ``ScriptParser`` to process #included files, check the box "Process'
+            ' #included scripts". If any #include statements use scripts in the script lib folder'
+            ' or the AHK exe lib folder, check the "Set #include lib dirs" box and set the correct'
+            ' paths in the popup window.')
 
             return
 
+            HClickButtonAddScript(ctrl, *) {
+                local name
+                g := ctrl.Gui
+                path := g['EdtPath'].Text
+                if !FileExist(path) {
+                    MsgBox('Could not find the file at ' path '.')
+                    return
+                }
+                if g['ChkIncluded'].Value {
+                    if g['ChkIncluded2'].Value {
+                        if Demo.HasOwnProp('g_included') {
+                            g_included := Demo.g_included
+                        } else {
+                            lf := TreeViewEx_Logfont(g['ChkIncluded2'].Hwnd)
+                            g_included := Gui()
+                            g_included.SetFont('s' lf.FontSize ' q' lf.Quality, lf.FaceName)
+                            g_included.Add('Text', 'Section', 'AHK exe lib dir:')
+                            SplitPath(A_AhkPath, , &Dir)
+                            g_included.Add('Edit', 'ys w500 r2 vEdtExe', Dir)
+                            local btn := g_included.Add('Button', 'ys', 'Browse')
+                            btn.options := 'D2'
+                            btn.edit := g_included['EdtExe']
+                            btn.OnEvent('Click', HClickButtonBrowse)
+                            g_included.Add('Text', 'xs Section', 'Script dir:')
+                            SplitPath(path, , &dir)
+                            g_included.Add('Edit', 'ys w500 r2 vEdtScript', dir)
+                            btn := g_included.Add('Button', 'ys', 'Browse')
+                            btn.options := 'D2'
+                            btn.edit := g_included['EdtScript']
+                            btn.OnEvent('Click', HClickButtonBrowse)
+                            g_included.Add('Button', 'xs', 'Submit').OnEvent('Click', HClickButtonSubmit)
+                            Demo.g_included := g_included
+                        }
+                        g_included.Show()
+                    } else {
+                        local options := {
+                            Encoding: g['EdtEncoding'].Text || unset
+                          , Included: ScriptParser_GetIncluded(path, , , , g['EdtEncoding'].Text || unset)
+                          , Path: path
+                        }
+                        SplitPath(path, &name)
+                        Demo.dotter.Start()
+                        Demo.scripts.Push(ScriptParser(options))
+                        Demo.byoo.Add(this.scripts[-1], name)
+                        Demo.dotter.stop := true
+                    }
+                } else {
+                    local options := {
+                        Encoding: g['EdtEncoding'].Text || unset
+                      , Path: path
+                    }
+                    SplitPath(path, &name)
+                    Demo.dotter.Start()
+                    Demo.scripts.Push(ScriptParser(options))
+                    Demo.byoo.Add(this.scripts[-1], name)
+                    Demo.dotter.stop := true
+                }
+
+                return
+
+                HClickButtonSubmit(ctrl, *) {
+                    local name
+                    local path := Demo.gui['EdtPath'].Text
+                    if !FileExist(path) {
+                        MsgBox('Could not find the file at ' path '.')
+                        return
+                    }
+                    g_included := ctrl.Gui
+                    local options := {
+                        Encoding: g['EdtEncoding'].Text || unset
+                      , Included: ScriptParser_GetIncluded(
+                            path
+                          ,
+                          , g_included['EdtScript'].Text || unset
+                          , g_included['EdtExe'].Text || unset
+                          , g['EdtEncoding'].Text || unset
+                        )
+                      , Path: path
+                    }
+                    SplitPath(path, &name)
+                    g_included.Hide()
+                    Demo.dotter.Start()
+                    Demo.scripts.Push(ScriptParser(options))
+                    Demo.byoo.Add(this.scripts[-1], name)
+                    Demo.dotter.stop := true
+                }
+            }
             HClickButtonViewInfo(ctrl, *) {
                 local g := ctrl.Gui
                 if HasProp(g, 'InfoWindow') {
@@ -255,6 +369,20 @@ class Demo {
         }
     }
 }
+HClickButtonBrowse(ctrl, *) {
+    if Demo.HasOwnProp('LastPath') {
+        default := Demo.LastPath
+    } else if ctrl.edit.Text {
+        default := ctrl.edit.Text
+    } else {
+        default := A_ScriptDir
+    }
+    if path := FileSelect(ctrl.options, default, 'Select script', ctrl.HasOwnProp('filter') ? ctrl.filter : unset) {
+        SplitPath(path, , &dir)
+        Demo.LastPath := dir
+        ctrl.edit.Text := path
+    }
+}
 SciptParserDemo_CallbackProps(node) {
     switch node.Value.__Class {
         case 'ScriptParser_ComponentList'
@@ -281,7 +409,9 @@ class Dotter {
         SetTimer(this, Period)
     }
     Call() {
-        if !this.Stop {
+        if this.Stop {
+            this.Ctrl.Text := ''
+        } else {
             if ++this.N > 5 {
                 this.N := 1
                 this.Ctrl.Text := RegExReplace(this.Ctrl.Text, '\.+', '.')
@@ -290,6 +420,12 @@ class Dotter {
             }
             SetTimer(this, this.Period)
         }
+    }
+    Start() {
+        this.N := 1
+        this.Ctrl.Text := 'Loading.'
+        this.Stop := 0
+        SetTimer(this, this.Period)
     }
     Ctrl => GuiCtrlFromHwnd(this.HwndCtrl)
 }
@@ -29965,13 +30101,14 @@ class BringYourOwnObject {
      * @description - Creates a new tab, adds a {@link PropsInfoTree} control, and shows the window.
      * @param {*} Obj - The object to associate with a {@link PropsInfoTree} control.
      */
-    Add(Obj) {
+    Add(Obj, name?) {
         tvexTab := this.TvexTab
         options := this.Options
-        item := tvexTab.Add(options.Name)
+        item := tvexTab.Add(name ?? options.Name)
         pit := item.tvex
         tvexTab.PropsInfoTreeContextMenu.RegisterTreeViewExTab(pit.Hwnd, tvexTab, Demo_ContextMenu_AddAsNewTab, Demo_ContextMenu_DeleteTab)
-        pit.AddRootNode(Obj, options.Name)
+        node := pit.NodeConstructor_Root.Call(PathObj(Name ?? options.Name || Type(Obj)), Obj)
+        pit.AddNode3(node, 'insert root')
         pit.Resizer := { W: 1, H: 1 }
         if this.Added {
             this.controls.Push(pit)
@@ -30051,8 +30188,8 @@ Demo_CallbackDelete(item, flag_isCurrentTab, *) {
 }
 
 Demo_CallbackOnChange(tvexTab, formerActive, newlyActive) {
-    resizer := BringYourOwnObject.g.resizer
-    controls := BringYourOwnObject.controls
+    resizer := Demo.gui.resizer
+    controls := Demo.byoo.controls
     for item in formerActive {
         for _item in controls {
             if item.HwndTvex = _item.Hwnd {

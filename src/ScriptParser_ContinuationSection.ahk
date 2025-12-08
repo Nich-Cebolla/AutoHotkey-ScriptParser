@@ -49,13 +49,13 @@
  */
 class ScriptParser_ContinuationSection {
     __New(StringPtr, Pos, Operator) {
-        static Brackets := ['[', ']', '(', ')', '{', '}']
-        static PatternBrackets := [
+        Brackets := ['[', ']', '(', ')', '{', '}']
+        PatternBrackets := [
             '(?<body>\[([^[\]]++|(?&body))*\])(?<tail>.*)'
           , '(?<body>\(([^()]++|(?&body))*\))(?<tail>.*)'
           , '(?<body>\{([^{}]++|(?&body))*\})(?<tail>.*)'
         ]
-        static PatternContinuation := (
+        PatternContinuation := (
             'm)'
             /**
              * {@link https://www.pcre.org/pcre.txt} search for "Defining subpatterns for use by reference only"
@@ -147,7 +147,7 @@ class ScriptParser_ContinuationSection {
                     OutPosEnd := InStr(this.Body, Br) + Pos - 1
                 }
                 if !RegExMatch(this.Text, PatternBrackets[A_Index], &Match, OutPosEnd) || Match.Pos !== OutPosEnd {
-                    throw Error('There is likely a syntax error around position: ' Match.Pos)
+                    continue
                 }
                 this.Body := SubStr(this.Body, 1, (PosBr ?? InStr(this.Body, Br)) - 1) Match[0]
                 OutPosEnd := Match.Pos + Match.Len

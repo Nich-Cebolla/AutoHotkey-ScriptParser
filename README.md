@@ -424,5 +424,10 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
 
 # Changelog
 
+- **2025-12-08** v1.0.2
+  - Change:
+    - test\demo.ahk - Modified the gui to allow inputting a path into the window, instead of
+      passing a path to the function.
+
 - **2025-12-08** v1.0.0
   - Released v1.0.0.
