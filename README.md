@@ -273,17 +273,17 @@ is ignored.
 # The ScriptParser object
 
 The following is a list of properties and short description of the primary properties accessible from
-a `ScriptParser` object.
+a `ScriptParser` object. The "Collection" objects all inherit from `Map`.
 
-|Property name|Type of collection|
-|-|-|
-|Collection|A `ScriptParser_Collection` object. Your code can access each type of collection from this property.|
-|ComponentList|A map object containining every component that was parsed, in the order in which they were parsed.|
-|GlobalCollection|A map object containing collection objects containing class and function component objects.|
-|IncludedCollection|If `Options.Included` was set, "IncludedCollection" will be set with a map object where the key is the file path and the value is the `ScriptParser` object for each included file.|
-|Length|The script's character length|
-|RemovedCollection|A collection object containing collection objects containing component objects associated with strings and comments|
-|Text|The script's full text|
+|Property name|Type|What the property value represents|
+|-|-|-|
+|Collection|**{ScriptParser_Collection}**|A `ScriptParser_Collection` object. Your code can access each type of collection from this property.|
+|ComponentList|**{ScriptParser_ComponentList}**|A map object containining every component that was parsed, in the order in which they were parsed.|
+|GlobalCollection|**{ScriptParser_GlobalCollection}**|A map object containing collection objects containing class and function component objects.|
+|IncludedCollection|**{ScriptParser_IncludedCollection}**|If `Options.Included` was set, "IncludedCollection" will be set with a map object where the key is the file path and the value is the `ScriptParser` object for each included file.|
+|Length|**{Integer}**|The script's character length|
+|RemovedCollection|**{ScriptParser_RemovedCollection}**|A collection object containing collection objects containing component objects associated with strings and comments|
+|Text|**{String}**|The script's full text|
 
 
 # The "Collection" property
@@ -343,7 +343,7 @@ types are `ScriptParser_Ahk.Component.Class`, `ScriptParser_Ahk.Component.Functi
 |Set|InstanceProperty, StaticProperty|**{Boolean}**|Returns 1 if the property has a setter.|
 |Static|InstanceMethod, InstanceProperty, StaticMethod, StaticProperty|**{Boolean}**|Returns 1 if the method or property has the `Static` keyword.|
 |Text|All|**{String}**|Returns the original text for the component.|
-|TextBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{String}**|For components that have a body (code in-between curly braces or code after an arrow operator), "TextBody" returns returns the text between the curly braces.|
+|TextBody|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{String}**|For components that have a body (code in-between curly braces or code after an arrow operator), "TextBody" returns returns the text between the curly braces or after the arrow operator.|
 |TextComment|CommentBlock, CommentMultiLine, CommentSingleLine, Jsdoc|**{String}**|If the component object is associated with a commment, "TextComment" returns the comment's original text with the comment operators and any leading indentation removed. Each individual line of the comment is separated by crlf.|
 |TextOwn|Class, Function, Getter, InstanceMethod, InstanceProperty, StaticMethod, StaticProperty, Setter|**{String}**|If the component has children, "TextOwn" returns only the text that is directly associated with the component; child text is removed.|
 
