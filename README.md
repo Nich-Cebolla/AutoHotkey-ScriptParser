@@ -188,8 +188,8 @@ Join the conversation on [Reddit.com](https://www.reddit.com/r/AutoHotkey/commen
 The demo script launches a gui window with a tree-view control that displays the properties and items
 accessible from a `ScriptParser` object. Since making use of `ScriptParser` requires accessing
 deeply nested objects, I thought it would be helpful to have a visual aide to keep open while writing
-code that uses the class. To use, input the path to your script in the `Demo("path")` function call,
-and run the script.
+code that uses the class. To use, launch the test\demo.ahk script, input a script path into the Edit
+control, and click "Add script".
 
 ## The demo gui
 
