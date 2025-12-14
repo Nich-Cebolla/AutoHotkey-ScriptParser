@@ -408,39 +408,70 @@ class ScriptParser {
         _Proc() {
             local _Match
             LastIndex := this.ComponentList.__ComponentIndex
-            ; How the constructor is identified varies depending on the scope
-            Callback := Stack.Active.IsClass ? _GetConstructorClassActive : _GetConstructorGlobal
             ; Only check the text up to `Stack.PosEnd`
             Text := SubStr(this.__Content, 1, Stack.PosEnd)
-            loop {
-                ; If there's no more function / property definitions
-                if !RegExMatch(Text, SPP_PROPERTY, &_Match, Stack.Pos) {
-                    break
+            if Stack.Active.IsClass {
+                loop {
+                    ; If there's no more function / property definitions
+                    if !RegExMatch(Text, SPP_PROPERTY, &_Match, Stack.Pos) {
+                        break
+                    }
+                    ; Assignment and arrow operators can potentially be followed by a continuation section.
+                    ; `ScriptParser_ContinuationSection` will identify and concatenate a continuation section.
+                    if _Match['arrow'] || _Match.assign {
+                        CS := ScriptParser_ContinuationSection(
+                            StrPtr(this.__Content)
+                          , _Match.Pos['text']
+                          , _Match['arrow'] ? '=>' : ':='
+                        )
+                    } else {
+                        CS := _Match
+                    }
+                    ; Create the context object
+                    Component := Stack.In(this, _Match['name'], CS, _GetConstructorClassActive(), _Match)
+                    Component.__AssociateRemovedComponents()
+                    ; Handle initialization tasks that are specific to a component type
+                    ; Component.Init(_Match)
+                    ; Parse function / property accessor parameters if present
+                    Component.GetParams(_Match)
+                    ; Move the position
+                    Stack.Pos := _Match.Pos['text'] + StrLen(CS.Text)
+                    ; Exit the function / property scope
+                    Stack.Out()
+                    ; Adjust the line count to the end of the function / property definition
+                    Stack.Line := Component.LineEnd
                 }
-                ; Assignment and arrow operators can potentially be followed by a continuation section.
-                ; `ScriptParser_ContinuationSection` will identify and concatenate a continuation section.
-                if _Match['arrow'] || _Match.assign {
-                    CS := ScriptParser_ContinuationSection(
-                        StrPtr(this.__Content)
-                      , _Match.Pos['text']
-                      , _Match['arrow'] ? '=>' : ':='
-                    )
-                } else {
-                    CS := _Match
+            } else {
+                loop {
+                    ; If there's no more function definitions
+                    if !RegExMatch(Text, SPP_FUNCTION, &_Match, Stack.Pos) {
+                        break
+                    }
+                    ; Assignment and arrow operators can potentially be followed by a continuation section.
+                    ; `ScriptParser_ContinuationSection` will identify and concatenate a continuation section.
+                    if _Match['arrow'] {
+                        CS := ScriptParser_ContinuationSection(
+                            StrPtr(this.__Content)
+                          , _Match.Pos['text']
+                          , _Match['arrow'] ? '=>' : ':='
+                        )
+                    } else {
+                        CS := _Match
+                    }
+                    ; Create the context object
+                    Component := Stack.In(this, _Match['name'], CS, _GetConstructorGlobal(), _Match)
+                    Component.__AssociateRemovedComponents()
+                    ; Handle initialization tasks that are specific to a component type
+                    ; Component.Init(_Match)
+                    ; Parse function / property accessor parameters if present
+                    Component.GetParams(_Match)
+                    ; Move the position
+                    Stack.Pos := _Match.Pos['text'] + _Match.Len['text']
+                    ; Exit the function / property scope
+                    Stack.Out()
+                    ; Adjust the line count to the end of the function / property definition
+                    Stack.Line := Component.LineEnd
                 }
-                ; Create the context object
-                Component := Stack.In(this, _Match['name'], CS, Callback(), _Match)
-                Component.__AssociateRemovedComponents()
-                ; Handle initialization tasks that are specific to a component type
-                ; Component.Init(_Match)
-                ; Parse function / property accessor parameters if present
-                Component.GetParams(_Match)
-                ; Move the position
-                Stack.Pos := _Match.Pos['text'] + _Match.Len['text']
-                ; Exit the function / property scope
-                Stack.Out()
-                ; Adjust the line count to the end of the function / property definition
-                Stack.Line := Component.LineEnd
             }
 
             _GetConstructorClassActive() {
