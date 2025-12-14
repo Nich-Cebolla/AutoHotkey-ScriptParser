@@ -425,6 +425,10 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
 # Changelog
 
 - **2025-12-14** v1.0.4
+  - Change:
+    - `ScriptParser_SetConstants` to include "SPC_" enumeration.
+
+- **2025-12-14** v1.0.4
   - Fix:
     - `SriptParser` to correctly parse [AHK-style continuation sections](https://www.autohotkey.com/docs/v2/Scripts.htm#continuation). Fixed `SPP_REMOVE_CONTINUATION`.
     - `ScriptParser` to correctly parse property fields that have 0 characters following the assignment / arrow operator. Fixed `ScriptParser_ContinuationSection`.
