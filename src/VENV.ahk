@@ -1,5 +1,4 @@
 ﻿#include define.ahk
-#include enum.ahk
 #include lib.ahk
 #include ScriptParser_Ahk.ahk
 #include ScriptParser_Collection.ahk
