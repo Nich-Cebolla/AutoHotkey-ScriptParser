@@ -130,8 +130,8 @@ ScriptParser_SetConstants(force := false) {
         ')'
     )
 
-    SPP_BRACKET_SQUARE := '(?(DEFINE)(?<quote>(?<!\\)(?:\\\\)*+(?<skip>["`']).*?(?<!\\)(?:\\\\)*+\g{skip}))(?<body>\[((?&quote)|[^[\]"`']++|(?&body))*\])'
-    SPP_BRACKET_ROUND := '(?(DEFINE)(?<quote>(?<!\\)(?:\\\\)*+(?<skip>["`']).*?(?<!\\)(?:\\\\)*+\g{skip}))(?<body>\(((?&quote)|[^()"`']++|(?&body))*\))'
+    SPP_BRACKET_SQUARE := '(?(DEFINE)(?<quote>(?<!``)(?:````)*+(?<skip>["`']).*?(?<!``)(?:````)*+\g{skip}))(?<body>\[((?&quote)|[^[\]"`']++|(?&body))*\])'
+    SPP_BRACKET_ROUND := '(?(DEFINE)(?<quote>(?<!``)(?:````)*+(?<skip>["`']).*?(?<!``)(?:````)*+\g{skip}))(?<body>\(((?&quote)|[^()"`']++|(?&body))*\))'
 
     SPP_QUOTE := (
         's)'
