@@ -157,9 +157,9 @@ ScriptParser_SetConstants(force := false) {
             '|'
                 '(?&multiline)'
             ')*'
-            '\s*+\('
+            '\s*\('
             '(?<body>[\w\W]*?)'
-            '\R[ \t]*+\).*?\g{quote}'
+            '\R[ \t]*\).*?\g{quote}'
         ')'
         '(?<tail>.*)'
     )
