@@ -424,6 +424,13 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
 
 # Changelog
 
+- **2025-12-14** v1.0.3
+  - Fix:
+    - `SriptParser` to correctly parse [AHK-style continuation sections](https://www.autohotkey.com/docs/v2/Scripts.htm#continuation). Fixed `SPP_REMOVE_CONTINUATION`.
+    - `ScriptParser` to correctly parse property fields that have 0 characters following the assignment / arrow operator. Fixed `ScriptParser_ContinuationSection`.
+    - A logical error causing some text to be processed more than once, resulting in erroneous component objects being included.
+    - `SPP_BRACKET_SQUARE` and `SPP_BRACKET_ROUND` to use the backtick as the escape character.
+
 - **2025-12-08** v1.0.2
   - Change:
     - test\demo.ahk - Modified the gui to allow inputting a path into the window, instead of
