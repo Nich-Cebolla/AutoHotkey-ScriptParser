@@ -424,7 +424,7 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
 
 # Changelog
 
-- **2025-12-14** v1.0.4
+- **2025-12-14** v1.0.5
   - Change:
     - `ScriptParser_SetConstants` to include "SPC_" enumeration.
 
