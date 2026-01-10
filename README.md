@@ -92,31 +92,32 @@ MyFunc(param1, param2, params*) {
 
 When I create the `ScriptParser` object, I will have access to data objects that provide me with
 information about `MyClass`, `MyClass.Method`, `MyClass.Property`, `MyClass.Property.Get`,
-`MyClass.Property.Set`, `MyClass.Prototype.__New`, `MyClass.Property` (instance property), `MyFunc`,
-and the three comments. The kinds of information available are:
+`MyClass.Property.Set`, `MyClass.Prototype.__New`, `MyClass.Prototype.Property` (instance property),
+`MyFunc`, and the three comments. The kinds of information available are:
 - Full text of the component.
 - Character position details, such as start and end position, start and end line, and start and end
   character column number.
 - Child components.
 - For functions and methods, details about parameters.
 - Comments are associated with the code directly beneath them.
+- Details about function parameters and property accessor parameters.
 
 Assume the above code is saved to file "MyScript.ahk"...
 ```ahk
 #include <ScriptParser>
 
-sp := ScriptParser({ Path: "MyScript.ahk" })
-collection := sp.Collection
-_myScript := collection.Class.Get("MyClass")
-OutputDebug(_myScript.Text "`n") ; Prints the entire MyClass text
-_myMethod := _myScript.Children.Get("StaticMethod").Get("Method")
-params := _myMethod.Params
+script := ScriptParser({ Path: "MyScript.ahk" })
+collection := script.Collection
+_myClass := collection.Class.Get("MyClass")
+OutputDebug(_myClass.Text "`n") ; Prints the entire MyClass text
+_method := _myClass.Children.Get("StaticMethod").Get("Method")
+params := _method.Params
 OutputDebug(params[1].Symbol "`n") ; param1
 OutputDebug(params[2].DefaultValue "`n") ; "value"
-OutputDebug(_myMethod.Comment.TextComment "`n") ; @param {Type} param1 - info
+OutputDebug(_method.Comment.TextComment "`n") ; @param {Type} param1 - info
                                                 ; @param {Type} [param2] - info
                                                 ; @returns {Type}
-OutputDebug(_myMethod.TextBody "`n") ; Prints the body of MyMethod (text between curly braces)
+OutputDebug(_method.TextBody "`n") ; Prints the body of MyClass.Method (text between curly braces)
 ```
 
 # Use cases
