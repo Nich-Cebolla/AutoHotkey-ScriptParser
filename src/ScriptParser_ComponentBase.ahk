@@ -1,5 +1,13 @@
 ﻿
 class ScriptParser_ComponentBase {
+    static __New() {
+        this.DeleteProp('__New')
+        Proto := this.Prototype
+        for Prop in ['AltName', 'Children', 'LenBody',  '__ParentIdu', 'Name', '__Removed', '__Stack'
+        , 'HasJsdoc', '__Comment', '__CommentParent', 'PosBody', 'Path'] {
+            Proto.DefineProp(Prop, { Value: '' })
+        }
+    }
     __New(LineStart, ColStart, LineEnd, ColEnd, Pos, Len, Stack?, Match?, NameComponent?, PosBody?, LenBody?, IsRemoved := false) {
         this.LineStart := LineStart
         this.ColStart := ColStart
@@ -148,16 +156,6 @@ class ScriptParser_ComponentBase {
     __Text => this.Script.__Text[this.Pos, this.Length]
     __TextBody => this.PosBody ? this.Script.__Text[this.PosBody, this.LenBody] : ''
     __TextOwn => this.GetOwnText()
-
-
-    static __New() {
-        this.DeleteProp('__New')
-        Proto := this.Prototype
-        for Prop in ['AltName', 'Children', 'LenBody',  '__ParentIdu', 'Name', '__Removed', '__Stack'
-        , 'HasJsdoc', '__Comment', '__CommentParent', 'PosBody', 'Path'] {
-            Proto.DefineProp(Prop, { Value: '' })
-        }
-    }
 }
 
 ScriptParser_GetRemovedComponent(Component, Match) {
