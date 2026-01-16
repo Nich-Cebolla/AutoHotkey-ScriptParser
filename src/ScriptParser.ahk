@@ -1,7 +1,4 @@
 ﻿
-/**
- * @classdesc - Parses an AHK script into its components.
- */
 class ScriptParser {
     static __New() {
         this.DeleteProp('__New')
@@ -24,10 +21,24 @@ class ScriptParser {
         throw Error('Failed to produce a unique id.')
     }
     /**
-     * @description -
+     * @description - Parses an AHK script into its components.
      * @class
      * @param {Object|ScriptParser.Options} Options - An object with zero or more options
      * as property : value pairs, or a {@link ScriptParser.Options} object.
+     * @param {Boolean} [Options.DeferProcess = false] - If true, {@link ScriptParser.Prototype.Process}
+     * is not called; your code must call it to invoke the parsing process.
+     * @param {String} [Options.Encoding] - The file encoding to use when reading the script.
+     * @param {String} [Options.EndOfLine] - If the input script has mixed line endings, you will
+     * see an error directing you to set `Options.EndOfLine` which will cause {@link ScriptParser}
+     * to standardize the line endings (in memory; it does not modify the script file). Otherwise
+     * you can leave `Options.EndOfLine` unset and {@link ScriptParser} will detect the end of line.
+     * @param {String} [Options.Included] - Set `Options.Included` with a {@link ScriptParser_GetIncluded}
+     * object if you would like the files associated with `#include` statements to be processed in
+     * addition to the parent script. The {@link ScriptParser} objects resulting from parsing the
+     * #included files are added to a {@link ScriptParser_IncludedCollection} map object where the
+     * key is the full file path and the value is the {@link ScriptParser} object. These
+     * are accessible from property {@link ScriptParser#IncludedCollection}.
+     * @param {String} [Options.Path = ''] - The path to the script to parse.
      */
     __New(Options) {
         this.IdScriptParser := ScriptParser.__GetUid()
@@ -266,7 +277,7 @@ class ScriptParser {
     /**
      * @description - Returns text from the script, with strings and comments still removed from
      * the text.
-     * @param {Integer} [PosStart=1] - The character start position.
+     * @param {Integer} [PosStart = 1] - The character start position.
      * @param {Integer} [Len] - The number of characters to include.
      * @returns {String}
      */
@@ -275,7 +286,7 @@ class ScriptParser {
     }
     /**
      * @description - Returns the original, unmodified text from the script.
-     * @param {Integer} [PosStart=1] - The character start position.
+     * @param {Integer} [PosStart = 1] - The character start position.
      * @param {Integer} [Len] - The number of characters to include.
      * @returns {String}
      */
