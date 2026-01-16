@@ -423,7 +423,6 @@ class ScriptParser {
             Text := SubStr(this.__Content, 1, Stack.PosEnd)
             if Stack.Active.IsClass {
                 loop {
-                    ; If there's no more function / property definitions
                     if !RegExMatch(Text, SPP_PROPERTY, &_Match, Stack.Pos) {
                         break
                     }
@@ -441,10 +440,6 @@ class ScriptParser {
                     ; Create the context object
                     Component := Stack.In(this, _Match['name'], CS, _GetConstructorClassActive(), _Match)
                     Component.__AssociateRemovedComponents()
-                    ; Handle initialization tasks that are specific to a component type
-                    ; Component.Init(_Match)
-                    ; Parse function / property accessor parameters if present
-                    Component.GetParams(_Match)
                     ; Move the position
                     Stack.Pos := _Match.Pos['text'] + StrLen(CS.Text)
                     ; Exit the function / property scope
@@ -454,7 +449,6 @@ class ScriptParser {
                 }
             } else {
                 loop {
-                    ; If there's no more function definitions
                     if !RegExMatch(Text, SPP_FUNCTION, &_Match, Stack.Pos) {
                         break
                     }
@@ -472,10 +466,6 @@ class ScriptParser {
                     ; Create the context object
                     Component := Stack.In(this, _Match['name'], CS, _GetConstructorGlobal(), _Match)
                     Component.__AssociateRemovedComponents()
-                    ; Handle initialization tasks that are specific to a component type
-                    ; Component.Init(_Match)
-                    ; Parse function / property accessor parameters if present
-                    Component.GetParams(_Match)
                     ; Move the position
                     Stack.Pos := _Match.Pos['text'] + _Match.Len['text']
                     ; Exit the function / property scope
