@@ -25,6 +25,12 @@ class ScriptParser_Ahk {
                 if Match['arrow'] {
                     this.Arrow := true
                 }
+                if Match['inner'] {
+                    if !RegExMatch(this.Text, SPP_BRACKET_ROUND, &MatchBracket) {
+                        throw Error('Failed to match with bracket pattern.')
+                    }
+                    this.Params := ScriptParser_ParamsList(SubStr(MatchBracket[0], 2, -1))
+                }
             }
         }
 
@@ -46,6 +52,12 @@ class ScriptParser_Ahk {
             Init(Match) {
                 if Match['static'] {
                     this.Static := true
+                }
+                if Match['inner'] {
+                    if !RegExMatch(this.Text, SPP_BRACKET_SQUARE, &MatchBracket) {
+                        throw Error('Failed to match with bracket pattern.')
+                    }
+                    this.Params := ScriptParser_ParamsList(SubStr(MatchBracket[0], 2, -1))
                 }
                 if Match['arrow'] {
                     this.Arrow := true
@@ -115,18 +127,11 @@ class ScriptParser_Ahk {
                 this.Prototype.DefineProp('Params', { Value: '' })
             }
             Init(Match) {
-                this.GetParams(Match)
                 if Match['arrow'] {
                     this.Arrow := true
                 }
-            }
-            GetParams(Match) {
-                if Match.inner {
-                    if InStr(this.__Class, 'Property') {
-                        if !RegExMatch(this.Text, SPP_BRACKET_SQUARE, &MatchBracket) {
-                            throw Error('Failed to match with bracket pattern.')
-                        }
-                    } else if !RegExMatch(this.Text, SPP_BRACKET_ROUND, &MatchBracket) {
+                if Match['inner'] {
+                    if !RegExMatch(this.Text, SPP_BRACKET_ROUND, &MatchBracket) {
                         throw Error('Failed to match with bracket pattern.')
                     }
                     this.Params := ScriptParser_ParamsList(SubStr(MatchBracket[0], 2, -1))
