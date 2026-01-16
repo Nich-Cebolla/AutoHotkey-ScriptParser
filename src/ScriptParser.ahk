@@ -585,14 +585,14 @@ class ScriptParser {
                 ; Calculate line start
                 LineStart := nl += linecount
                 ; Calculate col start
-                ColStart := Match.Pos['text'] - Match.Pos
+                ColStart := Match.Pos['text'] - Match.Pos + 1
                 ; Get line count of the text that will be removed
                 StrReplace(Match['text'], eol, , , &linecount)
                 ; Calculate line end
                 LineEnd := nl += linecount
                 ; Calculate col end
                 if LineEnd == LineStart {
-                    ColEnd := ColStart + Match.Len['text']
+                    ColEnd := ColStart + Match.Len['text'] - 1
                 } else {
                     ColEnd := Match.Len['text'] - InStr(Match['text'], eol, , , -1)
                 }
