@@ -617,7 +617,7 @@ class ScriptParser {
     }
     ProcessIncluded() {
         unique := this.Options.Included.GetUnique()
-        collection := this.IncludedCollection := ScriptParser_IncludedCollection()
+        includedCollection := this.IncludedCollection := ScriptParser_IncludedCollection()
         options := this.Options.Clone()
         options.Included := options.DeferProcess := ''
         SplitPath(this.Options.Path, , , , , &drive)
@@ -625,11 +625,11 @@ class ScriptParser {
             path := this.Options.Path
             ScriptParser_GetIncluded.ResolveRelativePathRef(&path)
         }
-        collection.Set(path ?? this.Options.Path, this)
+        includedCollection.Set(path ?? this.Options.Path, this)
         for path in unique {
-            if !collection.Has(path) {
+            if !includedCollection.Has(path) {
                 options.Path := path
-                collection.Set(path, ScriptParser(options))
+                includedCollection.Set(path, ScriptParser(options))
             }
         }
     }
