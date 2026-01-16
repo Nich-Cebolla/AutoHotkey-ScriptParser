@@ -79,7 +79,7 @@ class ScriptParser {
                         RegExMatch(this.__Content, '\R', &mEndOfLine)
                         this.EndOfLine := mEndOfLine[0]
                     } else {
-                        throw Error('The script content has mixed line endings.')
+                        throw Error('The script content has mixed line endings. Set ``Options.EndOfLine`` to standardize the line endings with the specified string.')
                     }
                 } else {
                     this.EndOfLine := '`r'
