@@ -11,4 +11,3 @@
 #include ScriptParser_ParamsList.ahk
 #include ScriptParser_Stack.ahk
 #include ScriptParser.ahk
-#include utilities.ahk
