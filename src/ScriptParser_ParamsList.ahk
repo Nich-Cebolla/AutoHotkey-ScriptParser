@@ -29,12 +29,15 @@ class ScriptParser_ParamsList extends Array {
         Split := StrSplit(Str, ',')
         this.Capacity := Split.Length
         for P in Split {
-            this.Push(ScriptParser_ParamsList.Param(P))
-            if this[-1].DefaultValue && RegExMatch(this[-1].DefaultValue, Replacement '(\d+)' Replacement, &Match) {
-                this[-1].DefaultValue := Trim(Replaced[Match[1]][0], '`s`t`r`n')
+            _p := ScriptParser_ParamsList.Param(P)
+            this.Push(_p)
+            if _p.DefaultValue {
+                while RegExMatch(_p.DefaultValue, Replacement '(\d+)' Replacement, &Match) {
+                    _p.DefaultValue := StrReplace(_p.DefaultValue, Match[0], Trim(Replaced[Match[1]][0], '`s`t`r`n'))
+                }
             }
-            if this[-1].Symbol && RegExMatch(this[-1].Symbol, Replacement '(\d+)' Replacement, &Match) {
-                this[-1].Symbol := Trim(Replaced[Match[1]][0], '`s`r`r`n')
+            while RegExMatch(_p.Symbol, Replacement '(\d+)' Replacement, &Match) {
+                _p.Symbol := StrReplace(_p.Symbol, Match[0], Trim(Replaced[Match[1]][0], '`s`t`r`n'))
             }
         }
 
@@ -54,15 +57,14 @@ class ScriptParser_ParamsList extends Array {
             }
         }
         __New(Str) {
-            if InStr(Str, '?') {
+            if pos := InStr(Str, ':=') {
+                this.Optional := true
+                this.Default := true
+                this.Symbol := Trim(SubStr(Str, 1, pos - 1), '`s`t`r`n')
+                this.DefaultValue := Trim(SubStr(Str, pos + 2), '`s`t`r`n')
+            } else if InStr(Str, '?') {
                 this.Optional := true
                 this.Symbol := Trim(SubStr(Str, 1, InStr(Str, '?') - 1), '`s`t`r`n')
-            } else if InStr(Str, ':=') {
-                this.Optional := true
-                split := StrSplit(Str, ':=', '`s`t`r`n')
-                this.Default := true
-                this.DefaultValue := split[2]
-                this.Symbol := split[1]
             } else if InStr(Str, '*') {
                 this.Variadic := this.Optional := true
                 this.Symbol := Trim(SubStr(Str, 1, InStr(Str, '*') - 1), '`s`t`r`n')
@@ -71,7 +73,7 @@ class ScriptParser_ParamsList extends Array {
             }
             if InStr(this.Symbol, '&') {
                 this.VarRef := true
-                this.Symbol := SubStr(this.Symbol, InStr(this.Symbol, '&') + 1)
+                this.Symbol := LTrim(this.Symbol, '&')
             }
         }
     }
