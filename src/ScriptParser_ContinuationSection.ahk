@@ -88,7 +88,6 @@ class ScriptParser_ContinuationSection {
         if !RegExMatch(this.Text, '[\w\W]*?' Operator '(.*)', &Match) {
             throw ValueError('Failed to find the operator within the input content.')
         }
-        this.PosStart := Pos
         this.PosLineStart := RegExMatch(StrGet(StringPtr, Pos - 1), '.*$')
         if Match[1] {
             this.Body := Match[1]
@@ -178,16 +177,16 @@ class ScriptParser_ContinuationSection {
         }
     }
 
-    Len[Name] => StrLen(this.%Name%)
+    /**
+     * @param {String} [Name] - If set, returns the string length of that property's value. If unset,
+     * returns the string length of {@link ScriptParser_ContinuationSection#Text}.
+     */
+    Len[Name?] => IsSet(Name) ? StrLen(this.%Name%) : StrLen(this.Text)
     Pos[Name?] {
         Get {
-            if !IsSet(Name) {
+            if !IsSet(Name) || Name = 'Text' {
                 return this.PosLineStart
-            }
-            if Name = 'Text' {
-                return this.PosStart
-            }
-            if Name = 'Body' {
+            } else {
                 return this.PosBody
             }
         }
