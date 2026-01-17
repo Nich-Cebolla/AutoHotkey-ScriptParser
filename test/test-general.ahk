@@ -81,8 +81,8 @@ class test {
             } else {
                 if !_Seek() {
                     Diffs.Push({ Result: 2, LineActual: la, LineExpected: eol, Actual: splita[la], Expected: splite[eol] })
-                la++
-                eol++
+                    la++
+                    eol++
                 }
             }
         }
