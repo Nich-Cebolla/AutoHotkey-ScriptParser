@@ -39,15 +39,15 @@
  * each property for details.
  *
  * @param {*} Obj - The object from which to get the properties.
- * @param {Integer|String} [StopAt=GPI_STOP_AT_DEFAULT ?? '-Object'] - If an integer, the number of
+ * @param {Integer|String} [StopAt = GPI_STOP_AT_DEFAULT ?? '-Object'] - If an integer, the number of
  * base objects to traverse up the inheritance chain. If a string, the name of the class to stop at.
  * You can define a global variable `GPI_STOP_AT_DEFAULT` to change the default value. If
  * GPI_STOP_AT_DEFAULT is unset, the default value is '-Object', which directs `GetPropsInfo` to
  * include properties owned by objects up to but not including `Object.Prototype`.
  * @see {@link GetBaseObjects} for full details about this parameter.
- * @param {String} [Exclude=''] - A comma-delimited, case-insensitive list of properties to exclude.
+ * @param {String} [Exclude = ''] - A comma-delimited, case-insensitive list of properties to exclude.
  * For example: "Length,Capacity,__Item".
- * @param {Boolean} [IncludeBaseProp=true] - If true, the object's `Base` property is included. If
+ * @param {Boolean} [IncludeBaseProp = true] - If true, the object's `Base` property is included. If
  * false, `Base` is excluded.
  * @param {VarRef} [OutBaseObjList] - A variable that will receive a reference to the array of
  * base objects that is generated during the function call.
@@ -268,7 +268,7 @@ class PropsInfo {
 
     /**
      * @description - Adds a filter to `PropsInfoObj.Filter`.
-     * @param {Boolean} [Activate=true] - If true, the filter is activated immediately.
+     * @param {Boolean} [Activate = true] - If true, the filter is activated immediately.
      * @param {...String|Func|Object} Filters - The filters to add. This parameter is variadic.
      * There are four built-in filters which you can include by integer:
      * - 1: Exclude all items that are not own properties of the root object.
@@ -629,7 +629,7 @@ class PropsInfo {
     /**
      * @description - Iterates the `PropsInfo` object, adding the `PropsInfoItem` objects to an array,
      * or adding the property names to an array.
-     * @param {Boolean} [NamesOnly=false] - If true, the property names are added to the array. If
+     * @param {Boolean} [NamesOnly = false] - If true, the property names are added to the array. If
      * false, the `PropsInfoItem` objects are added to the array.
      * @returns {Array} - The array of property names or `PropsInfoItem` objects.
      */
@@ -1190,7 +1190,7 @@ class PropsInfoItem {
      * property with a `Get` accessor, attempts to access and provide the value.
      * @param {VarRef} OutValue - Because `GetValue` is expected to sometimes fail, the property's
      * value is set to the `OutValue` variable, and a status code is returned by the function.
-     * @param {Boolean} [FromOwner=false] - When true, the object that produced this `PropsInfoItem`
+     * @param {Boolean} [FromOwner = false] - When true, the object that produced this `PropsInfoItem`
      * object is passed as the first parameter to the `Get` accessor. When false, the root object
      * (the object passed to the `GetPropsInfo` call) is passed as the first parameter to the `Get`
      * accessor.
