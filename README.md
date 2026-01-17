@@ -211,7 +211,7 @@ to the class' functionality. There are 14 collections.
 Each node represents a property, or an item returned by the enumerator. Since collection objects are
 `Map` objects, we see their items as key - value pairs. The tree-view is recursive
 and dynamic; nodes are generated when you expand the parent node, and all object values are expandable
-(unless an object has no properties or items).
+(unless an object has no properties and no items).
 
 <img src="images/scriptparser-3-nodes.png" style="width:100%;">
 
@@ -254,7 +254,7 @@ Be the first to submit a tool!
 
 This is a list and description of the available options to pass to `ScriptParser.Prototype.__New`.
 
-Only one of `Options.Content` or `Options.Path` need to be set. If `Options.Path` is set, `Options.Content`
+Only one of `Options.Content` or `Options.Path` needs to be set. If `Options.Path` is set, `Options.Content`
 is ignored.
 
 - **{String}** [ `Options.Content` ] - The script's code as string.
@@ -291,7 +291,9 @@ a `ScriptParser` object. The "Collection" objects all inherit from `Map`.
 
 The main property you will work with will be "Collection", which returns a
 [ScriptParser_Collection](https://github.com/Nich-Cebolla/AutoHotkey-ScriptParser/blob/main/src/ScriptParser_Collection.ahk)
-object. There are 14 collections, each representing a type of component that `ScriptParser` processes.
+object. There are 14 collections, 13 of which represent a type of component that `ScriptParser` processes.
+The outlier is "Included" which is set when `Options.Included` is set. See [ScriptParser_GetIncluded](#scriptparser_getincluded)
+for more information.
 
 |Property name|Type of collection|
 |-|-|
