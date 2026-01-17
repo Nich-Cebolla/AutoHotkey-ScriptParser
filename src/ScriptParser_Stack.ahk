@@ -23,14 +23,14 @@ class ScriptParser_Stack extends Array {
         ; Calculate start line for the definition statement
         LineStart := Line + linecount
         ; Calculate start column for the definition statement
-        ColStart := CS.Pos['text'] - CS.Pos
+        ColStart := CS.Pos['text'] - CS.Pos + 1
         ; Get line count of definition statement
         StrReplace(CS['text'], Script.EndOfLine, , , &linecount)
         ; Calculate end line for the definition statement
         LineEnd := LineStart + linecount
         ; Calculate end column
         if LineEnd == LineStart {
-            ColEnd := ColStart + CS.Len['text']
+            ColEnd := ColStart + CS.Len['text'] - 1
         } else {
             ColEnd := CS.Len['text'] - InStr(CS['text'], Script.EndOfLine, , , -1)
         }
