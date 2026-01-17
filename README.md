@@ -273,7 +273,7 @@ is ignored.
 
 # The ScriptParser object
 
-The following is a list of properties and short description of the primary properties accessible from
+The following is a list and short description of the primary properties accessible from
 a `ScriptParser` object. The "Collection" objects all inherit from `Map`.
 
 |Property name|Type|What the property value represents|
