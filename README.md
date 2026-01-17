@@ -386,7 +386,7 @@ characters.
 Comments are divided into four types, "CommentBlock", "CommentMultiLine",
 "CommentSingleLine", and "Jsdoc". When the comment is parsed, the next line
 underneath the comment is included in the match. `ScriptParser` uses this to
-associate the comment with what is underneath it. If the line underneath it is
+associate the comment with the text beneath it. If the line underneath it is
 associated with a component object, and if the component is a function, method, property, or class,
 the comment object will have a property "CommentParent" which will return the object for the line
 underneath the comment, and the object for the line underneath the comment will have a property
