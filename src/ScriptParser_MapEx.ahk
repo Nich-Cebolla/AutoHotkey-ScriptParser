@@ -3,7 +3,7 @@ class ScriptParser_MapEx extends Map {
 
     /**
      * @description - The class instance constructor.
-     * @param {Boolean} [CaseSense=true] - Whether the map is case sensitive.
+     * @param {Boolean} [CaseSense = true] - Whether the map is case sensitive.
      * @param {Any} [Default] - The default value.
      * @param {Any[]} [Items] - The items to add to the map.
      * @example
