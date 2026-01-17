@@ -447,7 +447,6 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
       - Removed unnecessary global variables: SPP_DEFINE_QUOTE, SPP_PARAMS, SPP_NEXT_LINE.
     - src\ScriptParser_Stack.ahk:
       - Unused classes, methods, and properties:
-        - `ScriptParser_Stack.ContextMap`
         - `ScriptParser_Stack.BuildScopeMap`
         - `ScriptParser_Stack.GetContext`
         - `ScriptParser_Stack.ContextMap`
