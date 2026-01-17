@@ -642,19 +642,19 @@ GetPropDesc(Obj, Prop, &OutObj?, &OutIndex?) {
  * - {@link https://www.autohotkey.com/docs/v2/Objects.htm#Meta_Functions}
  *
  * @param {*} Obj - The object from which to get the properties.
- * @param {Integer|String} [StopAt=GPI_STOP_AT_DEFAULT ?? '-Object'] - If an integer, the number of
+ * @param {Integer|String} [StopAt = GPI_STOP_AT_DEFAULT ?? '-Object'] - If an integer, the number of
  * base objects to traverse up the inheritance chain. If a string, the name of the class to stop at.
  * You can define a global variable `GPI_STOP_AT_DEFAULT` to change the default value. If
  * GPI_STOP_AT_DEFAULT is unset, the default value is '-Object', which directs `GetPropsInfo` to
  * include properties owned by objects up to but not including `Object.Prototype`.
  * @see {@link GetBaseObjects} for full details about this parameter.
- * @param {String} [Exclude=''] - A comma-delimited, case-insensitive list of properties to exclude.
+ * @param {String} [Exclude = ''] - A comma-delimited, case-insensitive list of properties to exclude.
  * For example: "Length,Capacity,__Item".
- * @param {Boolean} [IncludeBaseProp=true] - If true, the object's `Base` property is included. If
+ * @param {Boolean} [IncludeBaseProp = true] - If true, the object's `Base` property is included. If
  * false, `Base` is excluded.
  * @param {VarRef} [OutBaseObjList] - A variable that will receive a reference to the array of
  * base objects that is generated during the function call.
- * @param {Boolean} [ExcludeMethods=false] - If true, callable properties are excluded. Note that
+ * @param {Boolean} [ExcludeMethods = false] - If true, callable properties are excluded. Note that
  * properties with a value that is a class object are unaffected by `ExcludeMethods`.
  * @returns {PropsInfo}
  */
@@ -1490,7 +1490,7 @@ class PropsInfo {
 
     /**
      * @description - Adds a filter to `PropsInfoObj.Filter`.
-     * @param {Boolean} [Activate=true] - If true, the filter is activated immediately.
+     * @param {Boolean} [Activate = true] - If true, the filter is activated immediately.
      * @param {...String|Func|Object} Filters - The filters to add. This parameter is variadic.
      * There are four built-in filters which you can include by integer:
      * - 1: Exclude all items that are not own properties of the root object.
@@ -1848,20 +1848,20 @@ class PropsInfo {
      * `PropsInfoItem` object is always associated with either the root object or the object from
      * which the root object inherits the property.
      *
-     * @param {Integer|String} [StopAt=GPI_STOP_AT_DEFAULT ?? '-Object'] - If an integer, the number of
+     * @param {Integer|String} [StopAt = GPI_STOP_AT_DEFAULT ?? '-Object'] - If an integer, the number of
      * base objects to traverse up the inheritance chain. If a string, the name of the class to stop at.
      * You can define a global variable `GPI_STOP_AT_DEFAULT` to change the default value. If
      * GPI_STOP_AT_DEFAULT is unset, the default value is '-Object', which directs
      * `PropsInfo.Prototype.Refresh` to include properties owned by objects up to but not including
      * `Object.Prototype`.
      * @see {@link GetBaseObjects} for full details about this parameter.
-     * @param {String} [Exclude=''] - A comma-delimited, case-insensitive list of properties to exclude.
+     * @param {String} [Exclude = ''] - A comma-delimited, case-insensitive list of properties to exclude.
      * For example: "Length,Capacity,__Item".
-     * @param {Boolean} [IncludeBaseProp=true] - If true, the object's `Base` property is included. If
+     * @param {Boolean} [IncludeBaseProp = true] - If true, the object's `Base` property is included. If
      * false, `Base` is excluded.
      * @param {VarRef} [OutBaseObjList] - A variable that will receive a reference to the array of
      * base objects that is generated during the function call.
-     * @param {Boolean} [ExcludeMethods=false] - If true, callable properties are excluded. Note that
+     * @param {Boolean} [ExcludeMethods = false] - If true, callable properties are excluded. Note that
      * properties with a value that is a class object are unaffected by `ExcludeMethods`.
      * @returns {PropsInfoItem[]|String} - If any items are removed from the collection they are
      * added to an array to be returned. Else, returns an empty string.
@@ -1978,7 +1978,7 @@ class PropsInfo {
      *
      * @param {String} Names - A comma-delimited list of property names to update. For example,
      * "__Class,Length".
-     * @param {Integer|String} [StopAt=GPI_STOP_AT_DEFAULT ?? '-Object'] - If an integer, the number of
+     * @param {Integer|String} [StopAt = GPI_STOP_AT_DEFAULT ?? '-Object'] - If an integer, the number of
      * base objects to traverse up the inheritance chain. If a string, the name of the class to stop at.
      * You can define a global variable `GPI_STOP_AT_DEFAULT` to change the default value. If
      * GPI_STOP_AT_DEFAULT is unset, the default value is '-Object', which directs
@@ -2110,7 +2110,7 @@ class PropsInfo {
     /**
      * @description - Iterates the `PropsInfo` object, adding the `PropsInfoItem` objects to an array,
      * or adding the property names to an array.
-     * @param {Boolean} [NamesOnly=false] - If true, the property names are added to the array. If
+     * @param {Boolean} [NamesOnly = false] - If true, the property names are added to the array. If
      * false, the `PropsInfoItem` objects are added to the array.
      * @returns {Array} - The array of property names or `PropsInfoItem` objects.
      */
@@ -3123,7 +3123,7 @@ class PropsInfoItem {
      * property with a `Get` accessor, attempts to access and provide the value.
      * @param {VarRef} OutValue - Because `GetValue` is expected to sometimes fail, the property's
      * value is set to the `OutValue` variable, and a status code is returned by the function.
-     * @param {Boolean} [FromOwner=false] - When true, the object that produced this `PropsInfoItem`
+     * @param {Boolean} [FromOwner = false] - When true, the object that produced this `PropsInfoItem`
      * object is passed as the first parameter to the `Get` accessor. When false, the root object
      * (the object passed to the `GetPropsInfo` call) is passed as the first parameter to the `Get`
      * accessor.
@@ -5286,7 +5286,7 @@ class TabEx extends Gui.Tab {
     }
 
     /**
-     * @param {Boolean} [Scope=false] - Flag that specifies the scope of the item deselection. If this
+     * @param {Boolean} [Scope = false] - Flag that specifies the scope of the item deselection. If this
      * parameter is set to FALSE, all tab items will be reset. If it is set to TRUE, then all tab
      * items except for the one currently selected will be reset.
      */
@@ -6786,14 +6786,14 @@ class Container_Date {
      *  MsgBox(Date.Match['animal']) ; horse
      * @
      *
-     * @param {String} [RegExOptions=""] - The RegEx options to add to the beginning of the pattern.
+     * @param {String} [RegExOptions = ""] - The RegEx options to add to the beginning of the pattern.
      * Include the close parenthesis, e.g. "i)".
-     * @param {Boolean} [SubcaptureGroup=true] - When true, each \t escaped format group is captured
+     * @param {Boolean} [SubcaptureGroup = true] - When true, each \t escaped format group is captured
      * in an unnamed subcapture group. When false, the function does not include any additional
      * subcapture groups.
      * @param {Boolean} [Century] - The century to use when parsing a 1- or 2-digit year. If not set,
      * the current century is used.
-     * @param {Boolean} [Validate=false] - When true, the values of each property are validated
+     * @param {Boolean} [Validate = false] - When true, the values of each property are validated
      * before the function completes. The values are validated numerically, and if any value exceeds
      * the maximum value for that property, an error is thrown. For example, if the month is greater
      * than 12 or the hour is greater than 24, an error is thrown.
@@ -7421,9 +7421,9 @@ class Container_DateParser {
      * @description - Creates a `Container_DateParser` object that can be reused to create {@link Container_Date} objects.
      * @param {String} DateFormat - The format of the date string. See the {@link Container_Date.Call}
      * description for details.
-     * @param {String} [RegExOptions=""] - The RegEx options to add to the beginning of the pattern.
+     * @param {String} [RegExOptions = ""] - The RegEx options to add to the beginning of the pattern.
      * Include the close parenthesis, e.g. "i)".
-     * @param {Boolean} [SubcaptureGroup=true] - When true, each \t escaped format group is captured
+     * @param {Boolean} [SubcaptureGroup = true] - When true, each \t escaped format group is captured
      * in an unnamed subcapture group. When false, the function does not include any additional
      * subcapture groups.
      * @returns {Container_DateParser} - The `Container_DateParser` object.
@@ -7505,7 +7505,7 @@ class Container_DateParser {
      * @param {String} DateStr - The date string to parse.
      * @param {String} [Century] - The century to use when parsing a 1- or 2-digit year. If not set,
      * the current century is used.
-     * @param {Boolean} [Validate=false] - When true, the values of each property are validated
+     * @param {Boolean} [Validate = false] - When true, the values of each property are validated
      * before the function completes. The values are validated numerically, and if any value exceeds
      * the maximum value for that property, an error is thrown. For example, if the month is greater
      * than 13 or the hour is greater than 24, an error is thrown.
@@ -10407,7 +10407,7 @@ class Container extends Array {
      *
      * @param {Vthisef} [OutValue] - A variable that will receive the raw value at the found index.
      *
-     * @param {String} [Condition='>='] - The inequality symbol indicating what condition satisfies
+     * @param {String} [Condition = '>='] - The inequality symbol indicating what condition satisfies
      * the search. Valid values are:
      * - ">": `QuickFind` returns the index of the first value greater than the input value.
      * - ">=": `QuickFind` returns the index of the first value greater than or equal to the input value.
@@ -11076,7 +11076,7 @@ class Container extends Array {
      *
      * @param {Vthisef} [OutValue] - A variable that will receive the raw value at the found index.
      *
-     * @param {String} [Condition='>='] - The inequality symbol indicating what condition satisfies
+     * @param {String} [Condition = '>='] - The inequality symbol indicating what condition satisfies
      * the search. Valid values are:
      * - ">": `QuickFind` returns the index of the first value greater than the input value.
      * - ">=": `QuickFind` returns the index of the first value greater than or equal to the input value.
@@ -17143,15 +17143,15 @@ WinRectUpdate(wrc) {
  *  }
  * @
  * @param {Array} List - The array containing the objects to be ordered.
- * @param {String} [Primary='X'] - Determines which axis is primarily considered when ordering
+ * @param {String} [Primary = 'X'] - Determines which axis is primarily considered when ordering
  * the objects. When comparing two objects, if their positions along the Primary axis are
  * equal, then the alternate axis is compared and used to break the tie. Otherwise, the alternate
  * axis is ignored for that pair.
  * - X: Check horizontal first.
  * - Y: Check vertical first.
- * @param {Boolean} [LeftToRight=true] - If true, the objects are ordered in ascending order
+ * @param {Boolean} [LeftToRight = true] - If true, the objects are ordered in ascending order
  * along the X axis when the X axis is compared.
- * @param {Boolean} [TopToBottom=true] - If true, the objects are ordered in ascending order
+ * @param {Boolean} [TopToBottom = true] - If true, the objects are ordered in ascending order
  * along the Y axis when the Y axis is compared.
  */
 OrderRects(List, Primary := 'X', LeftToRight := true, TopToBottom := true) {
