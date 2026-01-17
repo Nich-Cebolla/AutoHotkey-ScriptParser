@@ -427,9 +427,34 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
 
 - **2026-01-16** v1.0.6
   - Change:
-    - define.ahk:
-      - Removed unnecessary global variables.
-      - Consolidated repeated string values into local variables.
+    - src\ScriptParser.ahk:
+      - Error message for mixed line-endings to include more detail.
+  - Fix:
+    - src\ScriptParser_Ahk.ahk
+      - Methods, functions, and dynamic properties to correctly parse parameters.
+    - src\ScriptParser_Stack.ahk
+      - Column indices to be reported as a 1-based index.
+    - src\ScriptParser_ContinuationSection.ahk
+      - Properties `ScriptParser_ContinuationSection.Prototype.Len`,
+        `ScriptParser_ContinuationSection.Prototype.Pos`, and `ScriptParser_ContinuationSectionObj.PosStart`
+        to return the correct position.
+    - src\ScriptParser_ParamsList.ahk
+      - `ScriptParser_ParamsList` to correctly parse parameter symbols.
+  - Remove:
+    - src\define.ahk:
+      - Removed unnecessary global variables: SPP_DEFINE_QUOTE, SPP_PARAMS, SPP_NEXT_LINE.
+    - src\ScriptParser_Stack.ahk:
+      - Unused classes, methods, and properties:
+        - `ScriptParser_Stack.ContextMap`
+        - `ScriptParser_Stack.BuildScopeMap`
+        - `ScriptParser_Stack.GetContext`
+        - `ScriptParser_Stack.ContextMap`
+        - `ScriptParser_Stack.ScopeMap`
+    - src\utilities.ahk
+      - Removed the entire file, which contained class `ScriptParser_Auto`.
+  - Docs:
+    - src\ScriptParser.ahk, src\ScriptParser_ContinuationSection.ahk, src\ScriptParser_FillStr.ahk, test\demo.ahk
+      - Improved documentation
 
 - **2025-12-14** v1.0.5
   - Change:
