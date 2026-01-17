@@ -2,7 +2,6 @@
 class ScriptParser_Stack extends Array {
     __New(BaseObj) {
         this.Active := BaseObj
-        this.ContextMap := ScriptParser_Stack.ContextMap()
         this.ActiveClass :=this.NextClass := ''
         this.ClassList := []
         this.PosEnd := this.Pos := this.Line := 1
@@ -10,25 +9,6 @@ class ScriptParser_Stack extends Array {
     Add(Name, Pos, PosEnd, ParentContext) {
         Constructor := this.__Constructor
         return Constructor(Name, Pos, PosEnd, ParentContext)
-    }
-    BuildScopeMap() {
-        this.ScopeMap := ScriptParser_Stack.ScopeMap()
-        this.PosList.Capacity := this.ContextMap.Count
-        for Pos, Context in this.ContextMap {
-            this.PosList.Push(Pos)
-        }
-    }
-    GetContext(Pos) {
-        i := 0
-        for _Pos in this.PosList {
-            Context := this.ContextMap[_Pos]
-            if Context.Pos < Pos && Context.PosEnd > Pos {
-                c := Context
-            } else if Context.Pos > pos {
-                break
-            }
-        }
-        return c ?? ''
     }
     In(Script, Name, CS, ComponentConstructor, Match, Pos?, Line?) {
         this.Push(this.Active)
@@ -93,7 +73,6 @@ class ScriptParser_Stack extends Array {
         return Component
     }
     Out() {
-        this.ContextMap.Set(this.Active.Pos, this.Active)
         if this.Active.IsClass {
             this.ActiveClass := this.ClassList.Pop()
         }
@@ -116,14 +95,6 @@ class ScriptParser_Stack extends Array {
 
     Depth => this.Length
     Len => this.PosEnd - this.Pos
-
-    class ContextMap extends ScriptParser_MapEx {
-
-    }
-
-    class ScopeMap extends ScriptParser_MapEx {
-
-    }
 
     class Context {
         static Call(Name, Pos, PosEnd, ParentContext) {
