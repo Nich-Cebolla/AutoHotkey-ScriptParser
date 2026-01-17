@@ -284,7 +284,9 @@ ScriptParser_SetConstants(force := false) {
         next_line
     )
 
-    /** @var - Parses a replacement string into its parts. */
+    /**
+     * @var - Parses a replacement string into its parts.
+     */
     SPP_REPLACEMENT := '{1}(?<collection>\d+){1}(?<index>\d+)'
 
     local i := 0
