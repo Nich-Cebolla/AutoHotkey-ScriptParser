@@ -427,6 +427,11 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
 
 # Changelog
 
+- **2026-01-16** v1.0.7
+  - Fix:
+    - src\ScriptParser.ahk:
+      - `ScriptParser_ComponentBase.Prototype.__New` to correctly define property "Name".
+
 - **2026-01-16** v1.0.6
   - Change:
     - src\ScriptParser.ahk:
