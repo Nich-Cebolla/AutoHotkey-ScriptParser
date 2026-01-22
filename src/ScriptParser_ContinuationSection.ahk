@@ -88,7 +88,7 @@ class ScriptParser_ContinuationSection {
         if !RegExMatch(this.Text, '[\w\W]*?' Operator '(.*)', &Match) {
             throw ValueError('Failed to find the operator within the input content.')
         }
-        this.PosLineStart := RegExMatch(StrGet(StringPtr, Pos - 1), '.*$')
+        this.PosLineStart := Pos
         if Match[1] {
             this.Body := Match[1]
             this.PosBody := Match.Pos[1] + Pos
