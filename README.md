@@ -427,6 +427,11 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
 
 # Changelog
 
+- **2026-01-16** v1.0.8
+  - Fix:
+    - src\ScriptParser_ContinuationSection.ahk:
+      - Property "PosLineStart" to be set with the starting position of the match.
+
 - **2026-01-16** v1.0.7
   - Fix:
     - src\ScriptParser.ahk:
