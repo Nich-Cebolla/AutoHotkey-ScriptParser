@@ -23,7 +23,7 @@ class ScriptParser_ComponentBase {
                 Path := this.__Stack.Path
                 this.DefineProp('Name', { Value: SubStr(Path, 1, InStr(Path, '.', , , -1)) 'Prototype.' SubStr(Path, InStr(Path, '.', , , -1) + 1) })
             } else {
-                this.DefineProp('Name', { Get: (Self) => Self.__Stack.Path })
+                this.DefineProp('Name', { Value: this.__Stack.Path })
             }
             this.__Stack.__ComponentIdu := this.__idu
             this.Path := Stack.Active.Path
