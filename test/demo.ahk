@@ -19276,12 +19276,6 @@ class TreeViewEx_LogFont extends TreeViewExStructBase {
         this.%Name% := Value
         this.Apply()
     }
-    __Delete() {
-        if this.Handle {
-            DllCall(g_gdi32_DeleteObject, 'ptr', this.Handle)
-            this.Handle := 0
-        }
-    }
     /**
      * Gets or sets the character set.
      * @memberof Logfont
