@@ -141,7 +141,7 @@ class ScriptParser_Ahk {
 
         class Jsdoc extends ScriptParser_Ahk.Component.Comment {
 
-            GetCommentText(JoinChar := '`r`n') {
+            GetCommentText(JoinChar := this.Script.EndOfLine) {
                 return Trim(RegExReplace(this.Match['comment'], '\R[ \t]*?\* ?', JoinChar), '`r`n')
             }
         }
@@ -156,14 +156,14 @@ class ScriptParser_Ahk {
 
         class CommentBlock extends ScriptParser_Ahk.Component.Comment {
 
-            GetCommentText(JoinChar := '`r`n') {
+            GetCommentText(JoinChar := this.Script.EndOfLine) {
                 return Trim(RegExReplace(RegExReplace(this.Text, '^[ \t]*;[ \t]*', ''), '\R[ \t]*;[ \t]*', JoinChar), '`r`n')
             }
         }
 
         class CommentMultiLine extends ScriptParser_Ahk.Component.Comment {
 
-            GetCommentText(JoinChar := '`r`n') {
+            GetCommentText(JoinChar := this.Script.EndOfLine) {
                 return Trim(RegExReplace(this.Match['comment'], '\R[ \t]*', JoinChar), '`r`n')
             }
         }
@@ -172,7 +172,7 @@ class ScriptParser_Ahk {
             GetCommentText(*) {
                 throw Error('This method must be overridden by the inheritor.', , A_ThisFunc)
             }
-            TextComment[JoinChar := '`r`n'] => this.GetCommentText(JoinChar)
+            TextComment[JoinChar := this.Script.EndOfLine] => this.GetCommentText(JoinChar)
         }
 
         class String extends ScriptParser_ComponentBase {
