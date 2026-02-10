@@ -427,6 +427,18 @@ or the "Included" property of the `ScriptParser_Collection` object (e.g. `Script
 
 # Changelog
 
+- **2026-02-09** v1.0.9
+  - Fix:
+    - src\ScriptParser.ahk:
+      - Property "EndOfLine" to be defined as `Options.Eol` when defined.
+    - src\ScriptParser_Ahk.ahk:
+      - Method `ScriptParser_Ahk.Component.Jsdoc.Prototype.GetCommentText` to correctly remove the
+        leading indentation and "*" character.
+  - Change:
+    - src\ScriptParser_Ahk.ahk:
+      - Method `ScriptParser_Ahk.Component.Jsdoc.Prototype.GetCommentText` default value of `JoinChar`
+        is now `ScriptParser_Ahk.Component.Jsdoc.Prototype.Script.EndOfLine`.
+
 - **2026-01-16** v1.0.8
   - Fix:
     - src\ScriptParser_ContinuationSection.ahk:
