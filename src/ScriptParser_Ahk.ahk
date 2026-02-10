@@ -142,7 +142,7 @@ class ScriptParser_Ahk {
         class Jsdoc extends ScriptParser_Ahk.Component.Comment {
 
             GetCommentText(JoinChar := '`r`n') {
-                return Trim(RegExReplace(this.Match['comment'], '\R?[ \t]*?\* ?', JoinChar), '`r`n')
+                return Trim(RegExReplace(this.Match['comment'], '\R[ \t]*?\* ?', JoinChar), '`r`n')
             }
         }
 
