@@ -51,12 +51,14 @@ class ScriptParser {
             } else {
                 this.__Content := FileRead(Options.Path, Options.Encoding || unset)
             }
+            this.EndOfLine := Options.EndOfLine
         } else if Options.Content {
             if Options.EndOfLine {
                 this.__Content := RegExReplace(Options.Content, '\R', Options.EndOfLine)
             } else {
                 this.__Content := Options.Content
             }
+            this.EndOfLine := Options.EndOfLine
         } else {
             throw Error('``ScriptParser`` requires either ``Options.Content`` or ``Options.Path`` to be set.')
         }
